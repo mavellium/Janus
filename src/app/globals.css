@@ -1,3 +1,27 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-primary: #514030;
+    --brand-text: #161718;
+    --brand-btn-dark: #161718;
+    --brand-btn-light: #DCDCDC;
+    --brand-hover: #7A614A;
+    --brand-muted: #C8C8C8;
+    --brand-bg: #FFFFFF;
+  }
+
+  body {
+    color: var(--brand-text);
+    background-color: var(--brand-bg);
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+}

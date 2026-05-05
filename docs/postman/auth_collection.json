@@ -1,0 +1,74 @@
+{
+  "info": {
+    "name": "Janus - Auth API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Sign In (Credentials)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/auth/callback/credentials",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "callback", "credentials"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"yourpassword\",\n  \"csrfToken\": \"{{csrf_token}}\",\n  \"callbackUrl\": \"/dashboard\",\n  \"json\": true\n}"
+        }
+      }
+    },
+    {
+      "name": "Get Session",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Cookie", "value": "next-auth.session-token={{session_token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/auth/session",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "session"]
+        }
+      }
+    },
+    {
+      "name": "Get CSRF Token",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/auth/csrf",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "csrf"]
+        }
+      }
+    },
+    {
+      "name": "Sign Out",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/auth/signout",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "signout"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"csrfToken\": \"{{csrf_token}}\",\n  \"callbackUrl\": \"/login\",\n  \"json\": true\n}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000" },
+    { "key": "csrf_token", "value": "" },
+    { "key": "session_token", "value": "" }
+  ]
+}
