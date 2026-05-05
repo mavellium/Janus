@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Janus
 
-## Getting Started
+Sistema web fullstack — Next.js + Prisma + PostgreSQL.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** — App Router, Server Components, Server Actions
+- **React 19** — useActionState, useTransition
+- **Prisma 7** — ORM e migrations
+- **PostgreSQL** — banco de dados
+- **TypeScript 5** — tipagem estrita
+- **Tailwind CSS 3** — estilização
+- **shadcn/ui** + **Radix UI** — componentes
+- **Zod 4** — validação
+- **Vitest 4** + **Testing Library** — testes
+- **lucide-react** — ícones
+
+## Pré-requisitos
+
+- Node.js 20+
+- PostgreSQL rodando (local ou Docker)
+
+## Instalação
 
 ```bash
+git clone https://github.com/sua-org/janus.git
+cd janus
+npm install
+cp .env.example .env   # preencher DATABASE_URL
+npm run db:migrate
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## .env
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/janus"
+```
 
-## Learn More
+## Comandos
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run dev           # desenvolvimento
+npm run build         # build de produção
+npm run start         # iniciar produção
+npm run typecheck     # verificar tipos
+npm run lint          # ESLint
+npm run test          # testes
+npm run test:coverage # cobertura
+npm run db:migrate    # nova migration
+npm run db:studio     # Prisma Studio
+npm run db:seed       # seed de desenvolvimento
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Documentação
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `CLAUDE.md` — contexto para o Claude Code
+- `PROJECT.md` — registro de tudo que existe no projeto
+- `docs/workflows/` — guias de desenvolvimento
