@@ -46,11 +46,13 @@ _Nenhum model criado ainda._
 
 ## Últimas alterações
 
-| Data       | Arquivo              | O que foi feito                                            |
-| :--------- | :------------------- | :--------------------------------------------------------- |
-| 2026-05-05 | `src/lib/prisma.ts`  | Criado singleton do Prisma (export `db`)                   |
-| 2026-05-05 | `src/lib/utils.ts`   | Adicionados `formatCurrency` e `formatDate` ao `cn`        |
-| 2026-05-05 | `vitest.config.ts`   | Configurado Vitest com jsdom, globals e alias `@/*`        |
-| 2026-05-05 | `src/test/setup.ts`  | Setup do Testing Library (`jest-dom/vitest`)               |
-| 2026-05-05 | `package.json`       | Instalado `@testing-library/jest-dom` e `jsdom` (devDeps)  |
-| 2026-05-05 | `src/modules/`       | Criada pasta base do domínio                               |
+| Data       | Arquivo              | O que foi feito                                                      |
+| :--------- | :------------------- | :------------------------------------------------------------------- |
+| 2026-05-05 | `src/lib/prisma.ts`  | Singleton do Prisma com Prisma 7 (export `db`)                       |
+| 2026-05-05 | `src/lib/utils.ts`   | `cn`, `formatCurrency` (BRL), `formatDate` (pt-BR)                    |
+| 2026-05-05 | `vitest.config.ts`   | Vitest com jsdom, globals, alias `@/*`, setupFiles                   |
+| 2026-05-05 | `src/test/setup.ts`  | Testing Library setup (`jest-dom/vitest`)                            |
+| 2026-05-05 | `package.json`       | Instalado `@testing-library/jest-dom`, `jsdom` (devDeps)              |
+| 2026-05-05 | `prisma.config.ts`   | Configurado datasource URL via env vars (Prisma 7)                    |
+| 2026-05-05 | `src/app/globals.css`| Simplificado para @tailwind base/components/utilities                 |
+| 2026-05-05 | commit `79ae254`     | **setup:** initial project structure and dev environment (master)     |
