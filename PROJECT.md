@@ -54,8 +54,8 @@
 
 ## Infraestrutura e Auth
 
-- `src/lib/auth.config.ts` — NextAuthConfig puro (Edge Runtime safe): jwt e session callbacks para id/role
-- `middleware.ts` — proteção explícita: redireciona deslogados em `/` e `/dashboard/*` para `/login`; redireciona logados em `/login` para `/dashboard`; matcher: `/((?!api|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg).*)`
+- `src/lib/auth.config.ts` — NextAuthConfig oficial v5: session JWT + callback authorized (proteção de rotas) + callbacks jwt/session para id/role
+- `middleware.ts` — NextAuth(authConfig).auth (padrão oficial); matcher: `/((?!api|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg).*)`
 - `src/lib/auth.ts` — NextAuth v5 com Credentials Provider e PrismaAdapter
 - `src/app/api/auth/[...nextauth]/route.ts` — Route Handler do Auth.js (GET, POST)
 - `src/types/next-auth.d.ts` — augmentação de tipos: id e role na Session/JWT
@@ -93,5 +93,5 @@
 | 2026-05-05 | `docs/postman/auth_collection.json`           | Coleção Postman: endpoints Auth.js                         |
 | 2026-05-05 | `.env.example`                                | Template de variáveis de ambiente                          |
 | 2026-05-05 | `src/modules/users/domain/User.spec.ts`       | 6 testes unitários do domínio User                         |
-| 2026-05-06 | `middleware.ts`                               | Proteção explícita de rotas: deslogados → /login, logados em /login → /dashboard |
-| 2026-05-06 | `src/lib/auth.config.ts`                      | Simplificado para ser puro (Edge Runtime): apenas callbacks jwt/session         |
+| 2026-05-06 | `src/lib/auth.config.ts`                      | Implementado padrão oficial Auth.js v5: session JWT + callback authorized      |
+| 2026-05-06 | `middleware.ts`                               | Simplificado para NextAuth(authConfig).auth (padrão oficial)                   |
