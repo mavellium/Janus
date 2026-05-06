@@ -5,15 +5,18 @@ import { NextResponse } from 'next/server'
 const { auth } = NextAuth(authConfig)
 
 export default auth((req) => {
-  const isLoggedIn = !!req.auth
+  const hasAuth = !!req.auth
   const pathname = req.nextUrl.pathname
-  const isAuthPage = pathname === '/login' || pathname === '/register'
 
-  if (isAuthPage && isLoggedIn) {
+  if (!hasAuth && (pathname === '/' || pathname.startsWith('/dashboard'))) {
+    return NextResponse.redirect(new URL('/login', req.nextUrl))
+  }
+
+  if (hasAuth && pathname === '/login') {
     return NextResponse.redirect(new URL('/dashboard', req.nextUrl))
   }
 })
 
 export const config = {
-  matcher: ['/', '/dashboard/:path*', '/login', '/register'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg).*)'],
 }
