@@ -54,8 +54,9 @@
 
 ## Infraestrutura e Auth
 
-- `src/lib/auth.config.ts` — NextAuthConfig base com callback `authorized` para proteção de rotas (nega acesso a não-autenticados em rotas não-públicas)
-- `middleware.ts` — matcher specificamente: `/`, `/dashboard/:path*`, `/login`, `/register`; redireciona autenticados em `/login`/`/register` para `/dashboard`
+- `src/lib/auth.config.ts` — NextAuthConfig puro (Edge Runtime safe): jwt e session callbacks para id/role
+- `middleware.ts` — proteção explícita: redireciona deslogados em `/` e `/dashboard/*` para `/login`; redireciona logados em `/login` para `/dashboard`; matcher: `/((?!api|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg).*)`
+- `src/lib/auth.ts` — NextAuth v5 com Credentials Provider e PrismaAdapter
 - `src/app/api/auth/[...nextauth]/route.ts` — Route Handler do Auth.js (GET, POST)
 - `src/types/next-auth.d.ts` — augmentação de tipos: id e role na Session/JWT
 - `.env.example` — template de variáveis: DATABASE_URL e AUTH_SECRET
@@ -92,8 +93,5 @@
 | 2026-05-05 | `docs/postman/auth_collection.json`           | Coleção Postman: endpoints Auth.js                         |
 | 2026-05-05 | `.env.example`                                | Template de variáveis de ambiente                          |
 | 2026-05-05 | `src/modules/users/domain/User.spec.ts`       | 6 testes unitários do domínio User                         |
-| 2026-05-06 | `src/lib/auth.config.ts`                      | NextAuthConfig separado para Edge Runtime compatibility    |
-| 2026-05-06 | `src/lib/auth.ts`                             | Atualizado: PrismaAdapter + imports de auth.config         |
-| 2026-05-06 | `middleware.ts`                               | Lógica bidirecional: protege /dashboard e redireciona auth |
-| 2026-05-06 | `src/lib/auth.config.ts`                      | Adicionado callback authorized para proteção de rotas      |
-| 2026-05-06 | `middleware.ts`                               | Matcher refinado: ['/', '/dashboard/:path*', '/login', '/register'] |
+| 2026-05-06 | `middleware.ts`                               | Proteção explícita de rotas: deslogados → /login, logados em /login → /dashboard |
+| 2026-05-06 | `src/lib/auth.config.ts`                      | Simplificado para ser puro (Edge Runtime): apenas callbacks jwt/session         |
