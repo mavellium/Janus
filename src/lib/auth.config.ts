@@ -4,6 +4,23 @@ export const authConfig = {
   pages: { signIn: '/login' },
   providers: [],
   callbacks: {
+    authorized({ auth, request }) {
+      const pathname = request.nextUrl.pathname
+      const isLoggedIn = !!auth?.user
+
+      const publicRoutes = ['/login', '/register']
+      const isPublicRoute = publicRoutes.includes(pathname)
+
+      if (!isLoggedIn && !isPublicRoute) {
+        return false
+      }
+
+      if (isLoggedIn && isPublicRoute) {
+        return true
+      }
+
+      return true
+    },
     jwt({ token, user }) {
       if (user) {
         token.id = user.id
