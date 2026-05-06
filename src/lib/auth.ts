@@ -23,26 +23,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        console.log("=== AUTHORIZE RECEBEU ===", credentials)
         const parsed = credentialsSchema.safeParse(credentials)
-        if (!parsed.success) {
-          console.log("=== ERRO ZOD ===", parsed.error)
-          return null
-        }
+        if (!parsed.success) return null
 
         const user = await getUserByEmail(parsed.data.email)
-        if (!user) {
-          console.log("=== USUARIO NAO ENCONTRADO ===", parsed.data.email)
-          return null
-        }
+        if (!user) return null
 
         const isValid = await compare(parsed.data.password, user.password)
-        if (!isValid) {
-          console.log("=== SENHA INVALIDA ===")
-          return null
-        }
+        if (!isValid) return null
 
-        console.log("=== LOGIN SUCESSO ===", user.email)
         return { id: user.id, email: user.email, role: user.role }
       },
     }),
