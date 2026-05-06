@@ -1,9 +1,26 @@
 import type { NextAuthConfig } from 'next-auth'
+import { NextResponse } from 'next/server'
 
 export const authConfig = {
   pages: { signIn: '/login' },
+  session: { strategy: 'jwt' },
   providers: [],
   callbacks: {
+    authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = !!auth?.user
+      const isAuthRoute = nextUrl.pathname.startsWith('/login')
+      const isProtectedRoute = nextUrl.pathname === '/' || nextUrl.pathname.startsWith('/dashboard')
+
+      if (isProtectedRoute) {
+        return isLoggedIn
+      }
+
+      if (isAuthRoute && isLoggedIn) {
+        return NextResponse.redirect(new URL('/dashboard', nextUrl))
+      }
+
+      return true
+    },
     jwt({ token, user }) {
       if (user) {
         token.id = user.id
