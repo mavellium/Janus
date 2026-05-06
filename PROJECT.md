@@ -54,7 +54,8 @@
 
 ## Infraestrutura e Auth
 
-- `middleware.ts` — bidirecional: protege `/dashboard/*` (redireciona não-autenticados para `/login`), e redireciona autenticados em `/login`/`/register` para `/dashboard`
+- `src/lib/auth.config.ts` — NextAuthConfig base com callback `authorized` para proteção de rotas (nega acesso a não-autenticados em rotas não-públicas)
+- `middleware.ts` — matcher specificamente: `/`, `/dashboard/:path*`, `/login`, `/register`; redireciona autenticados em `/login`/`/register` para `/dashboard`
 - `src/app/api/auth/[...nextauth]/route.ts` — Route Handler do Auth.js (GET, POST)
 - `src/types/next-auth.d.ts` — augmentação de tipos: id e role na Session/JWT
 - `.env.example` — template de variáveis: DATABASE_URL e AUTH_SECRET
@@ -94,3 +95,5 @@
 | 2026-05-06 | `src/lib/auth.config.ts`                      | NextAuthConfig separado para Edge Runtime compatibility    |
 | 2026-05-06 | `src/lib/auth.ts`                             | Atualizado: PrismaAdapter + imports de auth.config         |
 | 2026-05-06 | `middleware.ts`                               | Lógica bidirecional: protege /dashboard e redireciona auth |
+| 2026-05-06 | `src/lib/auth.config.ts`                      | Adicionado callback authorized para proteção de rotas      |
+| 2026-05-06 | `middleware.ts`                               | Matcher refinado: ['/', '/dashboard/:path*', '/login', '/register'] |
