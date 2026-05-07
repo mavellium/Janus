@@ -26,7 +26,6 @@ export const authConfig = {
         token.id = user.id
         token.role = (user as { role?: string }).role
         token.image = (user as { image?: string | null }).image ?? null
-        token.preferences = (user as { preferences?: object }).preferences ?? {}
       }
       return token
     },
@@ -35,7 +34,6 @@ export const authConfig = {
         session.user.id = token.id as string
         session.user.role = token.role as string
         session.user.image = token.image as string | null
-        session.user.preferences = token.preferences as object
       }
       return session
     },

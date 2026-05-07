@@ -10,7 +10,12 @@ export async function updatePreferences(
   const session = await auth()
   if (!session?.user?.id) return { ok: false, error: 'Não autenticado.' }
 
-  const current = (session.user.preferences ?? {}) as UserPreferences
+  const row = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { preferences: true },
+  })
+
+  const current = (row?.preferences ?? {}) as UserPreferences
   const merged = { ...current, ...patch }
 
   await db.user.update({

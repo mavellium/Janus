@@ -12,13 +12,11 @@ declare module 'next-auth' {
       id: string
       role: string
       image?: string | null
-      preferences?: UserPreferences
     } & DefaultSession['user']
   }
   interface User {
     role?: string
     image?: string | null
-    preferences?: UserPreferences
   }
 }
 
@@ -27,6 +25,5 @@ declare module 'next-auth/jwt' {
     id?: string
     role?: string
     image?: string | null
-    preferences?: UserPreferences
   }
 }
