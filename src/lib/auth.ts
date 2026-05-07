@@ -28,11 +28,12 @@ const isIpBlocked = async (ip: string) => {
       },
     })
     return count >= 3
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('does not exist')) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    if (errorMessage.includes('does not exist') || errorMessage.includes('P2021')) {
       return false
     }
-    throw error
+    return false
   }
 }
 
@@ -41,8 +42,9 @@ const recordFailedAttempt = async (ip: string, email: string) => {
     await db.loginAttempt.create({
       data: { ip, email },
     })
-  } catch (error) {
-    if (error instanceof Error && !error.message.includes('does not exist')) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    if (!errorMessage.includes('does not exist') && !errorMessage.includes('P2021')) {
       throw error
     }
   }
