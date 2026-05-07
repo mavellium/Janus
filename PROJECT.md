@@ -57,6 +57,7 @@
 - `src/test/create-test-user.spec.ts` — 5 fases de teste para criar usuário teste2@gmail.com
 - `src/lib/auth.spec.ts` — teste de error handling para LoginAttempt
 - `scripts/seed-test-user.ts` — script seed para criar usuário de teste via CLI
+- `scripts/test-db-connection.ts` — script para testar conectividade com PostgreSQL
 - `SETUP_TEST_USER.md` — guia de setup e uso do usuário de teste
 
 ---
@@ -112,7 +113,9 @@
 | 2026-05-07 | `src/lib/auth.spec.ts`                        | Novo arquivo: testes para error handling da tabela LoginAttempt               |
 | 2026-05-07 | `src/test/create-test-user.spec.ts`           | Novo arquivo: 5 fases de teste para criar usuário teste2@gmail.com            |
 | 2026-05-07 | `scripts/seed-test-user.ts`                   | Novo script: seed para criar usuário de teste (npm run db:seed-test)           |
+| 2026-05-07 | `scripts/test-db-connection.ts`               | Novo script: testa conectividade com PostgreSQL (npm run db:test-connection)   |
 | 2026-05-07 | `SETUP_TEST_USER.md`                          | Documentação: guia de setup e uso do usuário de teste                         |
+| 2026-05-07 | `scripts/seed-test-user.ts`                   | FIX: adicionado import dotenv/config para carregar variáveis de ambiente       |
 
 ---
 
