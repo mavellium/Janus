@@ -19,20 +19,33 @@ const getClientIp = async () => {
 }
 
 const isIpBlocked = async (ip: string) => {
-  const oneHourAgo = new Date(Date.now() - 3600000)
-  const count = await db.loginAttempt.count({
-    where: {
-      ip,
-      createdAt: { gte: oneHourAgo },
-    },
-  })
-  return count >= 3
+  try {
+    const oneHourAgo = new Date(Date.now() - 3600000)
+    const count = await db.loginAttempt.count({
+      where: {
+        ip,
+        createdAt: { gte: oneHourAgo },
+      },
+    })
+    return count >= 3
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('does not exist')) {
+      return false
+    }
+    throw error
+  }
 }
 
 const recordFailedAttempt = async (ip: string, email: string) => {
-  await db.loginAttempt.create({
-    data: { ip, email },
-  })
+  try {
+    await db.loginAttempt.create({
+      data: { ip, email },
+    })
+  } catch (error) {
+    if (error instanceof Error && !error.message.includes('does not exist')) {
+      throw error
+    }
+  }
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
