@@ -14,6 +14,10 @@
 - **Actions:** `registerUser.ts` — cria usuário com bcrypt hash | `signInAction.ts` — form action para Auth.js (useActionState)
 - **Queries:** `getUserByEmail.ts` — busca usuário ativo por email (sem deletedAt)
 
+### admin
+- **Queries:** `getLoginLogs.ts` — lista tentativas falhas de login | `getLoginLogsByIp.ts` — filtra por IP
+- **Actions:** `unblockIp.ts` — remove bloqueio de um IP (admin-only)
+
 ---
 
 ## Componentes
@@ -32,6 +36,7 @@
 ## Schema Prisma
 
 - **User** (`users`) — id (UUID), email (unique), password (text), role (DEFAULT/ADMIN), createdAt, updatedAt, deletedAt
+- **LoginAttempt** (`login_attempts`) — id (UUID), ip (string, indexed), email (string optional), createdAt
 
 ---
 
@@ -55,8 +60,8 @@
 ## Infraestrutura e Auth
 
 - `src/lib/auth.config.ts` — NextAuthConfig oficial v5: session JWT + callback authorized (proteção de rotas) + callbacks jwt/session para id/role
-- `middleware.ts` — NextAuth(authConfig).auth (padrão oficial); matcher: `/((?!api|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg).*)`
-- `src/lib/auth.ts` — NextAuth v5 com Credentials Provider e PrismaAdapter
+- `src/middleware.ts` — NextAuth(authConfig).auth (padrão oficial); matcher: `/((?!api|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg).*)`
+- `src/lib/auth.ts` — NextAuth v5 com Credentials Provider, PrismaAdapter e Brute Force Protection (3+ falhas em 1 hora = bloqueado)
 - `src/app/api/auth/[...nextauth]/route.ts` — Route Handler do Auth.js (GET, POST)
 - `src/types/next-auth.d.ts` — augmentação de tipos: id e role na Session/JWT
 - `.env.example` — template de variáveis: DATABASE_URL e AUTH_SECRET
@@ -95,3 +100,15 @@
 | 2026-05-05 | `src/modules/users/domain/User.spec.ts`       | 6 testes unitários do domínio User                         |
 | 2026-05-06 | `src/lib/auth.config.ts`                      | Implementado padrão oficial Auth.js v5: session JWT + callback authorized      |
 | 2026-05-06 | `middleware.ts`                               | Simplificado para NextAuth(authConfig).auth (padrão oficial)                   |
+| 2026-05-07 | `prisma/schema.prisma`                        | Adicionado model LoginAttempt para Brute Force Protection                      |
+| 2026-05-07 | `src/lib/auth.ts`                             | Adicionado IP blocking (3+ falhas em 1h) e gravação de tentativas              |
+| 2026-05-07 | `src/modules/admin/queries/getLoginLogs.ts`   | Queries para listar tentativas falhas por limite ou por IP                     |
+| 2026-05-07 | `src/modules/admin/actions/unblockIp.ts`      | Action admin-only para desbloquear IP                                          |
+
+---
+
+## ⚠️ Notas de Ambiente
+
+**Node.js Versão:** Requer Node.js 18+ (suporte a ES2021 para operador `??=` usado por Next.js 16)
+- Desenvolvimento atual com Node.js v14.21.3 causará erro de build
+- Atualize para Node.js 18 LTS ou superior antes de fazer build/deploy
