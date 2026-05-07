@@ -10,7 +10,11 @@
     --brand-btn-light: #DCDCDC;
     --brand-hover: #7A614A;
     --brand-muted: #C8C8C8;
-    --brand-bg: #FFFFFF;
+    --brand-bg: #EBE6DA;
+    --sidebar-bg: #ECEAE4;
+    --sidebar-icon: #58585E;
+    --sidebar-hover-bg: #7A614A;
+    --sidebar-hover-text: #FFFFFF;
   }
 
   body {
@@ -24,4 +28,13 @@
   *::after {
     box-sizing: border-box;
   }
+}
+
+.sidebar-link:hover {
+  background-color: var(--sidebar-hover-bg) !important;
+  color: var(--sidebar-hover-text) !important;
+}
+
+.sidebar-link:hover svg {
+  color: var(--sidebar-hover-text) !important;
 }

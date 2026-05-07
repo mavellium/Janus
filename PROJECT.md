@@ -11,8 +11,8 @@
 ### users
 - **Entidade:** `src/modules/users/domain/User.ts` — usuário com role DEFAULT/ADMIN, normaliza email, valida hash
 - **Erros:** `src/modules/users/domain/errors.ts` — INVALID_EMAIL, INVALID_PASSWORD, EMAIL_ALREADY_EXISTS, INVALID_CREDENTIALS
-- **Actions:** `registerUser.ts` — cria usuário com bcrypt hash | `signInAction.ts` — form action para Auth.js (useActionState)
-- **Queries:** `getUserByEmail.ts` — busca usuário ativo por email (sem deletedAt)
+- **Actions:** `registerUser.ts` — cria usuário com bcrypt hash | `signInAction.ts` — form action para Auth.js (useActionState) | `updatePreferences.ts` — persiste preferências de UI no banco (sidebar_collapsed, theme)
+- **Queries:** `getUserByEmail.ts` — busca usuário ativo por email (sem deletedAt), retorna image e preferences
 
 ### admin
 - **Queries:** `getLoginLogs.ts` — lista tentativas falhas de login | `getLoginLogsByIp.ts` — filtra por IP
@@ -26,7 +26,8 @@
 ## Componentes
 
 - `src/components/auth/LoginForm.tsx` — Client — formulário de login com useActionState + checkIpStatus, countdown regressivo (MM:SS), overlay bloqueio com cor #514030
-- `src/components/dashboard/Sidebar.tsx` — Server — sidebar reutilizável (fundo #C8C8C8, itens #161718, ativo #514030), menu items com rotas, user info dinâmico, botão logout
+- `src/components/dashboard/Sidebar.tsx` — Server — lê sessão e preferences, passa defaultCollapsed para SidebarClient
+- `src/components/dashboard/SidebarClient.tsx` — Client — sidebar com collapse/expand (200ms), hover #7A614A, bg #ECEAE4, ícones #58585E, persiste estado via updatePreferences
 
 ---
 
@@ -41,7 +42,7 @@
 
 ## Schema Prisma
 
-- **User** (`users`) — id (UUID), email (unique), password (text), role (DEFAULT/ADMIN), createdAt, updatedAt, deletedAt
+- **User** (`users`) — id (UUID), email (unique), password (text), role (DEFAULT/ADMIN), image (String?), preferences (Json? default {}), createdAt, updatedAt, deletedAt
 - **LoginAttempt** (`login_attempts`) — id (UUID), ip (string, indexed), email (string optional), createdAt
 
 ---
@@ -131,6 +132,17 @@
 | 2026-05-06 | `src/app/page.tsx`                            | Refatorado: redirect() para /dashboard                                         |
 | 2026-05-06 | `src/app/dashboard/layout.tsx`                | Movido de (dashboard) para dashboard                                           |
 | 2026-05-06 | `src/app/dashboard/page.tsx`                  | Movido de (dashboard) para dashboard                                           |
+| 2026-05-06 | `prisma/schema.prisma`                        | User: adicionados campos image (String?) e preferences (Json? default {})     |
+| 2026-05-06 | `prisma/migrations/…_update_user_ui_fields`   | Migration: add user_image e preferences ao model users                         |
+| 2026-05-06 | `src/app/globals.css`                         | body bg #EBE6DA; vars sidebar-bg, sidebar-icon, sidebar-hover-bg/text         |
+| 2026-05-06 | `src/types/next-auth.d.ts`                    | Adicionado UserPreferences, image e preferences na Session/JWT                |
+| 2026-05-06 | `src/lib/auth.config.ts`                      | jwt/session callbacks propagam image e preferences                            |
+| 2026-05-06 | `src/lib/auth.ts`                             | authorize retorna image e preferences junto com user                          |
+| 2026-05-06 | `src/modules/users/queries/getUserByEmail.ts` | select inclui image e preferences                                             |
+| 2026-05-06 | `src/modules/users/actions/updatePreferences.ts` | Novo: Server Action para persistir UserPreferences no banco                |
+| 2026-05-06 | `src/components/dashboard/Sidebar.tsx`        | Refatorado: Server Component passa defaultCollapsed e dados para SidebarClient|
+| 2026-05-06 | `src/components/dashboard/SidebarClient.tsx`  | Novo: Client Component sidebar colapsável com hover, logo next/image, logout  |
+| 2026-05-06 | `public/janus-logo.svg`                       | Logo SVG do Janus para uso na sidebar                                         |
 
 ---
 
