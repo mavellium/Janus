@@ -27,7 +27,7 @@
 
 - `src/components/auth/LoginForm.tsx` — Client — formulário de login com useActionState + checkIpStatus, countdown regressivo (MM:SS), overlay bloqueio com cor #514030
 - `src/components/dashboard/Sidebar.tsx` — Server — lê sessão e preferences, passa defaultCollapsed para SidebarClient
-- `src/components/dashboard/SidebarClient.tsx` — Client — sidebar com collapse/expand (200ms), hover #7A614A, bg #ECEAE4, ícones #58585E, persiste estado via updatePreferences
+- `src/components/dashboard/SidebarClient.tsx` — Client — sidebar colapsável com useOptimistic; logo 48px→28px; toggle PanelLeftClose/PanelLeftOpen sempre visível; avatar com next/image + fallback UserCircle; hover #7A614A; estado persistido via updatePreferences
 
 ---
 
@@ -143,6 +143,7 @@
 | 2026-05-06 | `src/components/dashboard/Sidebar.tsx`        | Refatorado: Server Component passa defaultCollapsed e dados para SidebarClient|
 | 2026-05-06 | `src/components/dashboard/SidebarClient.tsx`  | Novo: Client Component sidebar colapsável com hover, logo next/image, logout  |
 | 2026-05-06 | `public/janus-logo.svg`                       | Logo SVG do Janus para uso na sidebar                                         |
+| 2026-05-06 | `src/components/dashboard/SidebarClient.tsx`  | UX: useOptimistic p/ toggle, logo dinâmica 48→28px, PanelLeft icons, UserCircle fallback |
 
 ---
 
