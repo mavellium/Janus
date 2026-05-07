@@ -26,13 +26,15 @@
 ## Componentes
 
 - `src/components/auth/LoginForm.tsx` — Client — formulário de login com useActionState + checkIpStatus, countdown regressivo (MM:SS), overlay bloqueio com cor #514030
+- `src/components/dashboard/Sidebar.tsx` — Server — sidebar reutilizável (fundo #C8C8C8, itens #161718, ativo #514030), menu items com rotas, user info dinâmico, botão logout
 
 ---
 
 ## Páginas
 
 - `src/app/(auth)/login/page.tsx` — tela de login (Server Component)
-- `src/app/(dashboard)/layout.tsx` — layout protegido com verificação de sessão
+- `src/app/(dashboard)/layout.tsx` — layout protegido com Sidebar integrada (flex layout: sidebar + main)
+- `src/app/(dashboard)/page.tsx` — dashboard principal com header, banner promo, cards Sites e Landing Pages
 
 ---
 
@@ -122,6 +124,9 @@
 | 2026-05-06 | `src/modules/auth/actions/checkIpStatus.ts`   | Novo: Server Action para verificar status de bloqueio do IP                   |
 | 2026-05-06 | `src/components/auth/LoginForm.tsx`           | Refatorado: Client Component com countdown MM:SS, overlay bloqueio #514030     |
 | 2026-05-06 | `src/modules/users/actions/signInAction.ts`   | Adicionado tratamento específico para erro IP_BLOCKED                         |
+| 2026-05-06 | `src/components/dashboard/Sidebar.tsx`        | Novo: Server Component sidebar reutilizável, menu items, user info, logout    |
+| 2026-05-06 | `src/app/(dashboard)/layout.tsx`              | Refatorado: flex layout com Sidebar integrada, children como main content     |
+| 2026-05-06 | `src/app/(dashboard)/page.tsx`                | Novo: Dashboard principal com header, banner, cards Sites/Landing Pages       |
 
 ---
 
