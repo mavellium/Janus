@@ -1,6 +1,5 @@
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
-import { PrismaAdapter } from '@auth/prisma-adapter'
 import { db } from '@/lib/prisma'
 import { compare } from 'bcryptjs'
 import { z } from 'zod'
@@ -52,7 +51,6 @@ const recordFailedAttempt = async (ip: string, email: string) => {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
-  adapter: PrismaAdapter(db),
   session: { strategy: 'jwt' },
   providers: [
     Credentials({
