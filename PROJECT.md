@@ -11,8 +11,8 @@
 ### users
 - **Entidade:** `src/modules/users/domain/User.ts` — usuário com role DEFAULT/ADMIN, normaliza email, valida hash
 - **Erros:** `src/modules/users/domain/errors.ts` — INVALID_EMAIL, INVALID_PASSWORD, EMAIL_ALREADY_EXISTS, INVALID_CREDENTIALS
-- **Actions:** `registerUser.ts` — cria usuário com bcrypt hash | `signInAction.ts` — form action para Auth.js (useActionState)
-- **Queries:** `getUserByEmail.ts` — busca usuário ativo por email (sem deletedAt)
+- **Actions:** `registerUser.ts` — cria usuário com bcrypt hash | `signInAction.ts` — form action para Auth.js (useActionState) | `updatePreferences.ts` — persiste preferências de UI no banco (sidebar_collapsed, theme)
+- **Queries:** `getUserByEmail.ts` — busca usuário ativo por email (sem deletedAt), retorna image e preferences
 
 ### admin
 - **Queries:** `getLoginLogs.ts` — lista tentativas falhas de login | `getLoginLogsByIp.ts` — filtra por IP
@@ -26,19 +26,23 @@
 ## Componentes
 
 - `src/components/auth/LoginForm.tsx` — Client — formulário de login com useActionState + checkIpStatus, countdown regressivo (MM:SS), overlay bloqueio com cor #514030
+- `src/components/dashboard/Sidebar.tsx` — Server — lê sessão e preferences, passa defaultCollapsed para SidebarClient
+- `src/components/dashboard/SidebarClient.tsx` — Client — sidebar colapsável com useOptimistic; logo 48px→28px; toggle PanelLeftClose/PanelLeftOpen sempre visível; avatar com next/image + fallback UserCircle; hover #7A614A; estado persistido via updatePreferences
 
 ---
 
 ## Páginas
 
+- `src/app/page.tsx` — root redireciona para /dashboard (redirect)
 - `src/app/(auth)/login/page.tsx` — tela de login (Server Component)
-- `src/app/(dashboard)/layout.tsx` — layout protegido com verificação de sessão
+- `src/app/dashboard/layout.tsx` — layout protegido com Sidebar integrada (flex layout: sidebar + main)
+- `src/app/dashboard/page.tsx` — dashboard principal com header, banner promo, cards Sites e Landing Pages
 
 ---
 
 ## Schema Prisma
 
-- **User** (`users`) — id (UUID), email (unique), password (text), role (DEFAULT/ADMIN), createdAt, updatedAt, deletedAt
+- **User** (`users`) — id (UUID), email (unique), password (text), role (DEFAULT/ADMIN), image (String?), preferences (Json? default {}), createdAt, updatedAt, deletedAt
 - **LoginAttempt** (`login_attempts`) — id (UUID), ip (string, indexed), email (string optional), createdAt
 
 ---
@@ -122,6 +126,24 @@
 | 2026-05-06 | `src/modules/auth/actions/checkIpStatus.ts`   | Novo: Server Action para verificar status de bloqueio do IP                   |
 | 2026-05-06 | `src/components/auth/LoginForm.tsx`           | Refatorado: Client Component com countdown MM:SS, overlay bloqueio #514030     |
 | 2026-05-06 | `src/modules/users/actions/signInAction.ts`   | Adicionado tratamento específico para erro IP_BLOCKED                         |
+| 2026-05-06 | `src/components/dashboard/Sidebar.tsx`        | Novo: Server Component sidebar reutilizável, menu items, user info, logout    |
+| 2026-05-06 | `src/app/(dashboard)/layout.tsx`              | Refatorado: flex layout com Sidebar integrada, children como main content     |
+| 2026-05-06 | `src/app/(dashboard)/page.tsx`                | Novo: Dashboard principal com header, banner, cards Sites/Landing Pages       |
+| 2026-05-06 | `src/app/page.tsx`                            | Refatorado: redirect() para /dashboard                                         |
+| 2026-05-06 | `src/app/dashboard/layout.tsx`                | Movido de (dashboard) para dashboard                                           |
+| 2026-05-06 | `src/app/dashboard/page.tsx`                  | Movido de (dashboard) para dashboard                                           |
+| 2026-05-06 | `prisma/schema.prisma`                        | User: adicionados campos image (String?) e preferences (Json? default {})     |
+| 2026-05-06 | `prisma/migrations/…_update_user_ui_fields`   | Migration: add user_image e preferences ao model users                         |
+| 2026-05-06 | `src/app/globals.css`                         | body bg #EBE6DA; vars sidebar-bg, sidebar-icon, sidebar-hover-bg/text         |
+| 2026-05-06 | `src/types/next-auth.d.ts`                    | Adicionado UserPreferences, image e preferences na Session/JWT                |
+| 2026-05-06 | `src/lib/auth.config.ts`                      | jwt/session callbacks propagam image e preferences                            |
+| 2026-05-06 | `src/lib/auth.ts`                             | authorize retorna image e preferences junto com user                          |
+| 2026-05-06 | `src/modules/users/queries/getUserByEmail.ts` | select inclui image e preferences                                             |
+| 2026-05-06 | `src/modules/users/actions/updatePreferences.ts` | Novo: Server Action para persistir UserPreferences no banco                |
+| 2026-05-06 | `src/components/dashboard/Sidebar.tsx`        | Refatorado: Server Component passa defaultCollapsed e dados para SidebarClient|
+| 2026-05-06 | `src/components/dashboard/SidebarClient.tsx`  | Novo: Client Component sidebar colapsável com hover, logo next/image, logout  |
+| 2026-05-06 | `public/janus-logo.svg`                       | Logo SVG do Janus para uso na sidebar                                         |
+| 2026-05-06 | `src/components/dashboard/SidebarClient.tsx`  | UX: useOptimistic p/ toggle, logo dinâmica 48→28px, PanelLeft icons, UserCircle fallback |
 
 ---
 
