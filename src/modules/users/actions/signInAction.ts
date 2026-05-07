@@ -26,6 +26,9 @@ export async function signInAction(
     await signIn('credentials', { ...parsed.data, redirectTo: '/dashboard' })
   } catch (err) {
     if (err instanceof AuthError) {
+      if (err.message === 'IP_BLOCKED') {
+        return { error: 'Acesso suspenso. Múltiplas tentativas falhas detectadas.' }
+      }
       return { error: 'Email ou senha inválidos.' }
     }
     throw err
