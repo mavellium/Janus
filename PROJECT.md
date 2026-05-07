@@ -32,9 +32,10 @@
 
 ## Páginas
 
+- `src/app/page.tsx` — root redireciona para /dashboard (redirect)
 - `src/app/(auth)/login/page.tsx` — tela de login (Server Component)
-- `src/app/(dashboard)/layout.tsx` — layout protegido com Sidebar integrada (flex layout: sidebar + main)
-- `src/app/(dashboard)/page.tsx` — dashboard principal com header, banner promo, cards Sites e Landing Pages
+- `src/app/dashboard/layout.tsx` — layout protegido com Sidebar integrada (flex layout: sidebar + main)
+- `src/app/dashboard/page.tsx` — dashboard principal com header, banner promo, cards Sites e Landing Pages
 
 ---
 
@@ -127,6 +128,9 @@
 | 2026-05-06 | `src/components/dashboard/Sidebar.tsx`        | Novo: Server Component sidebar reutilizável, menu items, user info, logout    |
 | 2026-05-06 | `src/app/(dashboard)/layout.tsx`              | Refatorado: flex layout com Sidebar integrada, children como main content     |
 | 2026-05-06 | `src/app/(dashboard)/page.tsx`                | Novo: Dashboard principal com header, banner, cards Sites/Landing Pages       |
+| 2026-05-06 | `src/app/page.tsx`                            | Refatorado: redirect() para /dashboard                                         |
+| 2026-05-06 | `src/app/dashboard/layout.tsx`                | Movido de (dashboard) para dashboard                                           |
+| 2026-05-06 | `src/app/dashboard/page.tsx`                  | Movido de (dashboard) para dashboard                                           |
 
 ---
 
