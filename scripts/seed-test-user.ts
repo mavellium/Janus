@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { db } from '../src/lib/prisma'
 import { hash } from 'bcryptjs'
 
