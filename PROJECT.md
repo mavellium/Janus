@@ -54,6 +54,10 @@
 - `vitest.config.ts` — jsdom, globals, alias `@/*`, setupFiles
 - `src/test/setup.ts` — importa `@testing-library/jest-dom/vitest`
 - `src/modules/users/domain/User.spec.ts` — 6 testes: create, reconstitute, toObject
+- `src/test/create-test-user.spec.ts` — 5 fases de teste para criar usuário teste2@gmail.com
+- `src/lib/auth.spec.ts` — teste de error handling para LoginAttempt
+- `scripts/seed-test-user.ts` — script seed para criar usuário de teste via CLI
+- `SETUP_TEST_USER.md` — guia de setup e uso do usuário de teste
 
 ---
 
@@ -106,6 +110,9 @@
 | 2026-05-07 | `src/modules/admin/actions/unblockIp.ts`      | Action admin-only para desbloquear IP                                          |
 | 2026-05-07 | `src/lib/auth.ts`                             | FIX: tratamento gracioso quando tabela login_attempts não existe               |
 | 2026-05-07 | `src/lib/auth.spec.ts`                        | Novo arquivo: testes para error handling da tabela LoginAttempt               |
+| 2026-05-07 | `src/test/create-test-user.spec.ts`           | Novo arquivo: 5 fases de teste para criar usuário teste2@gmail.com            |
+| 2026-05-07 | `scripts/seed-test-user.ts`                   | Novo script: seed para criar usuário de teste (npm run db:seed-test)           |
+| 2026-05-07 | `SETUP_TEST_USER.md`                          | Documentação: guia de setup e uso do usuário de teste                         |
 
 ---
 
