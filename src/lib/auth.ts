@@ -4,6 +4,7 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import { db } from '@/lib/prisma'
 import { compare } from 'bcryptjs'
 import { z } from 'zod'
+import { headers } from 'next/headers'
 import { getUserByEmail } from '@/modules/users/queries/getUserByEmail'
 import { authConfig } from '@/lib/auth.config'
 
@@ -11,6 +12,28 @@ const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 })
+
+const getClientIp = async () => {
+  const headersList = await headers()
+  return headersList.get('x-forwarded-for') || 'unknown'
+}
+
+const isIpBlocked = async (ip: string) => {
+  const oneHourAgo = new Date(Date.now() - 3600000)
+  const count = await db.loginAttempt.count({
+    where: {
+      ip,
+      createdAt: { gte: oneHourAgo },
+    },
+  })
+  return count >= 3
+}
+
+const recordFailedAttempt = async (ip: string, email: string) => {
+  await db.loginAttempt.create({
+    data: { ip, email },
+  })
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -23,14 +46,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        const ip = await getClientIp()
+
+        if (await isIpBlocked(ip)) {
+          throw new Error('IP_BLOCKED')
+        }
+
         const parsed = credentialsSchema.safeParse(credentials)
-        if (!parsed.success) return null
+        if (!parsed.success) {
+          await recordFailedAttempt(ip, '')
+          return null
+        }
 
         const user = await getUserByEmail(parsed.data.email)
-        if (!user) return null
+        if (!user) {
+          await recordFailedAttempt(ip, parsed.data.email)
+          return null
+        }
 
         const isValid = await compare(parsed.data.password, user.password)
-        if (!isValid) return null
+        if (!isValid) {
+          await recordFailedAttempt(ip, parsed.data.email)
+          return null
+        }
 
         return { id: user.id, email: user.email, role: user.role }
       },

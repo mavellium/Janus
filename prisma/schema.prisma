@@ -28,3 +28,14 @@ model User {
   @@index([deletedAt])
   @@map("users")
 }
+
+model LoginAttempt {
+  id        String    @id @default(uuid()) @db.Uuid
+  ip        String
+  email     String?
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([ip])
+  @@map("login_attempts")
+}
+
