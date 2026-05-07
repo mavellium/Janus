@@ -2,6 +2,7 @@
 
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
 import type { UserPreferences } from '@/types/next-auth'
 
 export async function updatePreferences(
@@ -22,6 +23,8 @@ export async function updatePreferences(
     where: { id: session.user.id },
     data: { preferences: merged },
   })
+
+  revalidatePath('/dashboard', 'layout')
 
   return { ok: true }
 }

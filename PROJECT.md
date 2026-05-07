@@ -26,8 +26,7 @@
 ## Componentes
 
 - `src/components/auth/LoginForm.tsx` — Client — formulário de login com useActionState + checkIpStatus, countdown regressivo (MM:SS), overlay bloqueio com cor #514030
-- `src/components/dashboard/Sidebar.tsx` — Server — lê sessão e preferences, passa defaultCollapsed para SidebarClient
-- `src/components/dashboard/SidebarClient.tsx` — Client — sidebar colapsável com useOptimistic; logo 48px→28px; toggle PanelLeftClose/PanelLeftOpen sempre visível; avatar com next/image + fallback UserCircle; hover #7A614A; estado persistido via updatePreferences
+- `src/components/dashboard/Sidebar.tsx` — Client — sidebar colapsável com useState(initialCollapsed) + startTransition; logo 48px→28px; toggle PanelLeftClose/PanelLeftOpen; avatar next/image + fallback UserCircle; estado persistido via updatePreferences em background
 
 ---
 
@@ -35,7 +34,7 @@
 
 - `src/app/page.tsx` — root redireciona para /dashboard (redirect)
 - `src/app/(auth)/login/page.tsx` — tela de login (Server Component)
-- `src/app/dashboard/layout.tsx` — layout protegido com Sidebar integrada (flex layout: sidebar + main)
+- `src/app/dashboard/layout.tsx` — layout protegido; busca image e preferences do DB; passa initialCollapsed, email e image como props para Sidebar
 - `src/app/dashboard/page.tsx` — dashboard principal com header, banner promo, cards Sites e Landing Pages
 
 ---
@@ -50,7 +49,7 @@
 ## Lib / Utilitários
 
 - `src/lib/prisma.ts` — singleton do PrismaClient com `accelerateUrl` (Prisma 7, export `db`)
-- `src/lib/auth.config.ts` — NextAuthConfig base: JWT callbacks, role/id augmentation (Edge Runtime safe)
+- `src/lib/auth.config.ts` — NextAuthConfig base: JWT callbacks propagam apenas id, role, image (preferences removido para evitar HTTP 431)
 - `src/lib/auth.ts` — NextAuth v5: CredentialsProvider + PrismaAdapter + JWT strategy
 - `src/lib/utils.ts` — `cn`, `formatCurrency` (BRL), `formatDate` (pt-BR)
 
@@ -144,6 +143,12 @@
 | 2026-05-06 | `src/components/dashboard/SidebarClient.tsx`  | Novo: Client Component sidebar colapsável com hover, logo next/image, logout  |
 | 2026-05-06 | `public/janus-logo.svg`                       | Logo SVG do Janus para uso na sidebar                                         |
 | 2026-05-06 | `src/components/dashboard/SidebarClient.tsx`  | UX: useOptimistic p/ toggle, logo dinâmica 48→28px, PanelLeft icons, UserCircle fallback |
+| 2026-05-07 | `src/lib/auth.config.ts`                      | FIX HTTP 431: preferences removido do JWT; callbacks propagam apenas id, role, image     |
+| 2026-05-07 | `src/types/next-auth.d.ts`                    | FIX: preferences removido de Session/JWT; UserPreferences mantido como tipo exportado    |
+| 2026-05-07 | `src/app/dashboard/layout.tsx`                | Refatorado: busca preferences e image do DB; passa initialCollapsed como prop à Sidebar  |
+| 2026-05-07 | `src/modules/users/actions/updatePreferences.ts` | Adicionado revalidatePath('/dashboard', 'layout') após update                         |
+| 2026-05-07 | `src/components/dashboard/Sidebar.tsx`        | Refatorado: Client Component unificado (useState + startTransition, sem useOptimistic)   |
+| 2026-05-07 | `src/components/dashboard/SidebarClient.tsx`  | DELETADO: lógica absorvida por Sidebar.tsx                                               |
 
 ---
 
