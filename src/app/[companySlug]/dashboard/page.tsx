@@ -1,6 +1,10 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { Zap, Globe, ChevronRight } from 'lucide-react'
+import { db } from '@/lib/prisma'
+import { getProjects } from '@/modules/projects/queries/getProjects'
+import { formatDate } from '@/lib/utils'
 
 export const metadata = { title: 'Dashboard — Janus' }
 
@@ -9,11 +13,23 @@ export default async function DashboardPage({
 }: {
   params: Promise<{ companySlug: string }>
 }) {
-  await params
+  const { companySlug } = await params
   const session = await auth()
   if (!session?.user) redirect('/login')
 
+  const company = await db.company.findUnique({
+    where: { slug: companySlug, deletedAt: null },
+  })
+  if (!company) redirect('/login')
+
+  const [institutionalProjects, landingPageProjects] = await Promise.all([
+    getProjects({ companyId: company.id, type: 'INSTITUTIONAL' }),
+    getProjects({ companyId: company.id, type: 'LANDING_PAGE' }),
+  ])
+
   const firstName = session.user.email?.split('@')[0] || 'Usuário'
+  const totalInstitutional = institutionalProjects.length
+  const totalLandingPages = landingPageProjects.length
 
   return (
     <div className="p-8">
@@ -22,12 +38,12 @@ export default async function DashboardPage({
           Boas-vindas ao Janus, {firstName}!
         </h1>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-brand-muted">Suas tarefas</span>
+          <span className="text-sm text-brand-muted">Seus projetos</span>
           <span
             className="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-semibold text-white"
             style={{ backgroundColor: '#E74C3C' }}
           >
-            3
+            {totalInstitutional + totalLandingPages}
           </span>
         </div>
       </div>
@@ -60,55 +76,61 @@ export default async function DashboardPage({
             </div>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="text-brand-muted text-xs mb-1">Deletados %</p>
+                <p className="text-brand-muted text-xs mb-1">Total</p>
                 <p className="font-semibold" style={{ color: '#161718' }}>
-                  5%
+                  {totalInstitutional}
                 </p>
               </div>
               <div>
-                <p className="text-brand-muted text-xs mb-1">Buscas fi</p>
+                <p className="text-brand-muted text-xs mb-1">Ativos</p>
                 <p className="font-semibold" style={{ color: '#161718' }}>
-                  18
+                  {totalInstitutional}
                 </p>
               </div>
               <div>
-                <p className="text-brand-muted text-xs mb-1">Deletadas fi</p>
+                <p className="text-brand-muted text-xs mb-1">Páginas</p>
                 <p className="font-semibold" style={{ color: '#161718' }}>
-                  2
+                  {institutionalProjects.reduce((sum, p) => sum + p._count.pages, 0)}
                 </p>
               </div>
             </div>
           </div>
 
           <div className="divide-y divide-brand-muted/40">
-            {[
-              { name: 'Institucional Negro', status: 'Ativado' },
-              { name: 'Institucional Negro', status: 'Ativado' },
-            ].map((site, idx) => (
-              <div key={idx} className="p-4 flex items-center justify-between hover:bg-brand-muted/20 transition">
+            {institutionalProjects.slice(0, 2).map((project) => (
+              <div
+                key={project.id}
+                className="p-4 flex items-center justify-between hover:bg-brand-muted/20 transition"
+              >
                 <div className="flex items-center gap-3 flex-1">
                   <div className="w-8 h-8 rounded bg-gray-300"></div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-brand-text truncate">
-                      {site.name}
+                      {project.name}
                     </p>
-                    <p className="text-xs text-brand-muted">{site.status}</p>
+                    <p className="text-xs text-brand-muted">{formatDate(project.createdAt)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button className="px-3 py-1 text-xs border border-brand-muted/60 rounded-lg hover:bg-brand-muted/10 transition text-brand-text">
-                    Editar
+                    Gerenciar
                   </button>
-                  <button className="p-1 hover:bg-brand-muted/20 rounded transition">
-                    <ChevronRight className="w-4 h-4 text-brand-muted" />
-                  </button>
+                  <ChevronRight className="w-4 h-4 text-brand-muted" />
                 </div>
               </div>
             ))}
+            {institutionalProjects.length === 0 && (
+              <div className="p-4 text-center">
+                <p className="text-xs text-brand-muted">Nenhum site criado ainda</p>
+              </div>
+            )}
             <div className="p-4 text-center">
-              <button className="text-sm font-semibold text-brand-primary hover:opacity-80 transition">
+              <Link
+                href={`/${companySlug}/dashboard/sites`}
+                className="text-sm font-semibold text-brand-primary hover:opacity-80 transition"
+              >
                 Gerenciar todos →
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -123,56 +145,61 @@ export default async function DashboardPage({
             </div>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="text-brand-muted text-xs mb-1">Deletados %</p>
+                <p className="text-brand-muted text-xs mb-1">Total</p>
                 <p className="font-semibold" style={{ color: '#161718' }}>
-                  5%
+                  {totalLandingPages}
                 </p>
               </div>
               <div>
-                <p className="text-brand-muted text-xs mb-1">Buscas fi</p>
+                <p className="text-brand-muted text-xs mb-1">Ativos</p>
                 <p className="font-semibold" style={{ color: '#161718' }}>
-                  18
+                  {totalLandingPages}
                 </p>
               </div>
               <div>
-                <p className="text-brand-muted text-xs mb-1">Deletadas fi</p>
+                <p className="text-brand-muted text-xs mb-1">Páginas</p>
                 <p className="font-semibold" style={{ color: '#161718' }}>
-                  2
+                  {landingPageProjects.reduce((sum, p) => sum + p._count.pages, 0)}
                 </p>
               </div>
             </div>
           </div>
 
           <div className="divide-y divide-brand-muted/40">
-            {[
-              { name: 'Venda LandingPage', status: 'Ativado' },
-              { name: 'Venda LandingPage', status: 'Ativado' },
-              { name: 'Venda LandingPage', status: 'Ativado' },
-            ].map((page, idx) => (
-              <div key={idx} className="p-4 flex items-center justify-between hover:bg-brand-muted/20 transition">
+            {landingPageProjects.slice(0, 2).map((project) => (
+              <div
+                key={project.id}
+                className="p-4 flex items-center justify-between hover:bg-brand-muted/20 transition"
+              >
                 <div className="flex items-center gap-3 flex-1">
                   <div className="w-8 h-8 rounded bg-gray-300"></div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-brand-text truncate">
-                      {page.name}
+                      {project.name}
                     </p>
-                    <p className="text-xs text-brand-muted">{page.status}</p>
+                    <p className="text-xs text-brand-muted">{formatDate(project.createdAt)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button className="px-3 py-1 text-xs border border-brand-muted/60 rounded-lg hover:bg-brand-muted/10 transition text-brand-text">
-                    Editar
+                    Gerenciar
                   </button>
-                  <button className="p-1 hover:bg-brand-muted/20 rounded transition">
-                    <ChevronRight className="w-4 h-4 text-brand-muted" />
-                  </button>
+                  <ChevronRight className="w-4 h-4 text-brand-muted" />
                 </div>
               </div>
             ))}
+            {landingPageProjects.length === 0 && (
+              <div className="p-4 text-center">
+                <p className="text-xs text-brand-muted">Nenhuma landing page criada ainda</p>
+              </div>
+            )}
             <div className="p-4 text-center">
-              <button className="text-sm font-semibold text-brand-primary hover:opacity-80 transition">
+              <Link
+                href={`/${companySlug}/dashboard/landing-pages`}
+                className="text-sm font-semibold text-brand-primary hover:opacity-80 transition"
+              >
                 Gerenciar todos →
-              </button>
+              </Link>
             </div>
           </div>
         </div>

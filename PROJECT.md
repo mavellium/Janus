@@ -36,6 +36,9 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **Entidade:** `ProjectHistory` (Prisma) — id (UUID), projectId (fk), userId (fk), previousState (Json), newState (Json), version (Int), createdAt
 - **Uso:** Auditoria de alterações em projetos; rastreia quem alterou o quê
 
+### projects
+- **Queries:** `getProjects.ts` — busca projetos da empresa com filtro opcional por tipo (LANDING_PAGE|INSTITUTIONAL); retorna com contagem de páginas
+
 ### admin
 - **Queries:** `getLoginLogs.ts` — lista tentativas falhas de login | `getLoginLogsByIp.ts` — filtra por IP
 - **Actions:** `unblockIp.ts` — remove bloqueio de um IP (admin-only)
@@ -56,8 +59,10 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 - `src/app/page.tsx` — root redireciona para `/{companySlug}/dashboard` (redireciona para empresa do usuário autenticado)
 - `src/app/(auth)/login/page.tsx` — tela de login (Server Component)
-- `src/app/[companySlug]/dashboard/layout.tsx` — **Novo:** layout protegido; valida se usuário pode acessar a empresa; busca image e preferences do DB; passa initialCollapsed, email e image como props para Sidebar
-- `src/app/[companySlug]/dashboard/page.tsx` — **Novo:** dashboard principal com header, banner promo, cards Sites e Landing Pages
+- `src/app/[companySlug]/dashboard/layout.tsx` — layout protegido; valida se usuário pode acessar a empresa; busca image e preferences do DB; passa initialCollapsed, email e image como props para Sidebar
+- `src/app/[companySlug]/dashboard/page.tsx` — **Refatorado:** dashboard principal com dados reais de projetos; busca institutional e landing page projects; exibe estatísticas; links dinâmicos para /sites e /landing-pages
+- `src/app/[companySlug]/dashboard/sites/page.tsx` — **Novo:** listagem de sites (INSTITUTIONAL); grid de cards com projeto, data, contagem de páginas; botões Gerenciar e Editar
+- `src/app/[companySlug]/dashboard/landing-pages/page.tsx` — **Novo:** listagem de landing pages; mesma estrutura da página de sites com variações visuais (gradiente azul)
 
 ---
 
@@ -197,6 +202,11 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-09 | `SETUP_TEST_USER.md`                          | **REESCRITO:** Documentação atualizada para Multi-Tenant, inclui fluxo de auth |
 | 2026-05-09 | `src/lib/auth.config.ts`                      | **FIX:** Refatorado authorized callback; extrai companySlug; redireciona root e login para /{slug}/dashboard |
 | 2026-05-09 | `src/modules/users/actions/signInAction.ts`   | **FIX:** Removido hardcode redirectTo: '/dashboard'; usa redirect: true para middleware processar |
+| 2026-05-09 | (merge) `feat/multi-tenant-architecture` → `main` | **MERGE:** Integração de Multi-Tenant no branch principal |
+| 2026-05-09 | `src/modules/projects/queries/getProjects.ts` | **NOVO:** Query para buscar projetos da empresa com filtro por tipo |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/page.tsx`    | **REFACTOR:** Dashboard agora busca dados reais de projetos; exibe estatísticas dinâmicas |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/sites/page.tsx` | **NOVO:** Página de listagem de sites com grid de cards e botões de ação |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/landing-pages/page.tsx` | **NOVO:** Página de listagem de landing pages com mesmo padrão |
 
 ---
 
