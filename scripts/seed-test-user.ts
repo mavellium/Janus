@@ -19,11 +19,17 @@ async function main() {
 
   const hashedPassword = await hash(testPassword, 10)
 
+  const defaultCompany = await db.company.findUnique({
+    where: { slug: 'default' },
+  })
+  if (!defaultCompany) throw new Error('Default company not found')
+
   const user = await db.user.create({
     data: {
       email: testEmail,
       password: hashedPassword,
       role: 'DEFAULT',
+      companyId: defaultCompany.id,
     },
   })
 

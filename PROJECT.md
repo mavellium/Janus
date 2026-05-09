@@ -1,4 +1,4 @@
-# PROJECT.md — Registro do Janus
+# PROJECT.md — Registro do Janus (Multi-Tenant)
 
 > **Leia este arquivo no início de cada sessão.**
 > **Atualize-o sempre que criar, mover ou deletar qualquer arquivo.**
@@ -6,13 +6,35 @@
 
 ---
 
+## Arquitetura Multi-Tenant
+
+Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas. Cada usuário pertence a uma `Company` e acessa suas páginas/projetos através de rotas namespaceadas por `[companySlug]`.
+
+---
+
 ## Módulos
 
+### companies
+- **Entidade:** `Company` (Prisma) — id (UUID), slug (unique), name, description, logo, soft-delete
+- **Relações:** Um para Muitos com `User` e `Project`
+
 ### users
-- **Entidade:** `src/modules/users/domain/User.ts` — usuário com role DEFAULT/ADMIN, normaliza email, valida hash
+- **Entidade:** `src/modules/users/domain/User.ts` — usuário com role DEFAULT/ADMIN, normaliza email, valida hash; **Novo:** agora inclui `companyId` obrigatório
 - **Erros:** `src/modules/users/domain/errors.ts` — INVALID_EMAIL, INVALID_PASSWORD, EMAIL_ALREADY_EXISTS, INVALID_CREDENTIALS
-- **Actions:** `registerUser.ts` — cria usuário com bcrypt hash | `signInAction.ts` — form action para Auth.js (useActionState) | `updatePreferences.ts` — persiste preferências de UI no banco (sidebar_collapsed, theme)
-- **Queries:** `getUserByEmail.ts` — busca usuário ativo por email (sem deletedAt), retorna image e preferences
+- **Actions:** `registerUser.ts` — cria usuário com bcrypt hash e `companyId` = default company | `signInAction.ts` — form action para Auth.js (useActionState) | `updatePreferences.ts` — persiste preferências de UI no banco (sidebar_collapsed, theme)
+- **Queries:** `getUserByEmail.ts` — busca usuário ativo por email (sem deletedAt), retorna image, preferences e company
+
+### projects
+- **Entidade:** `Project` (Prisma) — id (UUID), companyId (fk), name, type (LANDING_PAGE | INSTITUTIONAL), soft-delete
+- **Relações:** Um para Muitos com `Page`; belongsTo `Company`
+
+### pages
+- **Entidade:** `Page` (Prisma) — id (UUID), projectId (fk), name, slug (unique por project), content (Json), soft-delete
+- **Relações:** belongsTo `Project`
+
+### projectHistories
+- **Entidade:** `ProjectHistory` (Prisma) — id (UUID), projectId (fk), userId (fk), previousState (Json), newState (Json), version (Int), createdAt
+- **Uso:** Auditoria de alterações em projetos; rastreia quem alterou o quê
 
 ### admin
 - **Queries:** `getLoginLogs.ts` — lista tentativas falhas de login | `getLoginLogsByIp.ts` — filtra por IP
@@ -32,17 +54,21 @@
 
 ## Páginas
 
-- `src/app/page.tsx` — root redireciona para /dashboard (redirect)
+- `src/app/page.tsx` — root redireciona para `/{companySlug}/dashboard` (redireciona para empresa do usuário autenticado)
 - `src/app/(auth)/login/page.tsx` — tela de login (Server Component)
-- `src/app/dashboard/layout.tsx` — layout protegido; busca image e preferences do DB; passa initialCollapsed, email e image como props para Sidebar
-- `src/app/dashboard/page.tsx` — dashboard principal com header, banner promo, cards Sites e Landing Pages
+- `src/app/[companySlug]/dashboard/layout.tsx` — **Novo:** layout protegido; valida se usuário pode acessar a empresa; busca image e preferences do DB; passa initialCollapsed, email e image como props para Sidebar
+- `src/app/[companySlug]/dashboard/page.tsx` — **Novo:** dashboard principal com header, banner promo, cards Sites e Landing Pages
 
 ---
 
 ## Schema Prisma
 
-- **User** (`users`) — id (UUID), email (unique), password (text), role (DEFAULT/ADMIN), image (String?), preferences (Json? default {}), createdAt, updatedAt, deletedAt
+- **Company** (`companies`) — id (UUID), slug (unique, indexed), name (string), description (String?), logo (String?), createdAt, updatedAt, deletedAt
+- **User** (`users`) — id (UUID), email (unique), password (text), role (DEFAULT/ADMIN), image (String?), preferences (Json? default {}), **companyId (UUID, fk→companies)**, createdAt, updatedAt, deletedAt
 - **LoginAttempt** (`login_attempts`) — id (UUID), ip (string, indexed), email (string optional), createdAt
+- **Project** (`projects`) — id (UUID), companyId (UUID, fk→companies), name (string), type (LANDING_PAGE|INSTITUTIONAL), createdAt, updatedAt, deletedAt
+- **Page** (`pages`) — id (UUID), projectId (UUID, fk→projects), name (string), slug (string, unique per project), content (Json default {}), createdAt, updatedAt, deletedAt
+- **ProjectHistory** (`project_histories`) — id (UUID), projectId (UUID, fk→projects), userId (UUID, fk→users), previousState (Json?), newState (Json?), version (Int), createdAt
 
 ---
 
@@ -68,13 +94,13 @@
 
 ---
 
-## Infraestrutura e Auth
+## Infraestrutura e Auth (Multi-Tenant)
 
-- `src/lib/auth.config.ts` — NextAuthConfig oficial v5: session JWT + callback authorized (proteção de rotas) + callbacks jwt/session para id/role
+- `src/lib/auth.config.ts` — **Atualizado:** NextAuthConfig v5 com Multi-Tenant; callback authorized valida companySlug na sessão; redireciona pós-login para `/{companySlug}/dashboard`; callbacks jwt/session propagam id, role, image, **companySlug**
 - `src/middleware.ts` — NextAuth(authConfig).auth (padrão oficial); matcher: `/((?!api|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg).*)`
-- `src/lib/auth.ts` — NextAuth v5 com Credentials Provider, PrismaAdapter e Brute Force Protection (3+ falhas em 1 hora = bloqueado)
+- `src/lib/auth.ts` — **Atualizado:** NextAuth v5; authorize retorna **companySlug** junto com user; busca Company ao autenticar
 - `src/app/api/auth/[...nextauth]/route.ts` — Route Handler do Auth.js (GET, POST)
-- `src/types/next-auth.d.ts` — augmentação de tipos: id e role na Session/JWT
+- `src/types/next-auth.d.ts` — **Atualizado:** augmentação de tipos com **companySlug** em Session/JWT/User
 - `.env.example` — template de variáveis: DATABASE_URL e AUTH_SECRET
 - `docs/postman/auth_collection.json` — coleção Auth.js: Sign In, Get Session, CSRF, Sign Out
 
@@ -149,6 +175,17 @@
 | 2026-05-07 | `src/modules/users/actions/updatePreferences.ts` | Adicionado revalidatePath('/dashboard', 'layout') após update                         |
 | 2026-05-07 | `src/components/dashboard/Sidebar.tsx`        | Refatorado: Client Component unificado (useState + startTransition, sem useOptimistic)   |
 | 2026-05-07 | `src/components/dashboard/SidebarClient.tsx`  | DELETADO: lógica absorvida por Sidebar.tsx                                               |
+| 2026-05-09 | `prisma/schema.prisma`                        | **REFACTOR:** Adicionados models Company, Project, Page, ProjectHistory; User agora tem companyId obrigatório |
+| 2026-05-09 | `prisma/migrations/20260509232658_add_multi_tenant_architecture` | **MIGRATION:** Cria estrutura Multi-Tenant; default company; atualiza users com companyId |
+| 2026-05-09 | `src/lib/auth.ts`                             | **REFACTOR:** authorize busca user.company; retorna companySlug no token       |
+| 2026-05-09 | `src/lib/auth.config.ts`                      | **REFACTOR:** callback authorized valida companySlug; redireciona para /{companySlug}/dashboard |
+| 2026-05-09 | `src/types/next-auth.d.ts`                    | **REFACTOR:** Adicionado companySlug em Session/JWT/User                      |
+| 2026-05-09 | `src/app/page.tsx`                            | **REFACTOR:** Redireciona para /{companySlug}/dashboard da empresa do usuário  |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/layout.tsx`  | **NOVO:** Layout protegido; valida companySlug do usuário vs. params          |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/page.tsx`    | **NOVO:** Dashboard principal refatorado para rota dinâmica [companySlug]     |
+| 2026-05-09 | `src/app/dashboard/`                          | **DELETADO:** Pasta antiga removida; estrutura movida para [companySlug]      |
+| 2026-05-09 | `src/modules/users/actions/registerUser.ts`   | **REFACTOR:** Agora associa novo usuário à default company                   |
+| 2026-05-09 | `scripts/seed-test-user.ts`                   | **REFACTOR:** Adiciona companyId (default) ao criar usuário de teste         |
 
 ---
 
@@ -157,3 +194,10 @@
 **Node.js Versão:** Requer Node.js 18+ (suporte a ES2021 para operador `??=` usado por Next.js 16)
 - Desenvolvimento atual com Node.js v14.21.3 causará erro de build
 - Atualize para Node.js 18 LTS ou superior antes de fazer build/deploy
+
+**Multi-Tenant Architecture (desde 2026-05-09):**
+- Todas as rotas protegidas agora usam `/{companySlug}/dashboard`
+- Usuários não autenticados são redirecionados para `/login`
+- Após autenticação, usuários são redirecionados para `/{companySlug}/dashboard` (companySlug extraído do JWT)
+- Middleware valida se usuário está acessando a empresa correta; redireciona automaticamente caso contrário
+- Uma empresa padrão (`default`) é criada na primeira migration; usuários registrados são associados a ela por padrão

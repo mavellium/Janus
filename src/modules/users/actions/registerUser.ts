@@ -31,6 +31,11 @@ export async function registerUser(
     const user = User.create({ email: parsed.data.email, hashedPassword })
     const props = user.toObject()
 
+    const defaultCompany = await db.company.findUnique({
+      where: { slug: 'default' },
+    })
+    if (!defaultCompany) throw new Error('Default company not found')
+
     await db.user.create({
       data: {
         id: props.id,
@@ -38,6 +43,7 @@ export async function registerUser(
         password: props.password,
         role: props.role,
         createdAt: props.createdAt,
+        companyId: defaultCompany.id,
       },
     })
 

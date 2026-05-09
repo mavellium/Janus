@@ -4,7 +4,12 @@ import { Zap, Globe, ChevronRight } from 'lucide-react'
 
 export const metadata = { title: 'Dashboard — Janus' }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  params,
+}: {
+  params: Promise<{ companySlug: string }>
+}) {
+  await params
   const session = await auth()
   if (!session?.user) redirect('/login')
 
@@ -18,7 +23,10 @@ export default async function DashboardPage() {
         </h1>
         <div className="flex items-center gap-2">
           <span className="text-sm text-brand-muted">Suas tarefas</span>
-          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: '#E74C3C' }}>
+          <span
+            className="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-semibold text-white"
+            style={{ backgroundColor: '#E74C3C' }}
+          >
             3
           </span>
         </div>

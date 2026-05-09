@@ -5,7 +5,6 @@ import { db } from '@/lib/prisma'
 import { compare } from 'bcryptjs'
 import { z } from 'zod'
 import { headers } from 'next/headers'
-import { getUserByEmail } from '@/modules/users/queries/getUserByEmail'
 import { authConfig } from '@/lib/auth.config'
 
 const credentialsSchema = z.object({
@@ -73,7 +72,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null
         }
 
-        const user = await getUserByEmail(parsed.data.email)
+        const user = await db.user.findUnique({
+          where: { email: parsed.data.email, deletedAt: null },
+          include: { company: true },
+        })
         if (!user) {
           await recordFailedAttempt(ip, parsed.data.email)
           return null
@@ -85,7 +87,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null
         }
 
-        return { id: user.id, email: user.email, role: user.role, image: user.image }
+        return {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          image: user.image,
+          companySlug: user.company.slug,
+        }
       },
     }),
   ],

@@ -15,18 +15,48 @@ enum UserRole {
   @@map("user_role")
 }
 
-model User {
+enum ProjectType {
+  LANDING_PAGE
+  INSTITUTIONAL
+
+  @@map("project_type")
+}
+
+model Company {
   id          String    @id @default(uuid()) @db.Uuid
-  email       String    @unique
-  password    String    @db.Text
-  role        UserRole  @default(DEFAULT)
-  image       String?   @map("user_image")
-  preferences Json?     @default("{}") @map("preferences")
+  slug        String    @unique
+  name        String
+  description String?
+  logo        String?
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
 
+  users    User[]
+  projects Project[]
+
+  @@index([slug])
+  @@index([deletedAt])
+  @@map("companies")
+}
+
+model User {
+  id        String    @id @default(uuid()) @db.Uuid
+  email     String    @unique
+  password  String    @db.Text
+  role      UserRole  @default(DEFAULT)
+  image     String?   @map("user_image")
+  preferences Json?   @default("{}") @map("preferences")
+  companyId String    @db.Uuid
+  company   Company   @relation(fields: [companyId], references: [id])
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  projectHistories ProjectHistory[]
+
   @@index([email])
+  @@index([companyId])
   @@index([deletedAt])
   @@map("users")
 }
@@ -39,5 +69,56 @@ model LoginAttempt {
 
   @@index([ip])
   @@map("login_attempts")
+}
+
+model Project {
+  id        String       @id @default(uuid()) @db.Uuid
+  companyId String       @db.Uuid
+  company   Company      @relation(fields: [companyId], references: [id])
+  name      String
+  type      ProjectType
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  deletedAt DateTime?    @map("deleted_at")
+
+  pages              Page[]
+  projectHistories   ProjectHistory[]
+
+  @@index([companyId])
+  @@index([deletedAt])
+  @@map("projects")
+}
+
+model Page {
+  id        String    @id @default(uuid()) @db.Uuid
+  projectId String    @db.Uuid
+  project   Project   @relation(fields: [projectId], references: [id])
+  name      String
+  slug      String
+  content   Json?     @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@unique([projectId, slug])
+  @@index([projectId])
+  @@index([deletedAt])
+  @@map("pages")
+}
+
+model ProjectHistory {
+  id            String    @id @default(uuid()) @db.Uuid
+  projectId     String    @db.Uuid
+  project       Project   @relation(fields: [projectId], references: [id])
+  userId        String    @db.Uuid
+  user          User      @relation(fields: [userId], references: [id])
+  previousState Json?
+  newState      Json?
+  version       Int
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_histories")
 }
 

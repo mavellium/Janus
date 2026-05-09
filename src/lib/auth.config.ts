@@ -9,14 +9,21 @@ export const authConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user
       const isAuthRoute = nextUrl.pathname.startsWith('/login')
-      const isProtectedRoute = nextUrl.pathname === '/' || nextUrl.pathname.startsWith('/dashboard')
+      const isProtectedRoute = nextUrl.pathname === '/' || /^\/[^/]+\/dashboard/.test(nextUrl.pathname)
 
       if (isProtectedRoute) {
-        return isLoggedIn
+        if (!isLoggedIn) return false
+        const userCompanySlug = (auth.user as { companySlug?: string }).companySlug
+        const pathCompanySlug = nextUrl.pathname.split('/')[1]
+        if (userCompanySlug && pathCompanySlug !== userCompanySlug) {
+          return NextResponse.redirect(new URL(`/${userCompanySlug}/dashboard`, nextUrl))
+        }
+        return true
       }
 
       if (isAuthRoute && isLoggedIn) {
-        return NextResponse.redirect(new URL('/dashboard', nextUrl))
+        const companySlug = (auth.user as { companySlug?: string }).companySlug || 'default'
+        return NextResponse.redirect(new URL(`/${companySlug}/dashboard`, nextUrl))
       }
 
       return true
@@ -26,6 +33,7 @@ export const authConfig = {
         token.id = user.id
         token.role = (user as { role?: string }).role
         token.image = (user as { image?: string | null }).image ?? null
+        token.companySlug = (user as { companySlug?: string }).companySlug
       }
       return token
     },
@@ -34,6 +42,7 @@ export const authConfig = {
         session.user.id = token.id as string
         session.user.role = token.role as string
         session.user.image = token.image as string | null
+        session.user.companySlug = token.companySlug as string
       }
       return session
     },
