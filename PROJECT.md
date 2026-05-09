@@ -88,9 +88,16 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/modules/users/domain/User.spec.ts` — 6 testes: create, reconstitute, toObject
 - `src/test/create-test-user.spec.ts` — 5 fases de teste para criar usuário teste2@gmail.com
 - `src/lib/auth.spec.ts` — teste de error handling para LoginAttempt
-- `scripts/seed-test-user.ts` — script seed para criar usuário de teste via CLI
+- `scripts/seed-test-user.ts` — **Atualizado:** cria empresa test-company, usuário teste2@gmail.com, projeto Test Project, página Home com conteúdo JSON
 - `scripts/test-db-connection.ts` — script para testar conectividade com PostgreSQL
-- `SETUP_TEST_USER.md` — guia de setup e uso do usuário de teste
+- `SETUP_TEST_USER.md` — **Reescrito:** guia completo de setup Multi-Tenant, credenciais, fluxo de auth, troubleshooting
+
+**Ambiente de Teste:**
+- **Empresa:** `test-company` (slug) / "Test Company" (nome)
+- **Usuário:** `teste2@gmail.com` / `123456` (email/senha)
+- **Projeto:** "Test Project" (LANDING_PAGE)
+- **Página:** "Home" (slug: home, conteúdo JSON com hero section)
+- **URL Acesso:** `http://localhost:3000/test-company/dashboard`
 
 ---
 
@@ -185,7 +192,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-09 | `src/app/[companySlug]/dashboard/page.tsx`    | **NOVO:** Dashboard principal refatorado para rota dinâmica [companySlug]     |
 | 2026-05-09 | `src/app/dashboard/`                          | **DELETADO:** Pasta antiga removida; estrutura movida para [companySlug]      |
 | 2026-05-09 | `src/modules/users/actions/registerUser.ts`   | **REFACTOR:** Agora associa novo usuário à default company                   |
-| 2026-05-09 | `scripts/seed-test-user.ts`                   | **REFACTOR:** Adiciona companyId (default) ao criar usuário de teste         |
+| 2026-05-09 | `scripts/seed-test-user.ts`                   | **REFACTOR:** Cria empresa "test-company", projeto e página de teste completos |
+| 2026-05-09 | `SETUP_TEST_USER.md`                          | **REESCRITO:** Documentação atualizada para Multi-Tenant, inclui fluxo de auth |
 
 ---
 
