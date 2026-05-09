@@ -73,24 +73,12 @@ export default async function SitesPage({
                     color: '#161718',
                     backgroundColor: '#f5f5f5',
                   }}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#ebe6da'
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#f5f5f5'
-                  }}
                 >
                   Gerenciar
                 </button>
                 <button
                   className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold text-white transition"
                   style={{ backgroundColor: '#514030' }}
-                  onMouseEnter={(e) => {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#7A614A'
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.target as HTMLButtonElement).style.backgroundColor = '#514030'
-                  }}
                 >
                   Editar
                 </button>
