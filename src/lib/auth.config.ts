@@ -9,21 +9,25 @@ export const authConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user
       const isAuthRoute = nextUrl.pathname.startsWith('/login')
-      const isProtectedRoute = nextUrl.pathname === '/' || /^\/[^/]+\/dashboard/.test(nextUrl.pathname)
+      const slug = (auth?.user as { companySlug?: string })?.companySlug || 'default'
 
+      if (nextUrl.pathname === '/') {
+        if (!isLoggedIn) return true
+        return NextResponse.redirect(new URL(`/${slug}/dashboard`, nextUrl))
+      }
+
+      const isProtectedRoute = /^\/[^/]+\/dashboard/.test(nextUrl.pathname)
       if (isProtectedRoute) {
         if (!isLoggedIn) return false
-        const userCompanySlug = (auth.user as { companySlug?: string }).companySlug
         const pathCompanySlug = nextUrl.pathname.split('/')[1]
-        if (userCompanySlug && pathCompanySlug !== userCompanySlug) {
-          return NextResponse.redirect(new URL(`/${userCompanySlug}/dashboard`, nextUrl))
+        if (slug && pathCompanySlug !== slug) {
+          return NextResponse.redirect(new URL(`/${slug}/dashboard`, nextUrl))
         }
         return true
       }
 
       if (isAuthRoute && isLoggedIn) {
-        const companySlug = (auth.user as { companySlug?: string }).companySlug || 'default'
-        return NextResponse.redirect(new URL(`/${companySlug}/dashboard`, nextUrl))
+        return NextResponse.redirect(new URL(`/${slug}/dashboard`, nextUrl))
       }
 
       return true

@@ -103,11 +103,12 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 ## Infraestrutura e Auth (Multi-Tenant)
 
-- `src/lib/auth.config.ts` — **Atualizado:** NextAuthConfig v5 com Multi-Tenant; callback authorized valida companySlug na sessão; redireciona pós-login para `/{companySlug}/dashboard`; callbacks jwt/session propagam id, role, image, **companySlug**
+- `src/lib/auth.config.ts` — **FIX (2026-05-09):** authorized callback refatorado; extrai companySlug da sessão; redireciona root (/) para `/{companySlug}/dashboard`; redireciona /login para `/{companySlug}/dashboard`; valida companySlug ao acessar rota protegida
+- `src/lib/auth.ts` — NextAuth v5; authorize busca user.company; retorna companySlug no objeto do usuário
+- `src/modules/users/actions/signInAction.ts` — **FIX (2026-05-09):** Removido redirectTo hardcoded; usa redirect: true para middleware processar redirecionamento dinâmico
 - `src/middleware.ts` — NextAuth(authConfig).auth (padrão oficial); matcher: `/((?!api|_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg).*)`
-- `src/lib/auth.ts` — **Atualizado:** NextAuth v5; authorize retorna **companySlug** junto com user; busca Company ao autenticar
 - `src/app/api/auth/[...nextauth]/route.ts` — Route Handler do Auth.js (GET, POST)
-- `src/types/next-auth.d.ts` — **Atualizado:** augmentação de tipos com **companySlug** em Session/JWT/User
+- `src/types/next-auth.d.ts` — Augmentação de tipos: companySlug em Session/JWT/User
 - `.env.example` — template de variáveis: DATABASE_URL e AUTH_SECRET
 - `docs/postman/auth_collection.json` — coleção Auth.js: Sign In, Get Session, CSRF, Sign Out
 
@@ -194,6 +195,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-09 | `src/modules/users/actions/registerUser.ts`   | **REFACTOR:** Agora associa novo usuário à default company                   |
 | 2026-05-09 | `scripts/seed-test-user.ts`                   | **REFACTOR:** Cria empresa "test-company", projeto e página de teste completos |
 | 2026-05-09 | `SETUP_TEST_USER.md`                          | **REESCRITO:** Documentação atualizada para Multi-Tenant, inclui fluxo de auth |
+| 2026-05-09 | `src/lib/auth.config.ts`                      | **FIX:** Refatorado authorized callback; extrai companySlug; redireciona root e login para /{slug}/dashboard |
+| 2026-05-09 | `src/modules/users/actions/signInAction.ts`   | **FIX:** Removido hardcode redirectTo: '/dashboard'; usa redirect: true para middleware processar |
 
 ---
 

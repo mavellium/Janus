@@ -23,7 +23,7 @@ export async function signInAction(
   if (!parsed.success) return { error: 'Email ou senha inválidos.' }
 
   try {
-    await signIn('credentials', { ...parsed.data, redirectTo: '/dashboard' })
+    await signIn('credentials', { ...parsed.data, redirect: true })
   } catch (err) {
     if (err instanceof AuthError) {
       if (err.message === 'IP_BLOCKED') {
