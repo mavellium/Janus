@@ -1,12 +1,15 @@
+'use client'
+
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { ChevronLeft, FileText, BarChart3, BookOpen } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface ContextSidebarProps {
   companySlug: string
   projectId: string
   projectName: string
   projectType: 'LANDING_PAGE' | 'INSTITUTIONAL'
-  currentSection?: 'pages' | 'analytics' | 'blog'
 }
 
 export function ContextSidebar({
@@ -14,8 +17,8 @@ export function ContextSidebar({
   projectId,
   projectName,
   projectType,
-  currentSection,
 }: ContextSidebarProps) {
+  const pathname = usePathname()
   const basePath =
     projectType === 'LANDING_PAGE'
       ? `/${companySlug}/dashboard/landing-pages/${projectId}`
@@ -27,10 +30,30 @@ export function ContextSidebar({
     { href: `${basePath}/blog`, label: 'Blog', icon: BookOpen, id: 'blog' },
   ]
 
+  const getLinkClasses = (href: string, id: string) => {
+    const isActive = pathname.endsWith('/pages') && id === 'pages' ||
+                   pathname.endsWith('/analytics') && id === 'analytics' ||
+                   pathname.endsWith('/blog') && id === 'blog'
+    
+    return cn(
+      'flex items-center gap-3 px-4 py-2 rounded-lg transition',
+      isActive 
+        ? 'bg-[#7A614A] text-[#FFFFFF] [&>svg]:text-[#FFFFFF]'
+        : 'text-[#161718] [&>svg]:text-[#161718] hover:bg-[#7A614A] hover:text-[#FFFFFF] [&>svg]:hover:text-[#FFFFFF]'
+    )
+  }
+
   return (
     <aside className="w-64 bg-white border-r border-brand-muted/40 flex flex-col">
       <div className="p-6 border-b border-brand-muted/40">
-        <Link href={`/${companySlug}/dashboard`} className="flex items-center gap-2 text-brand-primary hover:opacity-80 mb-4">
+        <Link 
+          href={
+            projectType === 'LANDING_PAGE' 
+              ? `/${companySlug}/dashboard/landing-pages`
+              : `/${companySlug}/dashboard/sites`
+          } 
+          className="flex items-center gap-2 text-brand-primary hover:opacity-80 mb-4"
+        >
           <ChevronLeft className="w-5 h-5" />
           <span className="text-sm font-semibold">Voltar</span>
         </Link>
@@ -48,11 +71,7 @@ export function ContextSidebar({
             <li key={id}>
               <Link
                 href={href}
-                className="flex items-center gap-3 px-4 py-2 rounded-lg transition"
-                style={{
-                  backgroundColor: currentSection === id ? '#ebe6da' : 'transparent',
-                  color: '#161718',
-                }}
+                className={getLinkClasses(href, id)}
               >
                 <Icon className="w-4 h-4" />
                 <span className="text-sm font-medium">{label}</span>

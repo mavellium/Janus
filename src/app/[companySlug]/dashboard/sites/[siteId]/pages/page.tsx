@@ -1,9 +1,11 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { Edit3 } from 'lucide-react'
 import { db } from '@/lib/prisma'
 import { getPagesByProjectId } from '@/modules/projects/queries/getPagesByProjectId'
 import { formatDate } from '@/lib/utils'
+import { EditPageModal } from '@/components/projects/EditPageModal'
 
 export const metadata = { title: 'Páginas — Janus' }
 
@@ -61,13 +63,29 @@ export default async function SitePagesPage({
                 <p className="text-xs text-brand-muted mt-1">/{page.slug}</p>
                 <p className="text-xs text-brand-muted mt-2">{formatDate(page.createdAt)}</p>
               </div>
-              <Link
-                href={`/${companySlug}/dashboard/sites/${siteId}/pages/${page.id}/builder`}
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-white transition"
-                style={{ backgroundColor: '#514030' }}
-              >
-                Editar
-              </Link>
+              <div className="flex gap-2">
+                <EditPageModal
+                  pageId={page.id}
+                  initialName={page.name}
+                  initialSlug={page.slug}
+                  projectId={siteId}
+                  trigger={
+                    <button
+                      className="px-3 py-2 rounded-lg text-sm font-semibold transition border border-brand-muted text-brand-text hover:bg-brand-muted/20"
+                    >
+                      Editar
+                    </button>
+                  }
+                />
+                <Link
+                  href={`/${companySlug}/dashboard/sites/${siteId}/pages/${page.id}/builder`}
+                  className="px-3 py-2 rounded-lg text-sm font-semibold text-white transition flex items-center gap-2"
+                  style={{ backgroundColor: '#514030' }}
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Construtor
+                </Link>
+              </div>
             </div>
           ))}
         </div>

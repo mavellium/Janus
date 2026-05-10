@@ -3,38 +3,39 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useParams, usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import {
-  Home, FileText, Globe, Zap, BookOpen, FileStack,
+  Home, FileText, Globe, Zap, FileStack,
   Bell, Settings, LogOut, PanelLeftClose, PanelLeftOpen, UserCircle,
 } from 'lucide-react'
 import { updatePreferences } from '@/modules/users/actions/updatePreferences'
 import { signOut } from 'next-auth/react'
 
-const MENU_ITEMS = [
-  { label: 'Página Inicial', href: '/dashboard', icon: Home },
-  { label: 'Resultados', href: '/dashboard/results', icon: FileText },
-  { label: 'Sites', href: '/dashboard/sites', icon: Globe },
-  { label: 'Landing Pages', href: '/dashboard/landing-pages', icon: Zap },
-  { label: 'Blog', href: '/dashboard/blog', icon: BookOpen },
-  { label: 'Faturas', href: '/dashboard/invoices', icon: FileStack },
-]
-
-const BOTTOM_ITEMS = [
-  { label: 'Notificações', icon: Bell },
-  { label: 'Configurações', icon: Settings },
-]
 
 interface SidebarProps {
   email: string
   image?: string | null
   initialCollapsed: boolean
+  companyName?: string
 }
 
-export function Sidebar({ email, image, initialCollapsed }: SidebarProps) {
+export function Sidebar({ email, image, initialCollapsed, companyName }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(initialCollapsed)
   const [, startTransition] = useTransition()
+  const params = useParams()
+  const pathname = usePathname()
+  const companySlug = params.companySlug as string
 
   const userName = email.split('@')[0]
+
+  const MENU_ITEMS = [
+    { label: 'Página Inicial', href: `/${companySlug}/dashboard`, icon: Home },
+    { label: 'Resultados', href: `/${companySlug}/dashboard/results`, icon: FileText },
+    { label: 'Sites', href: `/${companySlug}/dashboard/sites`, icon: Globe },
+    { label: 'Landing Pages', href: `/${companySlug}/dashboard/landing-pages`, icon: Zap },
+    { label: 'Faturas', href: `/${companySlug}/dashboard/invoices`, icon: FileStack },
+  ]
 
   function toggleCollapsed() {
     const next = !collapsed
@@ -44,23 +45,23 @@ export function Sidebar({ email, image, initialCollapsed }: SidebarProps) {
     })
   }
 
-  const linkStyle = (isCollapsed: boolean): React.CSSProperties => ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: isCollapsed ? '10px 0' : '10px 12px',
-    justifyContent: isCollapsed ? 'center' : 'flex-start',
-    borderRadius: '8px',
-    border: 'none',
-    background: 'transparent',
-    cursor: 'pointer',
-    textDecoration: 'none',
-    fontSize: '14px',
-    fontWeight: 500,
-    color: 'var(--sidebar-icon)',
-    width: '100%',
-    whiteSpace: 'nowrap',
-  })
+  const getLinkClasses = (href: string, isCollapsed: boolean) => {
+    const isActive = pathname === href ||
+                   (href === `/${companySlug}/dashboard` && pathname === `/${companySlug}/dashboard`) ||
+                   (href.includes('/sites') && pathname.includes('/sites')) ||
+                   (href.includes('/landing-pages') && pathname.includes('/landing-pages')) ||
+                   (href.includes('/results') && pathname.includes('/results')) ||
+                   (href.includes('/invoices') && pathname.includes('/invoices')) ||
+                   (href.includes('/settings') && pathname.includes('/settings'))
+    
+    return cn(
+      'flex items-center gap-3 w-full rounded-lg transition-colors',
+      isCollapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2',
+      isActive 
+        ? 'bg-[#7A614A] text-[#FFFFFF] [&>svg]:text-[#FFFFFF]'
+        : 'text-[#58585E] [&>svg]:text-[#58585E] hover:bg-[#7A614A] hover:text-[#FFFFFF] [&>svg]:hover:text-[#FFFFFF]'
+    )
+  }
 
   return (
     <aside
@@ -89,7 +90,7 @@ export function Sidebar({ email, image, initialCollapsed }: SidebarProps) {
         }}
       >
         <Link
-          href="/dashboard"
+          href={`/${companySlug}/dashboard`}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
           title="Dashboard"
         >
@@ -105,8 +106,7 @@ export function Sidebar({ email, image, initialCollapsed }: SidebarProps) {
           <button
             onClick={toggleCollapsed}
             title="Minimizar sidebar"
-            style={linkStyle(false)}
-            className="sidebar-link"
+            className={cn('flex items-center gap-3 w-full rounded-lg transition-colors px-3 py-2 text-[#58585E] hover:bg-[#7A614A] hover:text-[#FFFFFF] [&>svg]:text-[#58585E] hover:[&>svg]:text-[#FFFFFF]')}
           >
             <PanelLeftClose size={16} />
           </button>
@@ -118,8 +118,7 @@ export function Sidebar({ email, image, initialCollapsed }: SidebarProps) {
           <button
             onClick={toggleCollapsed}
             title="Expandir sidebar"
-            style={{ ...linkStyle(true), width: '28px', height: '28px', padding: 0, borderRadius: '6px' }}
-            className="sidebar-link"
+            className={cn('flex items-center justify-center w-7 h-7 rounded-lg transition-colors text-[#58585E] hover:bg-[#7A614A] hover:text-[#FFFFFF] [&>svg]:text-[#58585E] hover:[&>svg]:text-[#FFFFFF]')}
           >
             <PanelLeftOpen size={16} />
           </button>
@@ -141,27 +140,36 @@ export function Sidebar({ email, image, initialCollapsed }: SidebarProps) {
             key={href}
             href={href}
             title={collapsed ? label : undefined}
-            style={linkStyle(collapsed)}
-            className="sidebar-link"
+            className={getLinkClasses(href, collapsed)}
           >
-            <Icon size={16} style={{ flexShrink: 0 }} />
+            <Icon size={16} className="flex-shrink-0" />
             {!collapsed && <span>{label}</span>}
           </Link>
         ))}
       </nav>
 
       <div style={{ padding: '8px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        {BOTTOM_ITEMS.map(({ label, icon: Icon }) => (
-          <button
-            key={label}
-            title={collapsed ? label : undefined}
-            style={linkStyle(collapsed)}
-            className="sidebar-link"
-          >
-            <Icon size={16} style={{ flexShrink: 0 }} />
-            {!collapsed && <span>{label}</span>}
-          </button>
-        ))}
+        <button
+          title={collapsed ? 'Notificações' : undefined}
+          className={cn('flex items-center gap-3 w-full rounded-lg transition-colors', collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2', 'text-[#58585E] hover:bg-[#7A614A] hover:text-[#FFFFFF] [&>svg]:text-[#58585E] hover:[&>svg]:text-[#FFFFFF]')}
+        >
+          <Bell size={16} style={{ flexShrink: 0 }} />
+          {!collapsed && <span>Notificações</span>}
+        </button>
+        <Link
+          href={`/${companySlug}/dashboard/settings`}
+          title={collapsed ? 'Configurações' : undefined}
+          className={cn(
+            'flex items-center gap-3 w-full rounded-lg transition-colors',
+            collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2',
+            pathname === `/${companySlug}/dashboard/settings`
+              ? 'bg-[#7A614A] text-[#FFFFFF] [&>svg]:text-[#FFFFFF]'
+              : 'text-[#58585E] [&>svg]:text-[#58585E] hover:bg-[#7A614A] hover:text-[#FFFFFF] [&>svg]:hover:text-[#FFFFFF]'
+          )}
+        >
+          <Settings size={16} style={{ flexShrink: 0 }} />
+          {!collapsed && <span>Configurações</span>}
+        </Link>
       </div>
 
       <div
@@ -182,16 +190,30 @@ export function Sidebar({ email, image, initialCollapsed }: SidebarProps) {
             justifyContent: collapsed ? 'center' : 'flex-start',
           }}
         >
-          {image ? (
-            <Image
-              src={image}
-              alt={userName}
-              width={32}
-              height={32}
-              style={{ borderRadius: '50%', flexShrink: 0 }}
-            />
+          {image && (image.startsWith('http') || image.startsWith('/')) ? (
+            <div 
+              style={{ 
+                position: 'relative', 
+                flexShrink: 0,
+                width: '40px',
+                height: '40px'
+              }}
+            >
+              <Image
+                src={image}
+                alt={userName}
+                fill
+                sizes="40px"
+                style={{ 
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: '2px solid var(--brand-primary)'
+                }}
+                priority
+              />
+            </div>
           ) : (
-            <UserCircle size={32} style={{ flexShrink: 0, color: 'var(--sidebar-icon)' }} />
+            <UserCircle size={40} style={{ flexShrink: 0, color: 'var(--sidebar-icon)' }} />
           )}
           {!collapsed && (
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -208,7 +230,7 @@ export function Sidebar({ email, image, initialCollapsed }: SidebarProps) {
               >
                 {email}
               </p>
-              <p style={{ fontSize: '11px', opacity: 0.6, margin: 0 }}>Usuário</p>
+              <p style={{ fontSize: '11px', opacity: 0.6, margin: 0 }}>{companyName || 'Empresa'}</p>
             </div>
           )}
         </div>
@@ -216,8 +238,7 @@ export function Sidebar({ email, image, initialCollapsed }: SidebarProps) {
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
           title={collapsed ? 'Sair' : undefined}
-          style={linkStyle(collapsed)}
-          className="sidebar-link"
+          className={cn('flex items-center gap-3 w-full rounded-lg transition-colors', collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2', 'text-[#58585E] hover:bg-[#7A614A] hover:text-[#FFFFFF] [&>svg]:text-[#58585E] hover:[&>svg]:text-[#FFFFFF]')}
         >
           <LogOut size={16} style={{ flexShrink: 0 }} />
           {!collapsed && <span>Sair</span>}

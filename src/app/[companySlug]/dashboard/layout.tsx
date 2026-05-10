@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/prisma'
 import { Sidebar } from '@/components/dashboard/Sidebar'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import type { UserPreferences } from '@/types/next-auth'
 
 export default async function DashboardLayout({
@@ -33,13 +34,16 @@ export default async function DashboardLayout({
   const prefs = (user?.preferences ?? {}) as UserPreferences
 
   return (
-    <div className="min-h-screen flex bg-brand-bg">
-      <Sidebar
-        email={session.user.email ?? ''}
-        image={user?.image ?? null}
-        initialCollapsed={prefs.sidebar_collapsed ?? false}
-      />
-      <main className="flex-1 overflow-auto">{children}</main>
-    </div>
+    <ThemeProvider darkMode={prefs.darkMode}>
+      <div className="min-h-screen flex bg-brand-bg">
+        <Sidebar
+          email={session.user.email ?? ''}
+          image={user?.image ?? null}
+          initialCollapsed={prefs.sidebar_collapsed ?? false}
+          companyName={company.name}
+        />
+        <main className="flex-1 overflow-auto">{children}</main>
+      </div>
+    </ThemeProvider>
   )
 }

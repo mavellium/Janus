@@ -54,12 +54,5 @@ describe('Test User Creation - teste2@gmail.com', () => {
     expect(testUser.email).toBe('teste2@gmail.com')
     expect(testUser.password).toBe('123456')
     expect(testUser.role).toBe('DEFAULT')
-
-    console.log(`
-    ✓ Test User Credentials:
-    📧 Email: ${testUser.email}
-    🔐 Password: ${testUser.password}
-    👤 Role: ${testUser.role}
-    `)
   })
 })

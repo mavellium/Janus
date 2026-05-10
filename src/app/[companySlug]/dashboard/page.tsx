@@ -112,9 +112,12 @@ export default async function DashboardPage({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="px-3 py-1 text-xs border border-brand-muted/60 rounded-lg hover:bg-brand-muted/10 transition text-brand-text">
+                  <Link
+                    href={`/${companySlug}/dashboard/sites/${project.id}/pages`}
+                    className="px-3 py-1 text-xs border border-brand-muted/60 rounded-lg hover:bg-brand-muted/10 transition text-brand-text"
+                  >
                     Gerenciar
-                  </button>
+                  </Link>
                   <ChevronRight className="w-4 h-4 text-brand-muted" />
                 </div>
               </div>
@@ -181,9 +184,12 @@ export default async function DashboardPage({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="px-3 py-1 text-xs border border-brand-muted/60 rounded-lg hover:bg-brand-muted/10 transition text-brand-text">
+                  <Link
+                    href={`/${companySlug}/dashboard/landing-pages/${project.id}/pages`}
+                    className="px-3 py-1 text-xs border border-brand-muted/60 rounded-lg hover:bg-brand-muted/10 transition text-brand-text"
+                  >
                     Gerenciar
-                  </button>
+                  </Link>
                   <ChevronRight className="w-4 h-4 text-brand-muted" />
                 </div>
               </div>

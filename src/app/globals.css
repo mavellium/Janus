@@ -9,11 +9,25 @@
     --brand-btn-dark: #161718;
     --brand-btn-light: #DCDCDC;
     --brand-hover: #7A614A;
-    --brand-muted: #C8C8C8;
-    --brand-bg: #EBE6DA;
+    --brand-muted: #000000;
+    --brand-bg: #f1efea;
     --sidebar-bg: #ECEAE4;
     --sidebar-icon: #58585E;
     --sidebar-hover-bg: #7A614A;
+    --sidebar-hover-text: #FFFFFF;
+  }
+
+  .dark {
+    --brand-primary: #7A614A;
+    --brand-text: #F1F5F9;
+    --brand-btn-dark: #1E293B;
+    --brand-btn-light: #475569;
+    --brand-hover: #8B7355;
+    --brand-muted: #94A3B8;
+    --brand-bg: #000000;
+    --sidebar-bg: #111111;
+    --sidebar-icon: #94A3B8;
+    --sidebar-hover-bg: #8B7355;
     --sidebar-hover-text: #FFFFFF;
   }
 

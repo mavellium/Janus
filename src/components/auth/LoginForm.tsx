@@ -85,7 +85,7 @@ export function LoginForm() {
               autoComplete="email"
               required
               placeholder="seu@email.com"
-              className="w-full rounded-lg border border-brand-muted/60 bg-white px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-muted outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 disabled:opacity-50"
+              className="w-full rounded-lg border border-brand-muted/60 bg-white px-3.5 py-2.5 text-sm text-brand-text placeholder:text-gray outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 disabled:opacity-50"
               disabled={pending || ipStatus.blocked}
             />
           </div>
@@ -101,7 +101,7 @@ export function LoginForm() {
               autoComplete="current-password"
               required
               placeholder="••••••••"
-              className="w-full rounded-lg border border-brand-muted/60 bg-white px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-muted outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 disabled:opacity-50"
+              className="w-full rounded-lg border border-brand-muted/60 bg-white px-3.5 py-2.5 text-sm text-brand-text placeholder:text-gray outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 disabled:opacity-50"
               disabled={pending || ipStatus.blocked}
             />
           </div>

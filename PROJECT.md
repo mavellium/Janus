@@ -21,8 +21,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 ### users
 - **Entidade:** `src/modules/users/domain/User.ts` — usuário com role DEFAULT/ADMIN, normaliza email, valida hash; **Novo:** agora inclui `companyId` obrigatório
 - **Erros:** `src/modules/users/domain/errors.ts` — INVALID_EMAIL, INVALID_PASSWORD, EMAIL_ALREADY_EXISTS, INVALID_CREDENTIALS
-- **Actions:** `registerUser.ts` — cria usuário com bcrypt hash e `companyId` = default company | `signInAction.ts` — form action para Auth.js (useActionState) | `updatePreferences.ts` — persiste preferências de UI no banco (sidebar_collapsed, theme)
-- **Queries:** `getUserByEmail.ts` — busca usuário ativo por email (sem deletedAt), retorna image, preferences e company
+- **Actions:** `registerUser.ts` — cria usuário com bcrypt hash e `companyId` = default company | `signInAction.ts` — form action para Auth.js (useActionState) | `updatePreferences.ts` — persiste preferências de UI no banco (sidebar_collapsed, theme) | `updateAvatar.ts` — atualiza avatar com URL da BunnyCDN
+- **Queries:** `getUserByEmail.ts` — busca usuário ativo por email (sem deletedAt), retorna image, preferences e company | `getUserPreferences.ts` — busca preferências do usuário logado
 
 ### projects
 - **Entidade:** `Project` (Prisma) — id (UUID), companyId (fk), name, type (LANDING_PAGE | INSTITUTIONAL), soft-delete
@@ -45,6 +45,9 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **Queries:** `getLoginLogs.ts` — lista tentativas falhas de login | `getLoginLogsByIp.ts` — filtra por IP
 - **Actions:** `unblockIp.ts` — remove bloqueio de um IP (admin-only)
 
+### upload
+- **Actions:** `uploadImage.ts` — converte imagens para .avif via sharp (quality: 80), suporta subpastas dinâmicas (folder: 'avatars'), upload para BunnyCDN
+
 ### auth
 - **Actions:** `checkIpStatus.ts` — Server Action que verifica status de bloqueio do IP, retorna `{ blocked, remainingSeconds, reason }`
 
@@ -55,6 +58,14 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/components/auth/LoginForm.tsx` — Client — formulário de login com useActionState + checkIpStatus, countdown regressivo (MM:SS), overlay bloqueio com cor #514030
 - `src/components/dashboard/Sidebar.tsx` — Client — sidebar colapsável com useState(initialCollapsed) + startTransition; logo 48px→28px; toggle PanelLeftClose/PanelLeftOpen; avatar next/image + fallback UserCircle; estado persistido via updatePreferences em background
 - `src/components/dashboard/ContextSidebar.tsx` — **Novo:** Sidebar de contexto para dentro de projetos (sites/landing-pages); exibe nome do projeto, tipo, links para Páginas/Resultados/Blog; destaca seção atual
+- `src/components/builder/CoreRenderer.tsx` — Client — renderização pura HTML de EditorNode; usado no preview e pelo RenderNode
+- `src/components/builder/RenderNode.tsx` — Client — wrapper de edição com feedback visual (ring azul + tag flutuante); usa CoreRenderer via renderChild
+- `src/components/builder/Canvas.tsx` — Client — área de drop do builder; renderiza nodes com RenderNode
+- `src/components/builder/PropertiesPanel.tsx` — Client — painel de propriedades contextual por tipo (Layout, Tipografia, Aparência)
+- `src/components/builder/ComponentsPanel.tsx` — Client — paleta de componentes arrastáveis para o canvas
+- `src/components/users/update-avatar-modal.tsx` — Client — modal com Dialog/Tabs para upload de avatar via arquivo ou URL com preview
+- `src/components/ThemeProvider.tsx` — Client — provedor de tema para dashboard com preferências do usuário
+- `src/components/GlobalThemeProvider.tsx` — Client — provedor global de tema com sincronização periódica
 
 ---
 
@@ -240,6 +251,121 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-09 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/page.tsx` | **NOVO:** Tela de blog para landing pages |
 | 2026-05-09 | `src/app/[companySlug]/dashboard/sites/[siteId]/pages/[pageId]/builder/page.tsx` | **NOVO:** Construtor low-code visual com 3 colunas (componentes, canvas, propriedades) |
 | 2026-05-09 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/[pageId]/builder/page.tsx` | **NOVO:** Mesmo construtor para landing pages |
+| 2026-05-09 | `CoreRenderer.tsx` | **NOVO:** Componente de renderização pura HTML separado da lógica de edição |
+| 2026-05-09 | `RenderNode.tsx` | **REFACTOR:** Agora é wrapper de edição com feedback visual (ring azul + tag) |
+| 2026-05-09 | `Canvas.tsx` | **REFACTOR:** Atualizado para novo contrato de props do RenderNode |
+| 2026-05-09 | `PropertiesPanel.tsx` | **REFACTOR:** Reescrito com seções contextuais (Layout, Tipografia, Aparência) |
+| 2026-05-09 | `preview/page.tsx` | **REFACTOR:** Usa CoreRenderer diretamente (sem wrapper de edição) |
+| 2026-05-09 | `page.client.tsx` (builders) | **FIX:** Adicionado useIsMounted hook e id="dnd-builder" para corrigir Hydration Mismatch |
+| 2026-05-09 | `updatePageContent.ts` | **FIX:** Adicionado revalidatePath após publicar página |
+| 2026-05-09 | `preview/page.tsx` | **FIX:** Preview agora permite acesso ao dono/admin mesmo quando não publicado |
+| 2026-05-09 | `PropertiesPanel.tsx` | **FEATURE:** Adicionada seção Configurações da Página (backgroundColor) |
+| 2026-05-09 | `ComponentsPanel.tsx` | **FEATURE:** Adicionado Painel de Camadas com abas (Componentes/Camadas) |
+| 2026-05-09 | `Canvas.tsx` | **FEATURE:** Suporte a backgroundColor do pageSettings |
+| 2026-05-09 | `ComponentsPanel.tsx` | **REFACTOR:** Layout de componentes em grid 2x2 com ícones do lucide-react |
+| 2026-05-09 | `LayoutForm.tsx` | **NOVO:** Formulário modular para edição de propriedades de layout (flex/grid, dimensões) |
+| 2026-05-09 | `PropertiesPanel.tsx` | **FEATURE:** Edição avançada de Section/Container com controles visuais de layout |
+| 2026-05-09 | `ComponentsPanel.tsx` | **FEATURE:** Painel de Camadas com SortableContext para reordenação via drag-and-drop |
+| 2026-05-09 | `ComponentsPanel.tsx` | **FEATURE:** Botão de exclusão com modal de confirmação em cada camada |
+| 2026-05-09 | `PropertiesPanel.tsx` | **FEATURE:** Abas Elemento/Global com configurações globais (cor de fundo, texto, fonte) |
+| 2026-05-09 | `CoreRenderer.tsx` | **FEATURE:** Adicionados cases 'Divider' e 'Video' com renderização condicional |
+| 2026-05-09 | `preview/page.tsx` | **FEATURE:** Sincronização de Global Settings aplicados no preview |
+| 2026-05-09 | `page.client.tsx` (builders) | **FEATURE:** Feedback visual com toast e useTransition nos botões Salvar/Publicar |
+| 2026-05-09 | `updatePageContent.ts` | **REFACTOR:** Salva formato { nodes, globalSettings } no banco de dados |
+| 2026-05-09 | `use-toast.ts` | **NOVO:** Hook customizado para sistema de toast (sucesso/erro) |
+| 2026-05-09 | `ToastContainer.tsx` | **NOVO:** Componente de exibição de toasts com animação e auto-dismiss |
+| 2026-05-09 | `PropertiesPanel.tsx` | **FEATURE:** Abas Elemento/Global com configurações globais (cor de fundo, texto, fonte) |
+| 2026-05-09 | `src/lib/auth.config.ts` | **FEATURE:** Adicionado registro das novas features no PROJECT.md |
+| 2026-05-09 | `ComponentsPanel.tsx` | **FEATURE:** Adicionado Painel de Camadas com abas (Componentes/Camadas) |
+| 2026-05-09 | `Canvas.tsx` | **FEATURE:** Suporte a backgroundColor do pageSettings |
+| 2026-05-09 | `ComponentsPanel.tsx` | **REFACTOR:** Layout de componentes em grid 2x2 com ícones do lucide-react |
+| 2026-05-09 | `LayoutForm.tsx` | **NOVO:** Formulário modular para edição de propriedades de layout (flex/grid, dimensões) |
+| 2026-05-09 | `PropertiesPanel.tsx` | **FEATURE:** Edição avançada de Section/Container com controles visuais de layout |
+| 2026-05-09 | `ComponentsPanel.tsx` | **FEATURE:** Painel de Camadas com SortableContext para reordenação via drag-and-drop |
+| 2026-05-09 | `ComponentsPanel.tsx` | **FEATURE:** Botão de exclusão com modal de confirmação em cada camada |
+| 2026-05-09 | `PropertiesPanel.tsx` | **FEATURE:** Abas Elemento/Global com configurações globais (cor de fundo, texto, fonte) |
+| 2026-05-09 | `CoreRenderer.tsx` | **FEATURE:** Adicionados cases 'Divider' e 'Video' com renderização condicional |
+| 2026-05-09 | `preview/page.tsx` | **FEATURE:** Sincronização de Global Settings aplicados no preview |
+| 2026-05-09 | `page.client.tsx` (builders) | **FEATURE:** Feedback visual com toast e useTransition nos botões Salvar/Publicar |
+| 2026-05-09 | `updatePageContent.ts` | **REFACTOR:** Salva formato { nodes, globalSettings } no banco de dados |
+| 2026-05-09 | `use-toast.ts` | **NOVO:** Hook customizado para sistema de toast (sucesso/erro) |
+| 2026-05-09 | `ToastContainer.tsx` | **NOVO:** Componente de exibição de toasts com animação e auto-dismiss |
+| 2026-05-09 | `use-builder.ts` | **FIX:** Corrigidos tipos TypeScript - interface EditorNode usa `Record<string, unknown>` ao invés de `any` |
+| 2026-05-09 | `use-builder.ts` | **FEATURE:** Implementado motor de histórico completo (past, present, future) com undo/redo |
+| 2026-05-09 | `use-builder.ts` | **FEATURE:** Adicionadas funções auxiliares tipadas: updateNodeInTree, deleteNodeFromTree, findNodeByIdRecursive, findParentNodeRecursive |
+| 2026-05-09 | `PropertiesPanel.tsx` | **FIX:** Corrigidos erros de tipo em acessos a node.props usando type assertions |
+| 2026-05-09 | `PropertiesPanel.tsx` | **FIX:** Adicionadas guardas de null para node antes de acessar propriedades |
+| 2026-05-09 | `VideoPlayer.tsx` | **FIX:** Corrigidos tipos de props usando type assertions para string |
+| 2026-05-09 | `LayerItem.tsx` | **NOVO:** Componente recursivo para renderização de camadas aninhadas com expand/collapse |
+| 2026-05-09 | `VideoPlayer.tsx` | **NOVO:** Componente de controles de vídeo com URL, autoplay, mute, loop, dimensões |
+| 2026-05-09 | `low-editor.md` | **DOCS:** Criada documentação completa da arquitetura Low-Code em `.claude/contexto/low-editor.md` |
+| 2026-05-09 | `page.client.tsx` | **REFACTOR:** Atualizado para usar novas funções undo/redo do useBuilder com canUndo/canRedo |
+| 2026-05-10 | `Sidebar.tsx` | **FIX:** Corrigida navegação dinâmica para multi-tenant com useParams e companySlug |
+| 2026-05-10 | `ContextSidebar.tsx` | **VERIFIED:** Componente já utiliza navegação dinâmica com companySlug via props |
+| 2026-05-10 | `updatePageContent.ts` | **VERIFIED:** revalidatePath já utiliza companySlug dinâmico da sessão |
+| 2026-05-10 | `updatePreferences.ts` | **FIX:** Corrigido revalidatePath para usar companySlug dinâmico da sessão |
+| 2026-05-10 | `createProject.ts` | **NOVO:** Server Action para criação de projetos com validação de empresa e criação automática da página Home |
+| 2026-05-10 | `create-project-modal.tsx` | **NOVO:** Modal reutilizável com shadcn/ui para criação de projetos, loading states e redirecionamento automático |
+| 2026-05-10 | `sites/page.tsx` | **FEATURE:** Botões "Novo Site" e "Criar primeiro site" agora utilizam CreateProjectModal funcional |
+| 2026-05-10 | `landing-pages/page.tsx` | **FEATURE:** Botões "Nova Landing Page" e "Criar primeira landing page" agora utilizam CreateProjectModal funcional |
+| 2026-05-10 | `CreateProjectModal.tsx` | **REFACTOR:** Recriado componente seguindo skills frontend - useActionState, shadcn/ui e camelCase |
+| 2026-05-10 | `input.tsx` | **NOVO:** Componente UI shadcn/ui para inputs |
+| 2026-05-10 | `label.tsx` | **NOVO:** Componente UI shadcn/ui para labels |
+| 2026-05-10 | `dialog.tsx` | **NOVO:** Componente UI shadcn/ui para modais |
+| 2026-05-10 | `updateProject.ts` | **NOVO:** Server Action para atualizar nome de projetos com revalidatePath |
+| 2026-05-10 | `updatePage.ts` | **NOVO:** Server Action para atualizar nome/slug de páginas com revalidatePath |
+| 2026-05-10 | `EditProjectModal.tsx` | **NOVO:** Modal para edição de dados do projeto com useActionState |
+| 2026-05-10 | `EditPageModal.tsx` | **NOVO:** Modal para edição de dados da página (nome/slug) com useActionState |
+| 2026-05-10 | `sites/page.tsx` | **REFACTOR:** Botão Editar agora abre modal para dados, separado de Gerenciar |
+| 2026-05-10 | `landing-pages/page.tsx` | **REFACTOR:** Botão Editar agora abre modal para dados, separado de Gerenciar |
+| 2026-05-10 | `sites/[siteId]/pages/page.tsx` | **REFACTOR:** Separado Editar Dados (modal) de Abrir Construtor (rota) |
+| 2026-05-10 | `landing-pages/[lpId]/pages/page.tsx` | **REFACTOR:** Separado Editar Dados (modal) de Abrir Construtor (rota) |
+| 2026-05-10 | `EditProjectActions.tsx` | **NOVO:** Componente inline para edição rápida com useTransition (sem re-renders) |
+| 2026-05-10 | `updateProfile.ts` | **EXPANDIDO:** Server Action atualizada para aceitar name, email, phone |
+| 2026-05-10 | `changePassword.ts` | **NOVO:** Server Action para alteração de senha com validação OAuth |
+| 2026-05-10 | `settings/page.tsx` | **NOVO:** Página de Configurações Gerais como Server Component |
+| 2026-05-10 | `settings/settings.client.tsx` | **UX:** Validação de formulário e feedback visual com loading spinners |
+| 2026-05-10 | `settings/settings.client.tsx` | **FEATURE:** Máscara de telefone automática (XX) XXXXX-XXXX |
+| 2026-05-10 | `settings/settings.client.tsx` | **FIX:** Corrigida persistência de dados após F5 |
+| 2026-05-10 | `settings/settings.client.tsx` | **EXPANDIDO:** Layout de painel de controle com múltiplas sessões |
+| 2026-05-10 | `prisma/schema.prisma` | **UPDATE:** Adicionados campos name e phone ao modelo User |
+| 2026-05-10 | `updateProfile.ts` | **FIX:** Corrigido salvamento de name, email, phone no banco |
+| 2026-05-10 | `settings/settings.client.tsx` | **FEATURE:** Máscara de telefone automática (XX) XXXXX-XXXX |
+| 2026-05-10 | `settings/settings.client.tsx` | **FIX:** Corrigida persistência de dados após F5 |
+| 2026-05-10 | `settings/settings.client.tsx` | **SECURITY:** Validações robustas de senha (8 chars, maiúscula, número, especial) |
+| 2026-05-10 | `changePassword.ts` | **IMPLEMENTED:** Lógica real de alteração de senha com bcrypt |
+| 2026-05-10 | `settings/settings.client.tsx` | **FEATURE:** Tema escuro com persistência no banco e aplicação global |
+| 2026-05-10 | `types/next-auth.d.ts` | **UPDATE:** Adicionado campo darkMode ao UserPreferences |
+| 2026-05-10 | `settings/page.tsx` | **UPDATE:** Carrega preferências do usuário incluindo darkMode |
+| 2026-05-10 | `CoreRenderer.tsx` | **FIX:** Corrigidos múltiplos erros de TypeScript em props do nó |
+| 2026-05-10 | `tabs.tsx` | **NOVO:** Componente UI shadcn/ui para Tabs |
+| 2026-05-10 | `card.tsx` | **NOVO:** Componente UI shadcn/ui para Cards |
+| 2026-05-10 | `avatar.tsx` | **NOVO:** Componente UI shadcn/ui para Avatar |
+| 2026-05-10 | `separator.tsx` | **NOVO:** Componente UI shadcn/ui para Separator |
+| 2026-05-10 | `switch.tsx` | **NOVO:** Componente UI shadcn/ui para Switch |
+| 2026-05-10 | `Sidebar.tsx` | **FEATURE:** Link Configurações adicionado com active link state |
+| 2026-05-10 | `sites/page.tsx` | **UI:** Botões maiores com ícones ArrowRight (Gerenciar) e Settings (Editar) |
+| 2026-05-10 | `landing-pages/page.tsx` | **UI:** Botões maiores com ícones ArrowRight (Gerenciar) e Settings (Editar) |
+| 2026-05-10 | `EditProjectModal.tsx` | **FIX:** Removido para evitar re-renderização infinita em Server Components |
+| 2026-05-10 | `BuilderWorkspace.tsx` | **NOVO:** Componente central compartilhado para edição de páginas (Sites e Landing Pages) |
+| 2026-05-10 | `BuilderSkeleton.tsx` | **CENTRALIZADO:** Movido para /components/builder/ para uso compartilhado |
+| 2026-05-10 | `useIsMounted.ts` | **CENTRALIZADO:** Movido para /components/builder/ para uso compartilhado |
+| 2026-05-10 | `landing-pages/[lpId]/pages/[pageId]/builder/page.tsx` | **REFACTOR:** Server Component usando BuilderWorkspace com projectType="LANDING_PAGE" |
+| 2026-05-10 | `sites/[siteId]/pages/[pageId]/builder/page.tsx` | **REFACTOR:** Server Component usando BuilderWorkspace com projectType="INSTITUTIONAL" |
+| 2026-05-10 | `page.client.tsx` (obsoleto) | **REMOVIDO:** Lógica movida para BuilderWorkspace.tsx |
+| 2026-05-10 | `BuilderSkeleton.tsx` (obsoleto) | **REMOVIDO:** Movido para /components/builder/ |
+| 2026-05-10 | `useIsMounted.ts` (obsoleto) | **REMOVIDO:** Movido para /components/builder/ |
+| 2026-05-10 | `uploadImage.ts` | **NOVO:** Server action para upload de imagens na BunnyCDN com validação |
+| 2026-05-10 | `updateAvatar.ts` | **NOVO:** Server action para atualizar avatar do usuário com URL |
+| 2026-05-10 | `getUserPreferences.ts` | **NOVO:** Server action para buscar preferências do usuário logado |
+| 2026-05-10 | `update-avatar-modal.tsx` | **NOVO:** Modal com Dialog/Tabs para upload de avatar via arquivo ou URL |
+| 2026-05-10 | `ThemeProvider.tsx` | **NOVO:** Provedor de tema para dashboard com preferências do usuário |
+| 2026-05-10 | `GlobalThemeProvider.tsx` | **NOVO:** Provedor global de tema com sincronização periódica |
+| 2026-05-10 | `layout.tsx` (app) | **FEATURE:** Script anti-flash para tema dark antes de renderização |
+| 2026-05-10 | `layout.tsx` (dashboard) | **FEATURE:** ThemeProvider integrado com preferências do usuário |
+| 2026-05-10 | `settings.client.tsx` | **FEATURE:** UpdateAvatarModal integrado substituindo botão antigo |
+| 2026-05-10 | `uploadImage.ts` | **REFACTOR:** Converte imagens para .avif via sharp (quality: 80), suporta subpastas dinâmicas |
+| 2026-05-10 | `update-avatar-modal.tsx` | **REFACTOR:** Atualizado para nova API do uploadImage com folder 'avatars' |
 
 ---
 

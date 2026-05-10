@@ -24,7 +24,7 @@ export async function updatePreferences(
     data: { preferences: merged },
   })
 
-  revalidatePath('/dashboard', 'layout')
+  revalidatePath(`/${session.user.companySlug}/dashboard`, 'layout')
 
   return { ok: true }
 }

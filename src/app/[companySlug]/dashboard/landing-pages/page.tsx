@@ -1,10 +1,13 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, ArrowRight } from 'lucide-react'
 import { db } from '@/lib/prisma'
 import { getProjects } from '@/modules/projects/queries/getProjects'
 import { formatDate } from '@/lib/utils'
+import { CreateProjectModal } from '@/components/projects/CreateProjectModal'
+import { EditProjectContainer } from '@/components/projects/EditProjectContainer'
+import { EditProjectButton } from '@/components/projects/EditProjectButton'
 
 export const metadata = { title: 'Landing Pages — Janus' }
 
@@ -40,12 +43,18 @@ export default async function LandingPagesPage({
             {projects.length} landing {projects.length === 1 ? 'page' : 'pages'}
           </p>
         </div>
-        <button
-          className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition"
-          style={{ backgroundColor: 'rgb(231, 76, 60)' }}
-        >
-          Nova Landing Page
-        </button>
+        <CreateProjectModal
+          type="LANDING_PAGE"
+          companySlug={companySlug}
+          trigger={
+            <button
+              className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition"
+              style={{ backgroundColor: 'rgb(231, 76, 60)' }}
+            >
+              Nova Landing Page
+            </button>
+          }
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -68,20 +77,21 @@ export default async function LandingPagesPage({
               <div className="flex gap-2">
                 <Link
                   href={`/${companySlug}/dashboard/landing-pages/${project.id}/pages`}
-                  className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition text-center"
+                  className="flex-1 px-4 py-2.5 rounded-lg text-xs font-semibold transition text-center flex items-center justify-center gap-2"
                   style={{
                     color: '#161718',
                     backgroundColor: '#f5f5f5',
                   }}
                 >
+                  <ArrowRight className="w-3 h-3" />
                   Gerenciar
                 </Link>
-                <button
-                  className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold text-white transition"
-                  style={{ backgroundColor: '#514030' }}
-                >
-                  Editar
-                </button>
+                <EditProjectContainer
+                  projectId={project.id}
+                  initialName={project.name}
+                  companySlug={companySlug}
+                  trigger={<EditProjectButton />}
+                />
               </div>
             </div>
           </div>
@@ -97,12 +107,18 @@ export default async function LandingPagesPage({
             <p className="text-sm text-brand-muted mb-6">
               Comece criando sua primeira landing page
             </p>
-            <button
-              className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition"
-              style={{ backgroundColor: '#161718' }}
-            >
-              Criar primeira landing page
-            </button>
+            <CreateProjectModal
+              type="LANDING_PAGE"
+              companySlug={companySlug}
+              trigger={
+                <button
+                  className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition"
+                  style={{ backgroundColor: '#161718' }}
+                >
+                  Criar primeira landing page
+                </button>
+              }
+            />
           </div>
         </div>
       )}

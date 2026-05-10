@@ -4,6 +4,7 @@ import type { DefaultSession } from 'next-auth'
 export interface UserPreferences {
   sidebar_collapsed?: boolean
   theme?: 'light' | 'dark'
+  darkMode?: boolean
 }
 
 declare module 'next-auth' {
