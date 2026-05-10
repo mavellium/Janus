@@ -37,7 +37,9 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **Uso:** Auditoria de alterações em projetos; rastreia quem alterou o quê
 
 ### projects
-- **Queries:** `getProjects.ts` — busca projetos da empresa com filtro opcional por tipo (LANDING_PAGE|INSTITUTIONAL); retorna com contagem de páginas
+- **Queries:** 
+  - `getProjects.ts` — busca projetos da empresa com filtro opcional por tipo (LANDING_PAGE|INSTITUTIONAL); retorna com contagem de páginas
+  - `getPagesByProjectId.ts` — busca páginas de um projeto específico; ordena por criação decrescente
 
 ### admin
 - **Queries:** `getLoginLogs.ts` — lista tentativas falhas de login | `getLoginLogsByIp.ts` — filtra por IP
@@ -52,6 +54,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 - `src/components/auth/LoginForm.tsx` — Client — formulário de login com useActionState + checkIpStatus, countdown regressivo (MM:SS), overlay bloqueio com cor #514030
 - `src/components/dashboard/Sidebar.tsx` — Client — sidebar colapsável com useState(initialCollapsed) + startTransition; logo 48px→28px; toggle PanelLeftClose/PanelLeftOpen; avatar next/image + fallback UserCircle; estado persistido via updatePreferences em background
+- `src/components/dashboard/ContextSidebar.tsx` — **Novo:** Sidebar de contexto para dentro de projetos (sites/landing-pages); exibe nome do projeto, tipo, links para Páginas/Resultados/Blog; destaca seção atual
 
 ---
 
@@ -60,9 +63,27 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/app/page.tsx` — root redireciona para `/{companySlug}/dashboard` (redireciona para empresa do usuário autenticado)
 - `src/app/(auth)/login/page.tsx` — tela de login (Server Component)
 - `src/app/[companySlug]/dashboard/layout.tsx` — layout protegido; valida se usuário pode acessar a empresa; busca image e preferences do DB; passa initialCollapsed, email e image como props para Sidebar
-- `src/app/[companySlug]/dashboard/page.tsx` — **Refatorado:** dashboard principal com dados reais de projetos; busca institutional e landing page projects; exibe estatísticas; links dinâmicos para /sites e /landing-pages
-- `src/app/[companySlug]/dashboard/sites/page.tsx` — **Novo:** listagem de sites (INSTITUTIONAL); grid de cards com projeto, data, contagem de páginas; botões Gerenciar e Editar
-- `src/app/[companySlug]/dashboard/landing-pages/page.tsx` — **Novo:** listagem de landing pages; mesma estrutura da página de sites com variações visuais (gradiente azul)
+- `src/app/[companySlug]/dashboard/page.tsx` — dashboard principal com dados reais de projetos; busca institutional e landing page projects; exibe estatísticas; links dinâmicos para /sites e /landing-pages
+- `src/app/[companySlug]/dashboard/sites/page.tsx` — listagem de sites (INSTITUTIONAL); grid de cards com projeto, data, contagem de páginas; botão Gerenciar aponta para /sites/[siteId]/pages
+- `src/app/[companySlug]/dashboard/landing-pages/page.tsx` — listagem de landing pages; mesma estrutura com variações visuais
+
+**Layouts Aninhados (Contexto de Projeto):**
+- `src/app/[companySlug]/dashboard/sites/[siteId]/layout.tsx` — layout aninhado; renderiza ContextSidebar; valida acesso ao projeto; herda pelo dashboard
+- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/layout.tsx` — layout aninhado para landing pages; mesma estrutura de validação
+
+**Páginas de Contexto (Sites):**
+- `src/app/[companySlug]/dashboard/sites/[siteId]/pages/page.tsx` — listagem de páginas do site; tabela com nome, slug, data; botão Editar aponta para builder
+- `src/app/[companySlug]/dashboard/sites/[siteId]/analytics/page.tsx` — tela de resultados (placeholder)
+- `src/app/[companySlug]/dashboard/sites/[siteId]/blog/page.tsx` — tela de blog (placeholder)
+
+**Páginas de Contexto (Landing Pages):**
+- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/page.tsx` — listagem de páginas da landing page
+- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/analytics/page.tsx` — tela de resultados
+- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/page.tsx` — tela de blog
+
+**Construtor Low-Code Visual:**
+- `src/app/[companySlug]/dashboard/sites/[siteId]/pages/[pageId]/builder/page.tsx` — editor visual com layout 3 colunas: componentes (esquerda), canvas (centro #EBE6DA), propriedades (direita); top bar com Sair, Desfazer/Refazer, Salvar, Publicar
+- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/[pageId]/builder/page.tsx` — mesmo construtor para landing pages
 
 ---
 
@@ -207,6 +228,18 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-09 | `src/app/[companySlug]/dashboard/page.tsx`    | **REFACTOR:** Dashboard agora busca dados reais de projetos; exibe estatísticas dinâmicas |
 | 2026-05-09 | `src/app/[companySlug]/dashboard/sites/page.tsx` | **NOVO:** Página de listagem de sites com grid de cards e botões de ação |
 | 2026-05-09 | `src/app/[companySlug]/dashboard/landing-pages/page.tsx` | **NOVO:** Página de listagem de landing pages com mesmo padrão |
+| 2026-05-09 | `src/modules/projects/queries/getPagesByProjectId.ts` | **NOVO:** Query para buscar páginas de um projeto específico |
+| 2026-05-09 | `src/components/dashboard/ContextSidebar.tsx` | **NOVO:** Sidebar de contexto para navegação dentro de projetos |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/sites/[siteId]/layout.tsx` | **NOVO:** Layout aninhado para contexto de site |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/layout.tsx` | **NOVO:** Layout aninhado para contexto de landing page |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/sites/[siteId]/pages/page.tsx` | **NOVO:** Listagem de páginas com botão Editar → builder |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/sites/[siteId]/analytics/page.tsx` | **NOVO:** Tela de resultados/analytics (placeholder) |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/sites/[siteId]/blog/page.tsx` | **NOVO:** Tela de blog (placeholder) |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/page.tsx` | **NOVO:** Listagem de páginas para landing pages |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/analytics/page.tsx` | **NOVO:** Tela de resultados para landing pages |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/page.tsx` | **NOVO:** Tela de blog para landing pages |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/sites/[siteId]/pages/[pageId]/builder/page.tsx` | **NOVO:** Construtor low-code visual com 3 colunas (componentes, canvas, propriedades) |
+| 2026-05-09 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/[pageId]/builder/page.tsx` | **NOVO:** Mesmo construtor para landing pages |
 
 ---
 

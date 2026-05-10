@@ -43,7 +43,7 @@ export default async function SitesPage({
         </div>
         <button
           className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition"
-          style={{ backgroundColor: '#161718' }}
+          style={{ backgroundColor: 'rgb(231, 76, 60)' }}
         >
           Novo Site
         </button>
@@ -67,15 +67,16 @@ export default async function SitesPage({
                 </p>
               </div>
               <div className="flex gap-2">
-                <button
-                  className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition"
+                <Link
+                  href={`/${companySlug}/dashboard/sites/${project.id}/pages`}
+                  className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition text-center"
                   style={{
                     color: '#161718',
                     backgroundColor: '#f5f5f5',
                   }}
                 >
                   Gerenciar
-                </button>
+                </Link>
                 <button
                   className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold text-white transition"
                   style={{ backgroundColor: '#514030' }}
