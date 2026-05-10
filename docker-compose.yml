@@ -83,7 +83,7 @@ services:
     volumes:
       - janus-test-db-data:/var/lib/postgresql/data
     ports:
-      - "5435:5432" # Usando 5435
+      - "5441:5432" # Usando 5435
     networks:
       - default
 
