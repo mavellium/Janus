@@ -1,0 +1,97 @@
+services:
+  # --- JANUS PRODUÇÃO ---
+  janus-app:
+    container_name: janus-app-prod
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_URL_API=https://janus.com.br/api
+    environment:
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+    env_file:
+      - .env
+    volumes:
+      - ./.env:/app/.env
+    restart: always
+    networks:
+      - default
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.janus-prod.rule=Host(`janus.com.br`)"
+      - "traefik.http.routers.janus-prod.entrypoints=websecure"
+      - "traefik.http.routers.janus-prod.tls.certresolver=myresolver"
+      - "traefik.http.services.janus-prod.loadbalancer.server.port=3000"
+    depends_on:
+      - janus-db
+
+  janus-db:
+    image: postgres:15-alpine
+    container_name: janus-db-prod
+    restart: always
+    environment:
+      POSTGRES_USER: janus_admin
+      POSTGRES_PASSWORD: janus_password_prod
+      POSTGRES_DB: janus_db
+    volumes:
+      - janus-prod-db-data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432" # Usando 5434 para não bater com o banco do Nairim
+    networks:
+      - default
+
+  # --- JANUS TESTE ---
+  janus-app-test:
+    container_name: janus-app-test
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_URL_API=https://teste.janus.com.br/api
+    environment:
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+    env_file:
+      - .env.test
+    volumes:
+      - ./.env.test:/app/.env
+    restart: always
+    networks:
+      - default
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.janus-test.rule=Host(`teste.janus.com.br`)"
+      - "traefik.http.routers.janus-test.entrypoints=websecure"
+      - "traefik.http.routers.janus-test.tls.certresolver=myresolver"
+      - "traefik.http.services.janus-test.loadbalancer.server.port=3000"
+    depends_on:
+      - janus-db-test
+
+  janus-db-test:
+    image: postgres:15-alpine
+    container_name: janus-db-test
+    restart: always
+    environment:
+      POSTGRES_USER: janus_tester
+      POSTGRES_PASSWORD: janus_password_test
+      POSTGRES_DB: janus_db_test
+    volumes:
+      - janus-test-db-data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432" # Usando 5435
+    networks:
+      - default
+
+networks:
+  default:
+  traefik-public:
+    external: true
+
+volumes:
+  janus-prod-db-data:
+  janus-test-db-data:
