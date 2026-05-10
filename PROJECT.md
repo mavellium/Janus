@@ -366,6 +366,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-10 | `settings.client.tsx` | **FEATURE:** UpdateAvatarModal integrado substituindo botão antigo |
 | 2026-05-10 | `uploadImage.ts` | **REFACTOR:** Converte imagens para .avif via sharp (quality: 80), suporta subpastas dinâmicas |
 | 2026-05-10 | `update-avatar-modal.tsx` | **REFACTOR:** Atualizado para nova API do uploadImage com folder 'avatars' |
+| 2026-05-10 | `sites/page.tsx` | **FIX:** Botão 'Novo Site' só renderiza quando projects.length > 0 (melhoria UX empty state) |
+| 2026-05-10 | `landing-pages/page.tsx` | **FIX:** Botão 'Nova Landing Page' só renderiza quando projects.length > 0 (melhoria UX empty state) |
 
 ---
 

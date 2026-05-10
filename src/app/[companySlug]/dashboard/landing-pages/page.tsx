@@ -43,18 +43,20 @@ export default async function LandingPagesPage({
             {projects.length} landing {projects.length === 1 ? 'page' : 'pages'}
           </p>
         </div>
-        <CreateProjectModal
-          type="LANDING_PAGE"
-          companySlug={companySlug}
-          trigger={
-            <button
-              className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition"
-              style={{ backgroundColor: 'rgb(231, 76, 60)' }}
-            >
-              Nova Landing Page
-            </button>
-          }
-        />
+        {projects.length > 0 && (
+          <CreateProjectModal
+            type="LANDING_PAGE"
+            companySlug={companySlug}
+            trigger={
+              <button
+                className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition"
+                style={{ backgroundColor: 'rgb(231, 76, 60)' }}
+              >
+                Nova Landing Page
+              </button>
+            }
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

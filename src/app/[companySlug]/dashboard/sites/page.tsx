@@ -44,18 +44,20 @@ export default async function SitesPage({
             {projects.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <CreateProjectModal
-          type="INSTITUTIONAL"
-          companySlug={companySlug}
-          trigger={
-            <button
-              className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition"
-              style={{ backgroundColor: 'rgb(231, 76, 60)' }}
-            >
-              Novo Site
-            </button>
-          }
-        />
+        {projects.length > 0 && (
+          <CreateProjectModal
+            type="INSTITUTIONAL"
+            companySlug={companySlug}
+            trigger={
+              <button
+                className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition"
+                style={{ backgroundColor: 'rgb(231, 76, 60)' }}
+              >
+                Novo Site
+              </button>
+            }
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
