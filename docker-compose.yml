@@ -39,7 +39,7 @@ services:
     volumes:
       - janus-prod-db-data:/var/lib/postgresql/data
     ports:
-      - "5434:5432" # Usando 5434 para não bater com o banco do Nairim
+      - "5440:5432" # Usando 5434 para não bater com o banco do Nairim
     networks:
       - default
 
