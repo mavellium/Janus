@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import {
   Home, FileText, Globe, Zap, FileStack,
   Bell, Settings, LogOut, PanelLeftClose, PanelLeftOpen, UserCircle,
+  ChevronLeft, BarChart3, BookOpen,
 } from 'lucide-react'
 import { updatePreferences } from '@/modules/users/actions/updatePreferences'
 import { signOut } from 'next-auth/react'
@@ -26,18 +27,34 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
   const params = useParams()
   const pathname = usePathname()
   const companySlug = params.companySlug as string
+  const siteId = params.siteId as string | undefined
+  const lpId = params.lpId as string | undefined
 
   const userName = email.split('@')[0]
 
-  const logoUrl = collapsed ? '/logo-min.svg' : '/janus-logo.svg'
+  const isInProjectContext = !!(siteId || lpId)
+  const basePath = siteId
+    ? `/${companySlug}/dashboard/sites/${siteId}`
+    : `/${companySlug}/dashboard/landing-pages/${lpId}`
+  const backPath = siteId
+    ? `/${companySlug}/dashboard/sites`
+    : `/${companySlug}/dashboard/landing-pages`
 
-  const MENU_ITEMS = [
+  const MAIN_ITEMS = [
     { label: 'Página Inicial', href: `/${companySlug}/dashboard`, icon: Home },
     { label: 'Resultados', href: `/${companySlug}/dashboard/results`, icon: FileText },
     { label: 'Sites', href: `/${companySlug}/dashboard/sites`, icon: Globe },
     { label: 'Landing Pages', href: `/${companySlug}/dashboard/landing-pages`, icon: Zap },
     { label: 'Faturas', href: `/${companySlug}/dashboard/invoices`, icon: FileStack },
   ]
+
+  const PROJECT_ITEMS = [
+    { label: 'Páginas', href: `${basePath}/pages`, icon: FileText },
+    { label: 'Resultados', href: `${basePath}/analytics`, icon: BarChart3 },
+    { label: 'Blog', href: `${basePath}/blog`, icon: BookOpen },
+  ]
+
+  const menuItems = isInProjectContext ? PROJECT_ITEMS : MAIN_ITEMS
 
   function toggleCollapsed() {
     const next = !collapsed
@@ -47,14 +64,17 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
     })
   }
 
-  const isActive = (href: string) =>
-    pathname === href ||
-    (href === `/${companySlug}/dashboard` && pathname === `/${companySlug}/dashboard`) ||
-    (href.includes('/sites') && pathname.includes('/sites')) ||
-    (href.includes('/landing-pages') && pathname.includes('/landing-pages')) ||
-    (href.includes('/results') && pathname.includes('/results')) ||
-    (href.includes('/invoices') && pathname.includes('/invoices')) ||
-    (href.includes('/settings') && pathname.includes('/settings'))
+  const isActive = (href: string) => {
+    if (!href) return false
+    if (isInProjectContext) return pathname.startsWith(href)
+    return pathname === href ||
+      (href === `/${companySlug}/dashboard` && pathname === `/${companySlug}/dashboard`) ||
+      (href.includes('/sites') && pathname.includes('/sites') && !href.includes('/landing-pages')) ||
+      (href.includes('/landing-pages') && pathname.includes('/landing-pages')) ||
+      (href.includes('/results') && pathname.includes('/results')) ||
+      (href.includes('/invoices') && pathname.includes('/invoices')) ||
+      (href.includes('/settings') && pathname.includes('/settings'))
+  }
 
   const navItemClasses = (href: string) => cn(
     'flex w-full rounded-lg transition-colors',
@@ -94,7 +114,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
     >
       <div
         style={{
-          padding: '16px 12px',
+          padding: collapsed ? '8px 8px' : '16px 12px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'space-between',
@@ -104,39 +124,36 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
       >
         <Link
           href={`/${companySlug}/dashboard`}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative', width: '90px', height: '40px' }}
           title="Dashboard"
         >
           <Image
-            src={logoUrl}
+            src="/janus-logo.svg"
             alt="Janus"
-            width={collapsed ? 36 : 90}
-            height={collapsed ? 36 : 90}
+            width={90}
+            height={90}
             priority
+            style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'contain', opacity: collapsed ? 0 : 1, transition: 'opacity 200ms ease' }}
+          />
+          <Image
+            src="/logo-min.svg"
+            alt="Janus"
+            width={36}
+            height={36}
+            priority
+            style={{ position: 'absolute', width: '36px', height: '36px', objectFit: 'contain', opacity: collapsed ? 1 : 0, transition: 'opacity 200ms ease' }}
           />
         </Link>
         {!collapsed && (
           <button
             onClick={toggleCollapsed}
             title="Minimizar sidebar"
-            className={cn('flex items-center justify-center w-8 h-8 flex-shrink-0 rounded-lg transition-colors text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text [&>svg]:text-sidebar-icon hover:[&>svg]:text-sidebar-hover-text')}
+            className={cn('flex items-center justify-center w-8 h-8 flex-shrink-0 rounded-lg transition-colors text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text [&>svg]:hover:text-sidebar-hover-text')}
           >
-            <PanelLeftClose size={16} />
+            <PanelLeftClose size={16} className="text-sidebar-icon" />
           </button>
         )}
       </div>
-
-      {collapsed && (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 8px', flexShrink: 0 }}>
-          <button
-            onClick={toggleCollapsed}
-            title="Expandir sidebar"
-            className={cn('flex items-center justify-center w-7 h-7 rounded-lg transition-colors text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text [&>svg]:text-sidebar-icon hover:[&>svg]:text-sidebar-hover-text')}
-          >
-            <PanelLeftOpen size={16} />
-          </button>
-        </div>
-      )}
 
       <nav
         style={{
@@ -148,7 +165,29 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
           gap: '2px',
         }}
       >
-        {MENU_ITEMS.map(({ label, href, icon: Icon }) => (
+        {collapsed && (
+          <button
+            onClick={toggleCollapsed}
+            title="Expandir sidebar"
+            className={navItemClasses('')}
+          >
+            <PanelLeftOpen size={16} className="flex-shrink-0" />
+            <span className="text-[10px] text-center leading-tight w-full">Expandir</span>
+          </button>
+        )}
+        {isInProjectContext && (
+          <Link
+            href={backPath}
+            className={utilItemClasses()}
+          >
+            <ChevronLeft size={16} className="flex-shrink-0" />
+            {collapsed
+              ? <span className="text-[10px] text-center leading-tight w-full">Voltar</span>
+              : <span>← Voltar</span>
+            }
+          </Link>
+        )}
+        {menuItems.map(({ label, href, icon: Icon }) => (
           <Link
             key={href}
             href={href}

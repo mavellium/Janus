@@ -387,6 +387,10 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-10 | `Sidebar.tsx` | **UX:** Botão minimizar compacto (`w-8 h-8`); Bell e Settings usam `utilItemClasses` com hover semântico |
 | 2026-05-10 | `Sidebar.tsx` | **UX:** Bloco de perfil no rodapé convertido em `<Link>` para `/settings` sem hover; avatar clicável em ambos os estados |
 | 2026-05-10 | `Sidebar.tsx` | **REFACTOR:** `borderTop` do rodapé usa `var(--brand-btn-light)` (removido `rgba` hardcoded); funções `navItemClasses`/`utilItemClasses` extraídas |
+| 2026-05-10 | `Sidebar.tsx` | **ARCH:** Context switching unificado — detecta `siteId`/`lpId` via `useParams`; quando em projeto exibe botão Voltar + itens Páginas/Resultados/Blog; fora exibe menu principal |
+| 2026-05-10 | `[siteId]/layout.tsx` | **REFACTOR:** Removido `ContextSidebar` e wrapper div — apenas auth check + `<>{children}</>` |
+| 2026-05-10 | `[lpId]/layout.tsx` | **REFACTOR:** Removido `ContextSidebar` e wrapper div — apenas auth check + `<>{children}</>` |
+| 2026-05-10 | `ContextSidebar.tsx` | **DELETED:** Arquivo removido — lógica absorvida pela Sidebar principal (modelo drill-down/context switching) |
 
 ---
 
