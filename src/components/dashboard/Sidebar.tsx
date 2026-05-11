@@ -203,8 +203,8 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
           className={cn(
             'rounded-lg transition-colors',
             collapsed
-              ? 'flex justify-center p-2 hover:bg-sidebar-hover-bg'
-              : 'flex items-center gap-3 px-3 py-2 hover:bg-sidebar-hover-bg'
+              ? 'flex justify-center p-2'
+              : 'flex items-center gap-3 px-3 py-2'
           )}
         >
           {image && (image.startsWith('http') || image.startsWith('/')) ? (

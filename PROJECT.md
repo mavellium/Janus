@@ -385,7 +385,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-10 | `Sidebar.tsx` | **FEATURE:** Logo dinâmica: `logo-min.svg` quando minimizada, `janus-logo.svg` expandida |
 | 2026-05-10 | `Sidebar.tsx` | **UX:** Largura collapsed `64px → 80px`; links viram `flex-col` com label `text-[10px]` abaixo do ícone |
 | 2026-05-10 | `Sidebar.tsx` | **UX:** Botão minimizar compacto (`w-8 h-8`); Bell e Settings usam `utilItemClasses` com hover semântico |
-| 2026-05-10 | `Sidebar.tsx` | **UX:** Bloco de perfil no rodapé convertido em `<Link>` para `/settings` com `hover:bg-sidebar-hover-bg`; avatar clicável em ambos os estados |
+| 2026-05-10 | `Sidebar.tsx` | **UX:** Bloco de perfil no rodapé convertido em `<Link>` para `/settings` sem hover; avatar clicável em ambos os estados |
 | 2026-05-10 | `Sidebar.tsx` | **REFACTOR:** `borderTop` do rodapé usa `var(--brand-btn-light)` (removido `rgba` hardcoded); funções `navItemClasses`/`utilItemClasses` extraídas |
 
 ---
