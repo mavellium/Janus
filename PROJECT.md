@@ -382,6 +382,11 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-10 | Global UI sweep | **REFACTOR:** Removidas cores hardcoded (`#161718`, `#514030`, `bg-white`, `bg-gray-*`, `text-blue-500`) de ~25 arquivos: Sidebar, ContextSidebar, dashboard pages, sites/landing-pages pages e sub-pages, settings, builder workspace/panels (Components, Properties, Canvas, RenderNode, LayerItem, VideoPlayer, LayoutForm, BuilderSkeleton), modais (Create/Edit/Delete Project, EditPage), LoginForm, Switch, ToastContainer. Substituídas por tokens semânticos `brand-*`/`sidebar-*`/`card`/`destructive` |
 | 2026-05-10 | `layout.tsx` (root) | **FIX:** Removida `<script>` tag do `<head>` (incompatível com React render); script anti-flash agora via componente `ThemeScript` no body |
 | 2026-05-10 | `ui-design` skill | **REFACTOR:** Adicionada DIRETRIZ DE CORES E DARK MODE (prioridade máxima) proibindo cores literais/hex e exigindo uso de tokens semânticos; checklist de validação dark mode incluído |
+| 2026-05-10 | `Sidebar.tsx` | **FEATURE:** Logo dinâmica: `logo-min.svg` quando minimizada, `janus-logo.svg` expandida |
+| 2026-05-10 | `Sidebar.tsx` | **UX:** Largura collapsed `64px → 80px`; links viram `flex-col` com label `text-[10px]` abaixo do ícone |
+| 2026-05-10 | `Sidebar.tsx` | **UX:** Botão minimizar compacto (`w-8 h-8`); Bell e Settings usam `utilItemClasses` com hover semântico |
+| 2026-05-10 | `Sidebar.tsx` | **UX:** Bloco de perfil no rodapé convertido em `<Link>` para `/settings` com `hover:bg-sidebar-hover-bg`; avatar clicável em ambos os estados |
+| 2026-05-10 | `Sidebar.tsx` | **REFACTOR:** `borderTop` do rodapé usa `var(--brand-btn-light)` (removido `rgba` hardcoded); funções `navItemClasses`/`utilItemClasses` extraídas |
 
 ---
 
