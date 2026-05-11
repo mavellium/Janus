@@ -13,6 +13,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# ---> O PULO DO GATO: Gerar os tipos do Prisma ANTES do Next.js compilar <---
+RUN npx prisma generate
+
 # Injeção da URL da API (Janus utiliza NEXT_PUBLIC_URL_API conforme o padrão)
 ARG NEXT_PUBLIC_URL_API
 ENV NEXT_PUBLIC_URL_API=$NEXT_PUBLIC_URL_API
