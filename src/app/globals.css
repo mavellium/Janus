@@ -9,26 +9,48 @@
     --brand-btn-dark: #161718;
     --brand-btn-light: #DCDCDC;
     --brand-hover: #7A614A;
-    --brand-muted: #000000;
+    --brand-muted: #58585E;
     --brand-bg: #f1efea;
     --sidebar-bg: #ECEAE4;
     --sidebar-icon: #58585E;
     --sidebar-hover-bg: #7A614A;
     --sidebar-hover-text: #FFFFFF;
+
+    --background: var(--brand-bg);
+    --foreground: var(--brand-text);
+    --card: var(--sidebar-bg);
+    --card-foreground: var(--brand-text);
+    --popover: var(--sidebar-bg);
+    --popover-foreground: var(--brand-text);
+    --primary: var(--brand-primary);
+    --primary-foreground: #FFFFFF;
+    --secondary: var(--brand-btn-light);
+    --secondary-foreground: var(--brand-text);
+    --muted: var(--brand-btn-light);
+    --muted-foreground: var(--brand-muted);
+    --accent: var(--brand-btn-light);
+    --accent-foreground: var(--brand-text);
+    --destructive: #DC2626;
+    --destructive-foreground: #FFFFFF;
+    --border: var(--brand-btn-light);
+    --input: var(--brand-btn-light);
+    --ring: var(--brand-primary);
   }
 
   .dark {
-    --brand-primary: #7A614A;
-    --brand-text: #F1F5F9;
-    --brand-btn-dark: #1E293B;
-    --brand-btn-light: #475569;
-    --brand-hover: #8B7355;
-    --brand-muted: #94A3B8;
-    --brand-bg: #000000;
-    --sidebar-bg: #111111;
-    --sidebar-icon: #94A3B8;
-    --sidebar-hover-bg: #8B7355;
+    --brand-primary: #8B7355;
+    --brand-text: #EAE6E1;
+    --brand-btn-dark: #2A2724;
+    --brand-btn-light: #403B37;
+    --brand-hover: #A08868;
+    --brand-muted: #8F8B85;
+    --brand-bg: #141312;
+    --sidebar-bg: #1A1918;
+    --sidebar-icon: #8F8B85;
+    --sidebar-hover-bg: #2A2724;
     --sidebar-hover-text: #FFFFFF;
+
+    --destructive: #EF4444;
   }
 
   body {

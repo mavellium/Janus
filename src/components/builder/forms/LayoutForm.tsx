@@ -60,8 +60,8 @@ function ToggleButton({
       onClick={onClick}
       className={`flex flex-col items-center justify-center p-2 rounded-lg transition ${
         active
-          ? 'bg-blue-500 text-white'
-          : 'bg-brand-muted/10 text-brand-primary hover:bg-brand-muted/20'
+          ? 'bg-brand-primary text-white'
+          : 'bg-brand-btn-light/40 text-brand-primary hover:bg-brand-btn-light'
       }`}
     >
       <Icon className="w-4 h-4 mb-1" />
@@ -83,7 +83,7 @@ function DimensionInput({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium mb-1.5" style={{ color: '#161718' }}>
+      <label className="block text-xs font-medium mb-1.5 text-brand-text">
         {label}
       </label>
       <input
@@ -91,7 +91,7 @@ function DimensionInput({
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 border border-brand-muted/40 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+        className="w-full px-3 py-2 border border-brand-btn-light rounded-lg text-sm bg-brand-bg text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
       />
     </div>
   )
@@ -106,7 +106,7 @@ export function LayoutForm({ style, onUpdate }: LayoutFormProps) {
   return (
     <div className="space-y-5">
       <div>
-        <label className="block text-xs font-medium mb-2" style={{ color: '#161718' }}>
+        <label className="block text-xs font-medium mb-2 text-brand-text">
           Dimensões
         </label>
         <div className="grid grid-cols-2 gap-3">
@@ -126,7 +126,7 @@ export function LayoutForm({ style, onUpdate }: LayoutFormProps) {
       </div>
 
       <div>
-        <label className="block text-xs font-medium mb-2" style={{ color: '#161718' }}>
+        <label className="block text-xs font-medium mb-2 text-brand-text">
           Display
         </label>
         <div className="grid grid-cols-3 gap-2">
@@ -145,7 +145,7 @@ export function LayoutForm({ style, onUpdate }: LayoutFormProps) {
       {display === 'flex' && (
         <>
           <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: '#161718' }}>
+            <label className="block text-xs font-medium mb-2 text-brand-text">
               Direção
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -162,7 +162,7 @@ export function LayoutForm({ style, onUpdate }: LayoutFormProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: '#161718' }}>
+            <label className="block text-xs font-medium mb-2 text-brand-text">
               Alinhamento (Cross Axis)
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -179,7 +179,7 @@ export function LayoutForm({ style, onUpdate }: LayoutFormProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: '#161718' }}>
+            <label className="block text-xs font-medium mb-2 text-brand-text">
               Justificação (Main Axis)
             </label>
             <div className="grid grid-cols-4 gap-2">

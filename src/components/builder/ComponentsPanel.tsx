@@ -54,12 +54,12 @@ function DraggableComponent({ type, icon: Icon, label }: DraggableComponentProps
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className={`flex flex-col items-center justify-center p-4 rounded-lg border border-brand-muted/40 cursor-move transition ${
-        isDragging ? 'opacity-50 bg-blue-100' : 'hover:bg-brand-muted/20 hover:border-brand-muted'
+      className={`flex flex-col items-center justify-center p-4 rounded-lg border border-brand-btn-light cursor-move transition ${
+        isDragging ? 'opacity-50 bg-brand-primary/20' : 'hover:bg-brand-btn-light/40 hover:border-brand-primary'
       }`}
     >
-      <Icon className="w-8 h-8 mb-2" style={{ color: '#514030' }} />
-      <span className="text-xs font-medium" style={{ color: '#161718' }}>
+      <Icon className="w-8 h-8 mb-2 text-brand-primary" />
+      <span className="text-xs font-medium text-brand-text">
         {label}
       </span>
     </div>
@@ -82,13 +82,13 @@ export function ComponentsPanel({
   const [activeTab, setActiveTab] = useState<'components' | 'layers'>('components')
 
   return (
-    <aside className="w-64 border-r border-brand-muted/40 bg-white overflow-y-auto flex flex-col">
-      <div className="flex border-b border-brand-muted/40">
+    <aside className="w-64 border-r border-brand-btn-light bg-card overflow-y-auto flex flex-col">
+      <div className="flex border-b border-brand-btn-light">
         <button
           onClick={() => setActiveTab('components')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition ${
             activeTab === 'components'
-              ? 'text-blue-500 border-b-2 border-blue-500'
+              ? 'text-brand-primary border-b-2 border-brand-primary'
               : 'text-brand-muted hover:text-brand-primary'
           }`}
         >
@@ -99,7 +99,7 @@ export function ComponentsPanel({
           onClick={() => setActiveTab('layers')}
           className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition ${
             activeTab === 'layers'
-              ? 'text-blue-500 border-b-2 border-blue-500'
+              ? 'text-brand-primary border-b-2 border-brand-primary'
               : 'text-brand-muted hover:text-brand-primary'
           }`}
         >

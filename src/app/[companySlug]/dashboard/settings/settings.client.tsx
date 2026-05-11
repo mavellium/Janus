@@ -199,7 +199,7 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2" style={{ color: '#161718' }}>
+        <h1 className="text-3xl font-bold mb-2 text-brand-text">
           Configurações
         </h1>
       </div>
@@ -211,17 +211,17 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
-          <Card className="bg-white">
+          <Card className="bg-card">
             <CardContent className="p-6">
               <div className="mb-6">
-                <h2 className="text-xl font-semibold" style={{ color: '#161718' }}>Informações Pessoais</h2>
-                <p className="text-sm" style={{ color: '#58585E' }}>Atualize sua foto e detalhes de contato</p>
+                <h2 className="text-xl font-semibold text-brand-text">Informações Pessoais</h2>
+                <p className="text-sm text-brand-muted">Atualize sua foto e detalhes de contato</p>
               </div>
 
               <div className="flex items-center gap-4 mb-6">
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={userImage || undefined} />
-                  <AvatarFallback className="text-2xl" style={{ backgroundColor: '#EBE6DA', color: '#514030' }}>
+                  <AvatarFallback className="text-2xl bg-brand-btn-light text-brand-primary">
                     {name.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -247,7 +247,7 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                 <div className="space-y-2">
                   <Label htmlFor="email">
                     E-mail
-                    <span className="text-xs ml-2" style={{ color: '#58585E' }}>(altera o login)</span>
+                    <span className="text-xs ml-2 text-brand-muted">(altera o login)</span>
                   </Label>
                   <Input
                     id="email"
@@ -273,13 +273,7 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                 <Button
                   onClick={handleProfileSave}
                   disabled={isProfilePending}
-                  style={{ 
-                    backgroundColor: isProfilePending ? 'rgb(185, 76, 60)' : 'rgb(231, 76, 60)', 
-                    color: 'white',
-                    opacity: isProfilePending ? 0.8 : 1,
-                    cursor: isProfilePending ? 'not-allowed' : 'pointer'
-                  }}
-                  className="transition-all duration-200"
+                  className="transition-all duration-200 bg-destructive text-white hover:opacity-90 disabled:opacity-80 disabled:cursor-not-allowed"
                 >
                   {isProfilePending ? (
                     <>
@@ -296,11 +290,11 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
 
           <Separator className="bg-border" />
 
-          <Card className="bg-white">
+          <Card className="bg-card">
             <CardContent className="p-6">
               <div className="mb-6">
-                <h2 className="text-xl font-semibold" style={{ color: '#161718' }}>Segurança</h2>
-                <p className="text-sm" style={{ color: '#58585E' }}>Gerencie sua senha e autenticação</p>
+                <h2 className="text-xl font-semibold text-brand-text">Segurança</h2>
+                <p className="text-sm text-brand-muted">Gerencie sua senha e autenticação</p>
               </div>
 
               <div className="space-y-4 max-w-md">
@@ -324,10 +318,11 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                     placeholder="••••••••"
                   />
                   {newPassword && (
-                    <div className="text-xs p-2 rounded" style={{ 
-                      backgroundColor: getPasswordStrengthMessage(newPassword).isValid ? '#f0fdf4' : '#fef2f2',
-                      color: getPasswordStrengthMessage(newPassword).isValid ? '#166534' : '#dc2626'
-                    }}>
+                    <div className={`text-xs p-2 rounded ${
+                      getPasswordStrengthMessage(newPassword).isValid 
+                        ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400' 
+                        : 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'
+                    }`}>
                       <div className="font-medium mb-1">
                         {getPasswordStrengthMessage(newPassword).isValid ? '✓ Senha forte' : 'Requisitos não atendidos:'}
                       </div>
@@ -355,13 +350,7 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                 <Button
                   onClick={handlePasswordUpdate}
                   disabled={isPasswordPending}
-                  style={{ 
-                    backgroundColor: isPasswordPending ? 'rgb(185, 76, 60)' : 'rgb(231, 76, 60)', 
-                    color: 'white',
-                    opacity: isPasswordPending ? 0.8 : 1,
-                    cursor: isPasswordPending ? 'not-allowed' : 'pointer'
-                  }}
-                  className="transition-all duration-200"
+                  className="transition-all duration-200 bg-destructive text-white hover:opacity-90 disabled:opacity-80 disabled:cursor-not-allowed"
                 >
                   {isPasswordPending ? (
                     <>
@@ -378,18 +367,18 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
 
           <Separator className="bg-border" />
 
-          <Card className="bg-white">
+          <Card className="bg-card">
             <CardContent className="p-6">
               <div className="mb-6">
-                <h2 className="text-xl font-semibold" style={{ color: '#161718' }}>Preferências</h2>
-                <p className="text-sm" style={{ color: '#58585E' }}>Gerencie sua experiência na plataforma</p>
+                <h2 className="text-xl font-semibold text-brand-text">Preferências</h2>
+                <p className="text-sm text-brand-muted">Gerencie sua experiência na plataforma</p>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="darkMode" className="font-medium">Tema Escuro</Label>
-                    <p className="text-xs" style={{ color: '#58585E' }}>Ative o modo escuro da interface</p>
+                    <p className="text-xs text-brand-muted">Ative o modo escuro da interface</p>
                   </div>
                   <Switch
                     id="darkMode"
@@ -403,11 +392,11 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
         </TabsContent>
 
         <TabsContent value="company">
-          <Card className="bg-white">
+          <Card className="bg-card">
             <CardContent className="p-6">
               <div className="mb-6">
-                <h2 className="text-xl font-semibold" style={{ color: '#161718' }}>Dados da Empresa</h2>
-                <p className="text-sm" style={{ color: '#58585E' }}>Informações da sua organização</p>
+                <h2 className="text-xl font-semibold text-brand-text">Dados da Empresa</h2>
+                <p className="text-sm text-brand-muted">Informações da sua organização</p>
               </div>
 
               <div className="space-y-4 max-w-md">
@@ -416,15 +405,6 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                   <Input
                     id="company-name"
                     value={company.name}
-                    disabled
-                    readOnly
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company-slug">Slug (URL)</Label>
-                  <Input
-                    id="company-slug"
-                    value={company.slug}
                     disabled
                     readOnly
                   />

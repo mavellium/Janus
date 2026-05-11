@@ -1,7 +1,9 @@
+---
 name: ui-design
 description: >
   Traduz especificações de design (Figma, Screenshots ou Style Guides) para código React 19/Tailwind 4.
   Focado em fidelidade visual, espaçamento rigoroso e acessibilidade.
+---
 
 instructions: >
   ## DIRETRIZ DE CORES E DARK MODE (PRIORIDADE MÁXIMA)

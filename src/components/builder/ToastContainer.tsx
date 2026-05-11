@@ -20,7 +20,7 @@ export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
         <div
           key={toast.id}
           className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-white min-w-[300px] animate-in slide-in-from-bottom-2 ${
-            toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+            toast.type === 'success' ? 'bg-brand-primary' : 'bg-destructive'
           }`}
         >
           {toast.type === 'success' ? (

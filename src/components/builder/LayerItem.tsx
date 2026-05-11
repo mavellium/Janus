@@ -61,7 +61,7 @@ export function LayerItem({
         style={style}
         className={`
           flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all
-          ${isSelected ? 'bg-blue-50 border border-blue-200' : 'hover:bg-brand-muted/10'}
+          ${isSelected ? 'bg-brand-primary/10 border border-brand-primary/30' : 'hover:bg-brand-btn-light/40'}
           ${isDragging ? 'opacity-50' : ''}
         `}
         onClick={handleSelect}
@@ -87,21 +87,21 @@ export function LayerItem({
         {!hasChildren && <div className="w-4" />}
 
         <div className="flex-1 flex items-center justify-between">
-          <span className="text-sm font-medium" style={{ color: '#161718' }}>
+          <span className="text-sm font-medium text-brand-text">
             {node.type}
           </span>
           
           <button
             onClick={handleDelete}
-            className="p-0.5 hover:bg-red-100 rounded transition-colors opacity-0 group-hover:opacity-100"
+            className="p-0.5 hover:bg-destructive/15 rounded transition-colors opacity-0 group-hover:opacity-100"
           >
-            <Trash2 className="w-3 h-3 text-red-500" />
+            <Trash2 className="w-3 h-3 text-destructive" />
           </button>
         </div>
       </div>
 
       {hasChildren && isExpanded && (
-        <div className="ml-8 border-l border-brand-muted/20">
+        <div className="ml-8 border-l border-brand-btn-light">
           {node.children.map((child) => (
             <LayerItem
               key={child.id}

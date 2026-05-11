@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/utils'
 import { CreateProjectModal } from '@/components/projects/CreateProjectModal'
 import { EditProjectContainer } from '@/components/projects/EditProjectContainer'
 import { EditProjectButton } from '@/components/projects/EditProjectButton'
+import { DeleteProjectModal } from '@/components/projects/DeleteProjectModal'
 
 export const metadata = { title: 'Sites — Janus' }
 
@@ -35,7 +36,7 @@ export default async function SitesPage({
             <Link href={`/${companySlug}/dashboard`} className="text-brand-primary hover:opacity-80">
               <ChevronLeft className="w-5 h-5" />
             </Link>
-            <h1 className="text-3xl font-bold" style={{ color: '#161718' }}>
+            <h1 className="text-3xl font-bold text-brand-text">
               Sites
             </h1>
           </div>
@@ -50,8 +51,7 @@ export default async function SitesPage({
             companySlug={companySlug}
             trigger={
               <button
-                className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition"
-                style={{ backgroundColor: 'rgb(231, 76, 60)' }}
+                className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-destructive hover:opacity-90"
               >
                 Novo Site
               </button>
@@ -64,15 +64,23 @@ export default async function SitesPage({
         {projects.map((project) => (
           <div
             key={project.id}
-            className="bg-white rounded-xl border border-brand-muted/40 overflow-hidden hover:shadow-lg transition"
+            className="bg-card rounded-xl border border-brand-btn-light overflow-hidden hover:shadow-lg transition relative"
           >
-            <div className="h-32 bg-gradient-to-br from-gray-200 to-gray-300"></div>
+            <div className="h-32 bg-gradient-to-br from-brand-btn-light to-brand-muted/40 relative">
+              <div className="absolute top-3 right-3">
+                <DeleteProjectModal
+                  projectId={project.id}
+                  projectName={project.name}
+                  companySlug={companySlug}
+                />
+              </div>
+            </div>
             <div className="p-6">
-              <h3 className="text-lg font-semibold mb-1" style={{ color: '#161718' }}>
+              <h3 className="text-lg font-semibold mb-1 text-brand-text">
                 {project.name}
               </h3>
               <p className="text-xs text-brand-muted mb-4">{formatDate(project.createdAt)}</p>
-              <div className="mb-4 pb-4 border-b border-brand-muted/40">
+              <div className="mb-4 pb-4 border-b border-brand-btn-light">
                 <p className="text-xs text-brand-muted">
                   {project._count.pages} {project._count.pages === 1 ? 'página' : 'páginas'}
                 </p>
@@ -80,11 +88,7 @@ export default async function SitesPage({
               <div className="flex gap-2">
                 <Link
                   href={`/${companySlug}/dashboard/sites/${project.id}/pages`}
-                  className="flex-1 px-4 py-2.5 rounded-lg text-xs font-semibold transition text-center flex items-center justify-center gap-2"
-                  style={{
-                    color: '#161718',
-                    backgroundColor: '#f5f5f5',
-                  }}
+                  className="flex-1 px-4 py-2.5 rounded-lg text-xs font-semibold transition text-center flex items-center justify-center gap-2 text-brand-text bg-brand-btn-light hover:opacity-80"
                 >
                   <ArrowRight className="w-3 h-3" />
                   Gerenciar
@@ -104,7 +108,7 @@ export default async function SitesPage({
       {projects.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="text-center">
-            <p className="text-lg font-semibold mb-2" style={{ color: '#161718' }}>
+            <p className="text-lg font-semibold mb-2 text-brand-text">
               Nenhum site criado ainda
             </p>
             <p className="text-sm text-brand-muted mb-6">
@@ -115,8 +119,7 @@ export default async function SitesPage({
               companySlug={companySlug}
               trigger={
                 <button
-                  className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition"
-                  style={{ backgroundColor: '#161718' }}
+                  className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-btn-dark hover:bg-brand-hover"
                 >
                   Criar primeiro site
                 </button>

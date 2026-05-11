@@ -65,7 +65,7 @@ export function EditPageModal({
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/50" onClick={() => setOpen(false)} />
-          <div className="relative bg-brand-bg rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+          <div className="relative bg-card rounded-lg shadow-lg p-6 w-full max-w-md mx-4 border border-brand-btn-light">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-brand-text">Editar Página</h2>
             </div>
@@ -85,7 +85,7 @@ export function EditPageModal({
                   placeholder="Nome da página"
                   required
                   disabled={pending}
-                  className="flex h-10 w-full rounded-md border border-brand-muted bg-brand-bg px-3 py-2 text-sm placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-md border border-brand-btn-light bg-brand-bg px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
               
@@ -101,12 +101,12 @@ export function EditPageModal({
                   placeholder="/url-da-pagina"
                   required
                   disabled={pending}
-                  className="flex h-10 w-full rounded-md border border-brand-muted bg-brand-bg px-3 py-2 text-sm placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-md border border-brand-btn-light bg-brand-bg px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
                 />
               </div>
               
               {state.error && (
-                <p className="text-sm text-red-600">{state.error}</p>
+                <p className="text-sm text-destructive">{state.error}</p>
               )}
               
               <div className="flex justify-end gap-2">
@@ -114,14 +114,14 @@ export function EditPageModal({
                   type="button"
                   onClick={() => setOpen(false)}
                   disabled={pending}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold transition border border-brand-muted text-brand-text hover:bg-brand-muted/20 disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg text-sm font-semibold transition border border-brand-btn-light text-brand-text hover:bg-brand-btn-light/40 disabled:opacity-50"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={pending}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold transition bg-brand-primary text-brand-bg hover:bg-brand-hover disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg text-sm font-semibold transition bg-brand-primary text-white hover:bg-brand-hover disabled:opacity-50"
                 >
                   {pending ? (
                     <>

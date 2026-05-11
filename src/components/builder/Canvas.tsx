@@ -20,11 +20,7 @@ export function Canvas({ nodes, selectedNodeId, onSelectNode, backgroundColor }:
   return (
     <div
       ref={setNodeRef}
-      className="flex-1 overflow-auto p-8"
-      style={{
-        backgroundColor: '#EBE6DA',
-        outline: isOver ? '2px dashed #514030' : 'none',
-      }}
+      className={`flex-1 overflow-auto p-8 bg-brand-bg ${isOver ? 'outline-2 outline-dashed outline-brand-primary' : ''}`}
     >
       {nodes.length === 0 ? (
         <div className="flex items-center justify-center h-full">
@@ -37,8 +33,8 @@ export function Canvas({ nodes, selectedNodeId, onSelectNode, backgroundColor }:
         </div>
       ) : (
         <div
-          className="rounded-xl border border-brand-muted/40 p-8 min-h-96"
-          style={{ backgroundColor: backgroundColor || '#ffffff' }}
+          className="rounded-xl border border-brand-btn-light p-8 min-h-96 bg-card"
+          style={backgroundColor ? { backgroundColor } : undefined}
         >
           {nodes.map((node) => (
             <RenderNode

@@ -75,8 +75,7 @@ export function EditProjectActions({
   return (
     <button
       onClick={() => setIsEditing(true)}
-      className="flex-1 px-4 py-2.5 rounded-lg text-xs font-semibold text-white transition flex items-center justify-center gap-2"
-      style={{ backgroundColor: '#514030' }}
+      className="flex-1 px-4 py-2.5 rounded-lg text-xs font-semibold text-white transition flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-hover"
     >
       <Settings className="w-3 h-3" />
       Editar

@@ -34,7 +34,7 @@ export default async function LandingPagePagesPage({
     <div className="p-8 w-full">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2" style={{ color: '#161718' }}>
+          <h1 className="text-3xl font-bold mb-2 text-brand-text">
             Páginas
           </h1>
           <p className="text-sm text-brand-muted">
@@ -42,22 +42,21 @@ export default async function LandingPagePagesPage({
           </p>
         </div>
         <button
-          className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition"
-          style={{ backgroundColor: '#514030' }}
+          className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-primary hover:bg-brand-hover"
         >
           Nova Página
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-brand-muted/40 overflow-hidden">
-        <div className="divide-y divide-brand-muted/40">
+      <div className="bg-card rounded-xl border border-brand-btn-light overflow-hidden">
+        <div className="divide-y divide-brand-btn-light">
           {pages.map((page) => (
             <div
               key={page.id}
-              className="p-6 flex items-center justify-between hover:bg-brand-muted/10 transition"
+              className="p-6 flex items-center justify-between hover:bg-brand-btn-light/40 transition"
             >
               <div className="flex-1">
-                <h3 className="text-base font-semibold" style={{ color: '#161718' }}>
+                <h3 className="text-base font-semibold text-brand-text">
                   {page.name}
                 </h3>
                 <p className="text-xs text-brand-muted mt-1">/{page.slug}</p>
@@ -71,7 +70,7 @@ export default async function LandingPagePagesPage({
                   projectId={lpId}
                   trigger={
                     <button
-                      className="px-3 py-2 rounded-lg text-sm font-semibold transition border border-brand-muted text-brand-text hover:bg-brand-muted/20"
+                      className="px-3 py-2 rounded-lg text-sm font-semibold transition border border-brand-btn-light text-brand-text hover:bg-brand-btn-light/40"
                     >
                       Editar
                     </button>
@@ -79,8 +78,7 @@ export default async function LandingPagePagesPage({
                 />
                 <Link
                   href={`/${companySlug}/dashboard/landing-pages/${lpId}/pages/${page.id}/builder`}
-                  className="px-3 py-2 rounded-lg text-sm font-semibold text-white transition flex items-center gap-2"
-                  style={{ backgroundColor: '#514030' }}
+                  className="px-3 py-2 rounded-lg text-sm font-semibold text-white transition flex items-center gap-2 bg-brand-primary hover:bg-brand-hover"
                 >
                   <Edit3 className="w-4 h-4" />
                   Construtor
@@ -94,8 +92,7 @@ export default async function LandingPagePagesPage({
           <div className="p-8 text-center">
             <p className="text-sm text-brand-muted mb-4">Nenhuma página criada ainda</p>
             <button
-              className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition"
-              style={{ backgroundColor: '#514030' }}
+              className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-primary hover:bg-brand-hover"
             >
               Criar primeira página
             </button>

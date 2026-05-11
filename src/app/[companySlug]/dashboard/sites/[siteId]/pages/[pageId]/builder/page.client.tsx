@@ -116,37 +116,36 @@ export function BuilderClient({
   }
 
   return (
-    <div className="h-screen flex flex-col bg-white">
-      <div className="border-b border-brand-muted/40 px-6 py-4 flex items-center justify-between w-full">
+    <div className="h-screen flex flex-col bg-brand-bg">
+      <div className="border-b border-brand-btn-light px-6 py-4 flex items-center justify-between w-full bg-card">
         <Link
           href={`/${companySlug}/dashboard/sites/${siteId}`}
-          className="flex items-center gap-2 px-3 py-2 text-brand-primary hover:text-brand-primary transition-colors"
+          className="flex items-center gap-2 px-3 py-2 text-brand-primary hover:opacity-80 transition-colors"
         >
-          <ChevronLeft className="w-4 h-4" style={{ color: '#161718' }} />
+          <ChevronLeft className="w-4 h-4 text-brand-text" />
           Voltar
         </Link>
         <div className="flex items-center gap-2">
           <button
             onClick={() => builder.undo()}
-            className="p-2 hover:bg-brand-muted/20 rounded-lg transition"
+            className="p-2 hover:bg-brand-btn-light/40 rounded-lg transition"
             disabled={!builder.canUndo}
             title="Desfazer"
           >
-            <Undo2 className="w-4 h-4" style={{ color: '#161718' }} />
+            <Undo2 className="w-4 h-4 text-brand-text" />
           </button>
           <button
             onClick={() => builder.redo()}
-            className="p-2 hover:bg-brand-muted/20 rounded-lg transition"
+            className="p-2 hover:bg-brand-btn-light/40 rounded-lg transition"
             disabled={!builder.canRedo}
             title="Refazer"
           >
-            <Redo2 className="w-4 h-4" style={{ color: '#161718' }} />
+            <Redo2 className="w-4 h-4 text-brand-text" />
           </button>
           <button
             onClick={handleSave}
             disabled={isSavePending}
-            className="px-4 py-2 rounded-lg text-sm font-semibold text-white flex items-center gap-2 transition disabled:opacity-50"
-            style={{ backgroundColor: '#514030' }}
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-white flex items-center gap-2 transition disabled:opacity-50 bg-brand-primary hover:bg-brand-hover"
           >
             {isSavePending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -158,8 +157,7 @@ export function BuilderClient({
           <button
             onClick={handlePublish}
             disabled={isPublishPending}
-            className="px-4 py-2 rounded-lg text-sm font-semibold text-white flex items-center gap-2 transition disabled:opacity-50"
-            style={{ backgroundColor: '#161718' }}
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-white flex items-center gap-2 transition disabled:opacity-50 bg-brand-btn-dark hover:bg-brand-hover"
           >
             {isPublishPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -171,8 +169,7 @@ export function BuilderClient({
           <Link
             href={`/${companySlug}/preview/${pageId}`}
             target="_blank"
-            className="px-4 py-2 rounded-lg text-sm font-semibold text-white flex items-center gap-2 transition"
-            style={{ backgroundColor: '#514030' }}
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-white flex items-center gap-2 transition bg-brand-primary hover:bg-brand-hover"
           >
             <Eye className="w-4 h-4" />
             Preview

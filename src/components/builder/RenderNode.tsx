@@ -21,10 +21,10 @@ export function RenderNode({ node, selectedNodeId, onSelect }: RenderNodeProps) 
     <div className="relative cursor-pointer" onClick={handleClick}>
       {isSelected && (
         <>
-          <span className="absolute top-0 left-0 z-10 text-xs bg-blue-500 text-white px-2 py-0.5 rounded-br">
+          <span className="absolute top-0 left-0 z-10 text-xs bg-brand-primary text-white px-2 py-0.5 rounded-br">
             {node.type}
           </span>
-          <div className="absolute inset-0 ring-2 ring-blue-500 ring-inset pointer-events-none" />
+          <div className="absolute inset-0 ring-2 ring-brand-primary ring-inset pointer-events-none" />
         </>
       )}
       <CoreRenderer

@@ -31,7 +31,7 @@ export function VideoPlayer({ node, onUpdate }: VideoPlayerProps) {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <label className="block text-xs font-medium mb-1.5" style={{ color: '#161718' }}>
+        <label className="block text-xs font-medium mb-1.5 text-brand-text">
           URL do Vídeo
         </label>
         <input
@@ -39,21 +39,21 @@ export function VideoPlayer({ node, onUpdate }: VideoPlayerProps) {
           value={(node.props.src as string) || ''}
           onChange={(e) => onUpdate({ src: e.target.value })}
           placeholder="https://youtube.com/watch?v=... ou https://vimeo.com/..."
-          className="w-full px-3 py-2 border border-brand-muted/40 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-brand-btn-light rounded-lg text-sm bg-brand-bg text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
         />
       </div>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium" style={{ color: '#161718' }}>
+          <span className="text-xs font-medium text-brand-text">
             Autoplay
           </span>
           <button
             onClick={handlePlayPause}
             className={`p-2 rounded-lg transition-colors ${
               node.props.autoplay
-                ? 'bg-blue-500 text-white'
-                : 'bg-brand-muted/10 hover:bg-brand-muted/20'
+                ? 'bg-brand-primary text-white'
+                : 'bg-brand-btn-light/40 text-brand-text hover:bg-brand-btn-light'
             }`}
           >
             {node.props.autoplay ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -61,15 +61,15 @@ export function VideoPlayer({ node, onUpdate }: VideoPlayerProps) {
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium" style={{ color: '#161718' }}>
+          <span className="text-xs font-medium text-brand-text">
             Mudo
           </span>
           <button
             onClick={handleMuteToggle}
             className={`p-2 rounded-lg transition-colors ${
               isMuted
-                ? 'bg-blue-500 text-white'
-                : 'bg-brand-muted/10 hover:bg-brand-muted/20'
+                ? 'bg-brand-primary text-white'
+                : 'bg-brand-btn-light/40 text-brand-text hover:bg-brand-btn-light'
             }`}
           >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -77,15 +77,15 @@ export function VideoPlayer({ node, onUpdate }: VideoPlayerProps) {
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium" style={{ color: '#161718' }}>
+          <span className="text-xs font-medium text-brand-text">
             Loop
           </span>
           <button
             onClick={handleLoopToggle}
             className={`p-2 rounded-lg transition-colors ${
               node.props.loop
-                ? 'bg-blue-500 text-white'
-                : 'bg-brand-muted/10 hover:bg-brand-muted/20'
+                ? 'bg-brand-primary text-white'
+                : 'bg-brand-btn-light/40 text-brand-text hover:bg-brand-btn-light'
             }`}
           >
             <RotateCcw className="w-4 h-4" />
@@ -94,7 +94,7 @@ export function VideoPlayer({ node, onUpdate }: VideoPlayerProps) {
       </div>
 
       <div className="space-y-2">
-        <label className="block text-xs font-medium mb-1.5" style={{ color: '#161718' }}>
+        <label className="block text-xs font-medium mb-1.5 text-brand-text">
           Largura
         </label>
         <input
@@ -102,12 +102,12 @@ export function VideoPlayer({ node, onUpdate }: VideoPlayerProps) {
           value={(node.props.width as string) || '100%'}
           onChange={(e) => onUpdate({ width: e.target.value })}
           placeholder="100%, 800px, etc."
-          className="w-full px-3 py-2 border border-brand-muted/40 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-brand-btn-light rounded-lg text-sm bg-brand-bg text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
         />
       </div>
 
       <div className="space-y-2">
-        <label className="block text-xs font-medium mb-1.5" style={{ color: '#161718' }}>
+        <label className="block text-xs font-medium mb-1.5 text-brand-text">
           Altura
         </label>
         <input
@@ -115,7 +115,7 @@ export function VideoPlayer({ node, onUpdate }: VideoPlayerProps) {
           value={(node.props.height as string) || 'auto'}
           onChange={(e) => onUpdate({ height: e.target.value })}
           placeholder="auto, 450px, etc."
-          className="w-full px-3 py-2 border border-brand-muted/40 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-brand-btn-light rounded-lg text-sm bg-brand-bg text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
         />
       </div>
     </div>

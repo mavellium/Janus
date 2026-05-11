@@ -58,8 +58,8 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
       'flex items-center gap-3 w-full rounded-lg transition-colors',
       isCollapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2',
       isActive 
-        ? 'bg-[#7A614A] text-[#FFFFFF] [&>svg]:text-[#FFFFFF]'
-        : 'text-[#58585E] [&>svg]:text-[#58585E] hover:bg-[#7A614A] hover:text-[#FFFFFF] [&>svg]:hover:text-[#FFFFFF]'
+        ? 'bg-sidebar-hover-bg text-sidebar-hover-text [&>svg]:text-sidebar-hover-text'
+        : 'text-sidebar-icon [&>svg]:text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text [&>svg]:hover:text-sidebar-hover-text'
     )
   }
 
@@ -106,7 +106,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
           <button
             onClick={toggleCollapsed}
             title="Minimizar sidebar"
-            className={cn('flex items-center gap-3 w-full rounded-lg transition-colors px-3 py-2 text-[#58585E] hover:bg-[#7A614A] hover:text-[#FFFFFF] [&>svg]:text-[#58585E] hover:[&>svg]:text-[#FFFFFF]')}
+            className={cn('flex items-center gap-3 w-full rounded-lg transition-colors px-3 py-2 text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text [&>svg]:text-sidebar-icon hover:[&>svg]:text-sidebar-hover-text')}
           >
             <PanelLeftClose size={16} />
           </button>
@@ -118,7 +118,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
           <button
             onClick={toggleCollapsed}
             title="Expandir sidebar"
-            className={cn('flex items-center justify-center w-7 h-7 rounded-lg transition-colors text-[#58585E] hover:bg-[#7A614A] hover:text-[#FFFFFF] [&>svg]:text-[#58585E] hover:[&>svg]:text-[#FFFFFF]')}
+            className={cn('flex items-center justify-center w-7 h-7 rounded-lg transition-colors text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text [&>svg]:text-sidebar-icon hover:[&>svg]:text-sidebar-hover-text')}
           >
             <PanelLeftOpen size={16} />
           </button>
@@ -151,7 +151,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
       <div style={{ padding: '8px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
         <button
           title={collapsed ? 'Notificações' : undefined}
-          className={cn('flex items-center gap-3 w-full rounded-lg transition-colors', collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2', 'text-[#58585E] hover:bg-[#7A614A] hover:text-[#FFFFFF] [&>svg]:text-[#58585E] hover:[&>svg]:text-[#FFFFFF]')}
+          className={cn('flex items-center gap-3 w-full rounded-lg transition-colors', collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2', 'text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text [&>svg]:text-sidebar-icon hover:[&>svg]:text-sidebar-hover-text')}
         >
           <Bell size={16} style={{ flexShrink: 0 }} />
           {!collapsed && <span>Notificações</span>}
@@ -163,8 +163,8 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
             'flex items-center gap-3 w-full rounded-lg transition-colors',
             collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2',
             pathname === `/${companySlug}/dashboard/settings`
-              ? 'bg-[#7A614A] text-[#FFFFFF] [&>svg]:text-[#FFFFFF]'
-              : 'text-[#58585E] [&>svg]:text-[#58585E] hover:bg-[#7A614A] hover:text-[#FFFFFF] [&>svg]:hover:text-[#FFFFFF]'
+              ? 'bg-sidebar-hover-bg text-sidebar-hover-text [&>svg]:text-sidebar-hover-text'
+              : 'text-sidebar-icon [&>svg]:text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text [&>svg]:hover:text-sidebar-hover-text'
           )}
         >
           <Settings size={16} style={{ flexShrink: 0 }} />
@@ -238,7 +238,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
           title={collapsed ? 'Sair' : undefined}
-          className={cn('flex items-center gap-3 w-full rounded-lg transition-colors', collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2', 'text-[#58585E] hover:bg-[#7A614A] hover:text-[#FFFFFF] [&>svg]:text-[#58585E] hover:[&>svg]:text-[#FFFFFF]')}
+          className={cn('flex items-center gap-3 w-full rounded-lg transition-colors', collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2', 'text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text [&>svg]:text-sidebar-icon hover:[&>svg]:text-sidebar-hover-text')}
         >
           <LogOut size={16} style={{ flexShrink: 0 }} />
           {!collapsed && <span>Sair</span>}

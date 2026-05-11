@@ -38,14 +38,14 @@ export function ContextSidebar({
     return cn(
       'flex items-center gap-3 px-4 py-2 rounded-lg transition',
       isActive 
-        ? 'bg-[#7A614A] text-[#FFFFFF] [&>svg]:text-[#FFFFFF]'
-        : 'text-[#161718] [&>svg]:text-[#161718] hover:bg-[#7A614A] hover:text-[#FFFFFF] [&>svg]:hover:text-[#FFFFFF]'
+        ? 'bg-sidebar-hover-bg text-sidebar-hover-text [&>svg]:text-sidebar-hover-text'
+        : 'text-brand-text [&>svg]:text-brand-text hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text [&>svg]:hover:text-sidebar-hover-text'
     )
   }
 
   return (
-    <aside className="w-64 bg-white border-r border-brand-muted/40 flex flex-col">
-      <div className="p-6 border-b border-brand-muted/40">
+    <aside className="w-64 bg-sidebar-bg border-r border-brand-btn-light flex flex-col">
+      <div className="p-6 border-b border-brand-btn-light">
         <Link 
           href={
             projectType === 'LANDING_PAGE' 
@@ -57,7 +57,7 @@ export function ContextSidebar({
           <ChevronLeft className="w-5 h-5" />
           <span className="text-sm font-semibold">Voltar</span>
         </Link>
-        <h2 className="text-sm font-semibold" style={{ color: '#161718' }}>
+        <h2 className="text-sm font-semibold text-brand-text">
           {projectName}
         </h2>
         <p className="text-xs text-brand-muted mt-1">

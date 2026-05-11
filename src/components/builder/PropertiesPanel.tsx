@@ -33,7 +33,7 @@ function PropInput({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium mb-1.5" style={{ color: '#161718' }}>
+      <label className="block text-xs font-medium mb-1.5 text-brand-text">
         {label}
       </label>
       <input
@@ -41,7 +41,7 @@ function PropInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 border border-brand-muted/40 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+        className="w-full px-3 py-2 border border-brand-btn-light rounded-lg text-sm bg-brand-bg text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
       />
     </div>
   )
@@ -60,7 +60,7 @@ function ColorPicker({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium mb-1.5" style={{ color: '#161718' }}>
+      <label className="block text-xs font-medium mb-1.5 text-brand-text">
         {label}
       </label>
       <div className="flex gap-2">
@@ -68,13 +68,13 @@ function ColorPicker({
           type="color"
           value={value || defaultValue}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-14 rounded cursor-pointer border border-brand-muted/40"
+          className="h-9 w-14 rounded cursor-pointer border border-brand-btn-light"
         />
         <input
           type="text"
           value={value || defaultValue}
           onChange={(e) => onChange(e.target.value)}
-          className="flex-1 px-3 py-2 border border-brand-muted/40 rounded-lg text-sm uppercase"
+          className="flex-1 px-3 py-2 border border-brand-btn-light rounded-lg text-sm uppercase bg-brand-bg text-brand-text"
         />
       </div>
     </div>
@@ -92,7 +92,7 @@ function SpacingControl({
 }) {
   return (
     <div>
-      <label className="block text-xs font-medium mb-1.5" style={{ color: '#161718' }}>
+      <label className="block text-xs font-medium mb-1.5 text-brand-text">
         {label}
       </label>
       <div className="grid grid-cols-2 gap-2">
@@ -135,13 +135,13 @@ export function PropertiesPanel({
             onChange={(value) => onUpdatePageSettings?.({ ...pageSettings, textColor: value })}
           />
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: '#161718' }}>
+            <label className="block text-xs font-medium mb-1.5 text-brand-text">
               Fonte Base
             </label>
             <select
               value={pageSettings?.fontFamily || ''}
               onChange={(e) => onUpdatePageSettings?.({ ...pageSettings, fontFamily: e.target.value })}
-              className="w-full px-3 py-2 border border-brand-muted/40 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-brand-btn-light rounded-lg text-sm bg-brand-bg text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             >
               <option value="">Padrão do Sistema</option>
               <option value="Inter">Inter</option>
@@ -164,7 +164,7 @@ export function PropertiesPanel({
   }
 
   const renderLayoutSection = () => (
-    <div className="border-b border-brand-muted/20 pb-4">
+    <div className="border-b border-brand-btn-light pb-4">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-brand-muted mb-3">
         Layout
       </h3>
@@ -197,32 +197,32 @@ export function PropertiesPanel({
     if (!node || (node.type !== 'Text' && node.type !== 'Heading')) return null
 
     return (
-      <div className="border-b border-brand-muted/20 pb-4">
+      <div className="border-b border-brand-btn-light pb-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-brand-muted mb-3">
           Tipografia
         </h3>
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: '#161718' }}>
+            <label className="block text-xs font-medium mb-1.5 text-brand-text">
               Conteúdo
             </label>
             <textarea
               value={(node.props.content as string) || ''}
               onChange={(e) => onUpdate({ content: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-brand-muted/40 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-brand-btn-light rounded-lg text-sm resize-none bg-brand-bg text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: '#161718' }}>
+              <label className="block text-xs font-medium mb-1.5 text-brand-text">
                 Tamanho
               </label>
               <select
                 value={(node.props.fontSize as string) || ''}
                 onChange={(e) => onUpdate({ fontSize: e.target.value })}
-                className="w-full px-3 py-2 border border-brand-muted/40 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-brand-btn-light rounded-lg text-sm bg-brand-bg text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
               >
                 <option value="">Padrão</option>
                 <option value="12px">12px</option>
@@ -237,13 +237,13 @@ export function PropertiesPanel({
             </div>
 
             <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: '#161718' }}>
+              <label className="block text-xs font-medium mb-1.5 text-brand-text">
                 Peso
               </label>
               <select
                 value={(node.props.fontWeight as string) || ''}
                 onChange={(e) => onUpdate({ fontWeight: e.target.value })}
-                className="w-full px-3 py-2 border border-brand-muted/40 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-brand-btn-light rounded-lg text-sm bg-brand-bg text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
               >
                 <option value="">Padrão</option>
                 <option value="400">Normal (400)</option>
@@ -256,7 +256,7 @@ export function PropertiesPanel({
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1.5" style={{ color: '#161718' }}>
+            <label className="block text-xs font-medium mb-1.5 text-brand-text">
               Alinhamento
             </label>
             <div className="flex gap-1">
@@ -266,8 +266,8 @@ export function PropertiesPanel({
                   onClick={() => onUpdate({ textAlign: align })}
                   className={`flex-1 py-1.5 px-2 rounded text-xs capitalize transition-colors ${
                     node.props.textAlign === align
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-brand-muted/10 hover:bg-brand-muted/20'
+                      ? 'bg-brand-primary text-white'
+                      : 'bg-brand-btn-light/40 text-brand-text hover:bg-brand-btn-light'
                   }`}
                 >
                   {align}
@@ -293,7 +293,7 @@ export function PropertiesPanel({
     switch (node.type) {
       case 'Button':
         return (
-          <div className="border-b border-brand-muted/20 pb-4">
+          <div className="border-b border-brand-btn-light pb-4">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-brand-muted mb-3">
               Aparência
             </h3>
@@ -321,7 +321,7 @@ export function PropertiesPanel({
 
       case 'Hero':
         return (
-          <div className="border-b border-brand-muted/20 pb-4">
+          <div className="border-b border-brand-btn-light pb-4">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-brand-muted mb-3">
               Aparência
             </h3>
@@ -355,7 +355,7 @@ export function PropertiesPanel({
       case 'Section':
       case 'Container':
         return (
-          <div className="border-b border-brand-muted/20 pb-4">
+          <div className="border-b border-brand-btn-light pb-4">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-brand-muted mb-3">
               Layout e Dimensionamento
             </h3>
@@ -385,7 +385,7 @@ export function PropertiesPanel({
 
       case 'Video':
         return (
-          <div className="border-b border-brand-muted/20 pb-4">
+          <div className="border-b border-brand-btn-light pb-4">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-brand-muted mb-3">
               Configurações de Vídeo
             </h3>
@@ -399,13 +399,13 @@ export function PropertiesPanel({
   }
 
   return (
-    <aside className="w-72 border-l border-brand-muted/40 bg-white overflow-y-auto flex flex-col">
-      <div className="flex border-b border-brand-muted/40">
+    <aside className="w-72 border-l border-brand-btn-light bg-card overflow-y-auto flex flex-col">
+      <div className="flex border-b border-brand-btn-light">
         <button
           onClick={() => setActiveTab('element')}
           className={`flex-1 py-3 text-sm font-medium transition ${
             activeTab === 'element'
-              ? 'text-blue-500 border-b-2 border-blue-500'
+              ? 'text-brand-primary border-b-2 border-brand-primary'
               : 'text-brand-muted hover:text-brand-primary'
           }`}
         >
@@ -415,7 +415,7 @@ export function PropertiesPanel({
           onClick={() => setActiveTab('global')}
           className={`flex-1 py-3 text-sm font-medium transition ${
             activeTab === 'global'
-              ? 'text-blue-500 border-b-2 border-blue-500'
+              ? 'text-brand-primary border-b-2 border-brand-primary'
               : 'text-brand-muted hover:text-brand-primary'
           }`}
         >
@@ -428,7 +428,7 @@ export function PropertiesPanel({
           renderGlobalSettings()
         ) : node ? (
           <div className="space-y-5">
-            <h2 className="text-sm font-semibold mb-4" style={{ color: '#161718' }}>
+            <h2 className="text-sm font-semibold mb-4 text-brand-text">
               {node.type}
             </h2>
             {renderLayoutSection()}
@@ -436,7 +436,7 @@ export function PropertiesPanel({
             {renderAppearanceSection()}
           </div>
         ) : (
-          <div className="bg-brand-muted/10 p-4 rounded-lg text-center mt-4">
+          <div className="bg-brand-btn-light/40 p-4 rounded-lg text-center mt-4">
             <p className="text-xs text-brand-muted">
               Selecione um componente para editar suas propriedades
             </p>

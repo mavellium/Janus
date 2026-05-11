@@ -9,6 +9,7 @@ export async function getProjects({ companyId, type }: GetProjectsParams) {
   return db.project.findMany({
     where: {
       companyId,
+      isActive: true,
       deletedAt: null,
       ...(type && { type }),
     },

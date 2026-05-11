@@ -25,7 +25,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **Queries:** `getUserByEmail.ts` — busca usuário ativo por email (sem deletedAt), retorna image, preferences e company | `getUserPreferences.ts` — busca preferências do usuário logado
 
 ### projects
-- **Entidade:** `Project` (Prisma) — id (UUID), companyId (fk), name, type (LANDING_PAGE | INSTITUTIONAL), soft-delete
+- **Entidade:** `Project` (Prisma) — id (UUID), companyId (fk), name, type (LANDING_PAGE | INSTITUTIONAL), isActive (bool, default true), deletedBy (string?), deletionReason (string?), deletedAt — soft delete com auditoria
 - **Relações:** Um para Muitos com `Page`; belongsTo `Company`
 
 ### pages
@@ -37,8 +37,9 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **Uso:** Auditoria de alterações em projetos; rastreia quem alterou o quê
 
 ### projects
+- **Actions:** `softDeleteProject.ts` — inativa projeto (isActive: false), registra deletedBy, deletionReason, deletedAt; revalida rotas de sites e landing-pages
 - **Queries:** 
-  - `getProjects.ts` — busca projetos da empresa com filtro opcional por tipo (LANDING_PAGE|INSTITUTIONAL); retorna com contagem de páginas
+  - `getProjects.ts` — busca projetos ativos (isActive: true, deletedAt: null) com filtro opcional por tipo; retorna com contagem de páginas
   - `getPagesByProjectId.ts` — busca páginas de um projeto específico; ordena por criação decrescente
 
 ### admin
@@ -368,6 +369,19 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-10 | `update-avatar-modal.tsx` | **REFACTOR:** Atualizado para nova API do uploadImage com folder 'avatars' |
 | 2026-05-10 | `sites/page.tsx` | **FIX:** Botão 'Novo Site' só renderiza quando projects.length > 0 (melhoria UX empty state) |
 | 2026-05-10 | `landing-pages/page.tsx` | **FIX:** Botão 'Nova Landing Page' só renderiza quando projects.length > 0 (melhoria UX empty state) |
+| 2026-05-10 | `schema.prisma` | **FEATURE:** Model Project recebe isActive, deletedBy, deletionReason para soft delete com auditoria |
+| 2026-05-10 | `softDeleteProject.ts` | **NOVO:** Server Action de soft delete: inativa projeto, registra autor e motivo, revalida rotas |
+| 2026-05-10 | `DeleteProjectModal.tsx` | **NOVO:** Modal de inativação com inputs de nome/motivo, validação e feedback via toast |
+| 2026-05-10 | `getProjects.ts` | **FIX:** Filtro isActive: true adicionado — projetos inativos excluídos de todas as listagens |
+| 2026-05-10 | `sites/page.tsx` | **FEATURE:** Botão Trash2 nos cards com DeleteProjectModal integrado |
+| 2026-05-10 | `landing-pages/page.tsx` | **FEATURE:** Botão Trash2 nos cards com DeleteProjectModal integrado |
+| 2026-05-10 | `DeleteProjectModal.tsx` | **FEATURE:** Checkbox de consentimento explícito obrigatório antes de habilitar exclusão |
+| 2026-05-10 | `settings.client.tsx` | **FIX:** Removido campo Slug da aba Empresa nas configurações |
+| 2026-05-10 | `globals.css` | **REFACTOR:** Paleta `.dark` harmonizada (warm tones) + variáveis shadcn (`--background`, `--card`, `--primary`, `--destructive`, etc.) mapeadas para tokens brand |
+| 2026-05-10 | `tailwind.config.ts` | **REFACTOR:** Tokens shadcn (background, foreground, card, primary, secondary, muted, accent, destructive, border, input, ring) adicionados ao theme.extend.colors |
+| 2026-05-10 | Global UI sweep | **REFACTOR:** Removidas cores hardcoded (`#161718`, `#514030`, `bg-white`, `bg-gray-*`, `text-blue-500`) de ~25 arquivos: Sidebar, ContextSidebar, dashboard pages, sites/landing-pages pages e sub-pages, settings, builder workspace/panels (Components, Properties, Canvas, RenderNode, LayerItem, VideoPlayer, LayoutForm, BuilderSkeleton), modais (Create/Edit/Delete Project, EditPage), LoginForm, Switch, ToastContainer. Substituídas por tokens semânticos `brand-*`/`sidebar-*`/`card`/`destructive` |
+| 2026-05-10 | `layout.tsx` (root) | **FIX:** Removida `<script>` tag do `<head>` (incompatível com React render); script anti-flash agora via componente `ThemeScript` no body |
+| 2026-05-10 | `ui-design` skill | **REFACTOR:** Adicionada DIRETRIZ DE CORES E DARK MODE (prioridade máxima) proibindo cores literais/hex e exigindo uso de tokens semânticos; checklist de validação dark mode incluído |
 
 ---
 

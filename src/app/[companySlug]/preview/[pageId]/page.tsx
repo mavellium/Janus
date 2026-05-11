@@ -34,7 +34,7 @@ export default async function PreviewPage({
     return (
       <div className="min-h-screen flex items-center justify-center bg-brand-bg">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2" style={{ color: '#161718' }}>
+          <h1 className="text-2xl font-bold mb-2 text-brand-text">
             Página Privada
           </h1>
           <p className="text-brand-muted">Esta página ainda não foi publicada</p>

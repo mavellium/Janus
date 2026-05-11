@@ -44,27 +44,27 @@ export function LoginForm() {
     <div className="w-full max-w-sm relative">
       {ipStatus.blocked && (
         <div className="absolute inset-0 bg-black/70 rounded-2xl z-50 flex flex-col items-center justify-center backdrop-blur-sm">
-          <div className="bg-white rounded-xl p-6 shadow-lg text-center max-w-xs">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#514030' }}>
+          <div className="bg-card rounded-xl p-6 shadow-lg text-center max-w-xs">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 bg-brand-primary">
               <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M13.477 14.89A6 6 0 0 1 5.11 6.524a6 6 0 0 1 8.367 8.366l1.414 1.414a8 8 0 1 0-11.313-11.313l1.414 1.414A6 6 0 0 1 13.477 14.89ZM9 4a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 9 4Z" clipRule="evenodd" />
               </svg>
             </div>
-            <h2 className="text-lg font-semibold mb-2" style={{ color: '#514030' }}>
+            <h2 className="text-lg font-semibold mb-2 text-brand-primary">
               Acesso Suspenso
             </h2>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-brand-muted mb-4">
               {ipStatus.reason}
             </p>
-            <div className="text-3xl font-bold tabular-nums" style={{ color: '#514030' }}>
+            <div className="text-3xl font-bold tabular-nums text-brand-primary">
               {displayTime}
             </div>
-            <p className="text-xs text-gray-500 mt-2">Tente novamente em breve</p>
+            <p className="text-xs text-brand-muted mt-2">Tente novamente em breve</p>
           </div>
         </div>
       )}
 
-      <div className="px-8 py-10 bg-white rounded-2xl shadow-sm border border-brand-muted/40" style={{ opacity: ipStatus.blocked ? 0.5 : 1, pointerEvents: ipStatus.blocked ? 'none' : 'auto' }}>
+      <div className="px-8 py-10 bg-card rounded-2xl shadow-sm border border-brand-btn-light" style={{ opacity: ipStatus.blocked ? 0.5 : 1, pointerEvents: ipStatus.blocked ? 'none' : 'auto' }}>
         <div className="mb-8 text-center">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-brand-primary mb-4">
             <span className="text-white font-bold text-sm">J</span>
@@ -85,7 +85,7 @@ export function LoginForm() {
               autoComplete="email"
               required
               placeholder="seu@email.com"
-              className="w-full rounded-lg border border-brand-muted/60 bg-white px-3.5 py-2.5 text-sm text-brand-text placeholder:text-gray outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 disabled:opacity-50"
+              className="w-full rounded-lg border border-brand-btn-light bg-brand-bg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-muted outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 disabled:opacity-50"
               disabled={pending || ipStatus.blocked}
             />
           </div>
@@ -101,13 +101,13 @@ export function LoginForm() {
               autoComplete="current-password"
               required
               placeholder="••••••••"
-              className="w-full rounded-lg border border-brand-muted/60 bg-white px-3.5 py-2.5 text-sm text-brand-text placeholder:text-gray outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 disabled:opacity-50"
+              className="w-full rounded-lg border border-brand-btn-light bg-brand-bg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-muted outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 disabled:opacity-50"
               disabled={pending || ipStatus.blocked}
             />
           </div>
 
           {state.error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+            <p className="text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2">
               {state.error}
             </p>
           )}
