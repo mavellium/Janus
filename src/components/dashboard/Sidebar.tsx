@@ -29,6 +29,8 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
 
   const userName = email.split('@')[0]
 
+  const logoUrl = collapsed ? '/logo-min.svg' : '/janus-logo.svg'
+
   const MENU_ITEMS = [
     { label: 'Página Inicial', href: `/${companySlug}/dashboard`, icon: Home },
     { label: 'Resultados', href: `/${companySlug}/dashboard/results`, icon: FileText },
@@ -95,7 +97,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
           title="Dashboard"
         >
           <Image
-            src="/janus-logo.svg"
+            src={logoUrl}
             alt="Janus"
             width={collapsed ? 28 : 90}
             height={collapsed ? 28 : 90}
