@@ -8,12 +8,14 @@ interface UpdateProjectParams {
   projectId: string
   name: string
   companySlug: string
+  previewUrl?: string | null
 }
 
 export async function updateProject({
   projectId,
   name,
   companySlug,
+  previewUrl,
 }: UpdateProjectParams) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -30,13 +32,16 @@ export async function updateProject({
       return { ok: false, error: 'Projeto não encontrado' }
     }
 
-    if (project.company.slug !== session.user.companySlug) {
+    if (project.company.slug !== session.user.companySlug || project.company.slug !== companySlug) {
       return { ok: false, error: 'Acesso negado' }
     }
 
     const updated = await db.project.update({
       where: { id: projectId },
-      data: { name },
+      data: {
+        name,
+        ...(previewUrl !== undefined && { previewUrl }),
+      },
     })
 
     revalidatePath(`/${companySlug}/dashboard/sites`)

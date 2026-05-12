@@ -13,7 +13,7 @@ import { updateProfile } from '@/modules/users/actions/updateProfile'
 import { changePassword } from '@/modules/users/actions/changePassword'
 import { updatePreferences } from '@/modules/users/actions/updatePreferences'
 import { useToast } from '@/hooks/use-toast'
-import { ToastContainer } from '@/components/builder/ToastContainer'
+import { ToastContainer } from '@/components/ui/toast-container'
 import { UpdateAvatarModal } from '@/components/users/update-avatar-modal'
 import type { UserPreferences } from '@/types/next-auth'
 

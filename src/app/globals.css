@@ -53,6 +53,11 @@
     --destructive: #EF4444;
   }
 
+  html,
+  body {
+    height: 100%;
+  }
+
   body {
     color: var(--brand-text);
     background-color: var(--brand-bg);

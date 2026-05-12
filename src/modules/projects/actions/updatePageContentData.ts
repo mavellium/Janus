@@ -2,23 +2,13 @@
 
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
-import { revalidatePath } from 'next/cache'
 
-interface UpdatePageParams {
+interface UpdatePageContentDataParams {
   pageId: string
-  name: string
-  slug: string
-  projectId: string
-  previewUrl?: string
+  contentData: object
 }
 
-export async function updatePage({
-  pageId,
-  name,
-  slug,
-  projectId,
-  previewUrl,
-}: UpdatePageParams) {
+export async function updatePageContentData({ pageId, contentData }: UpdatePageContentDataParams) {
   const session = await auth()
   if (!session?.user?.id) {
     return { ok: false, error: 'Não autenticado' }
@@ -40,18 +30,12 @@ export async function updatePage({
 
     const updated = await db.page.update({
       where: { id: pageId },
-      data: { name, slug, previewUrl: previewUrl || null },
+      data: { contentData },
     })
-
-    const basePath = page.project.type === 'LANDING_PAGE'
-      ? `/${page.project.company.slug}/dashboard/landing-pages/${projectId}/pages`
-      : `/${page.project.company.slug}/dashboard/sites/${projectId}/pages`
-
-    revalidatePath(basePath)
 
     return { ok: true, data: updated }
   } catch (error) {
-    console.error('[updatePage]', error)
-    return { ok: false, error: 'Erro ao atualizar página' }
+    console.error('[updatePageContentData]', error)
+    return { ok: false, error: 'Erro ao salvar conteúdo' }
   }
 }

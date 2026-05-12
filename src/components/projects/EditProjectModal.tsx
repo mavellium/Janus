@@ -7,6 +7,7 @@ import { updateProject } from '@/modules/projects/actions/updateProject'
 interface EditProjectModalProps {
   projectId: string
   initialName: string
+  initialPreviewUrl?: string | null
   companySlug: string
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -15,9 +16,10 @@ interface EditProjectModalProps {
 type FormState = { error?: string; success?: boolean }
 
 async function formAction(prevState: FormState, formData: FormData): Promise<FormState> {
-  const name = formData.get('name') as string
   const projectId = formData.get('projectId') as string
+  const name = formData.get('name') as string
   const companySlug = formData.get('companySlug') as string
+  const previewUrl = formData.get('previewUrl') as string
 
   if (!name?.trim()) {
     return { error: 'Nome do projeto é obrigatório' }
@@ -26,7 +28,8 @@ async function formAction(prevState: FormState, formData: FormData): Promise<For
   const result = await updateProject({ 
     projectId, 
     name: name.trim(), 
-    companySlug 
+    companySlug,
+    previewUrl: previewUrl ? previewUrl.trim() : null
   })
   
   if (!result.ok) {
@@ -39,6 +42,7 @@ async function formAction(prevState: FormState, formData: FormData): Promise<For
 export function EditProjectModal({
   projectId,
   initialName,
+  initialPreviewUrl,
   companySlug,
   open,
   onOpenChange,
@@ -74,6 +78,21 @@ export function EditProjectModal({
                 defaultValue={initialName}
                 placeholder="Nome do projeto"
                 required
+                disabled={pending}
+                className="flex h-10 w-full rounded-md border border-brand-btn-light bg-brand-bg px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="previewUrl" className="block text-sm font-medium text-brand-text mb-1">
+                URL de Preview do Site
+              </label>
+              <input
+                id="previewUrl"
+                name="previewUrl"
+                type="text"
+                defaultValue={initialPreviewUrl || ''}
+                placeholder="Ex: https://meusite.com/api/preview"
                 disabled={pending}
                 className="flex h-10 w-full rounded-md border border-brand-btn-light bg-brand-bg px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
               />

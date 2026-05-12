@@ -95,6 +95,7 @@ export default async function LandingPagesPage({
                 <EditProjectContainer
                   projectId={project.id}
                   initialName={project.name}
+                  initialPreviewUrl={project.previewUrl}
                   companySlug={companySlug}
                   trigger={<EditProjectButton />}
                 />

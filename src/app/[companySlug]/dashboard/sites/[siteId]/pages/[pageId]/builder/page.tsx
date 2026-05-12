@@ -1,12 +1,12 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/prisma'
-import { BuilderWorkspace } from '@/components/builder/BuilderWorkspace'
-import type { EditorNode } from '@/hooks/use-builder'
+import { SchemaBuilderEditor } from '@/components/schema-builder/SchemaBuilderEditor'
+import { headers } from 'next/headers'
 
-export const metadata = { title: 'Editor — Janus' }
+export const metadata = { title: 'Construir — Janus' }
 
-export default async function SiteBuilderPage({
+export default async function SiteSchemaBuilderPage({
   params,
 }: {
   params: Promise<{ companySlug: string; siteId: string; pageId: string }>
@@ -22,32 +22,30 @@ export default async function SiteBuilderPage({
 
   const project = await db.project.findUnique({
     where: { id: siteId, deletedAt: null, companyId: company.id },
+    select: { id: true, previewUrl: true },
   })
   if (!project) redirect(`/${companySlug}/dashboard/sites`)
 
   const page = await db.page.findUnique({
     where: { id: pageId, projectId: siteId, deletedAt: null },
+    select: { id: true, name: true, slug: true, schemaData: true, isPublished: true },
   })
   if (!page) redirect(`/${companySlug}/dashboard/sites/${siteId}/pages`)
 
-  const pageContent = page.content as unknown
-  const initialContent: EditorNode[] = Array.isArray((pageContent as any)?.nodes) ? (pageContent as any).nodes : []
-  const pageData = {
-    nodes: initialContent,
-    globalSettings: (pageContent as any)?.globalSettings || {
-      backgroundColor: '#F5F5F5',
-      textColor: '#161718',
-      fontFamily: 'Inter',
-    }
-  }
+  const headersList = await headers()
+  const host = headersList.get('host')
+  const protocol = host?.includes('localhost') ? 'http' : 'https'
+  const apiUrl = `${protocol}://${host}/api/v1/content/${companySlug}/${page.slug}`
 
   return (
-    <BuilderWorkspace
-      companySlug={companySlug}
-      initialData={pageData}
-      pageId={pageId}
-      projectId={siteId}
-      projectType="INSTITUTIONAL"
+    <SchemaBuilderEditor
+      pageId={page.id}
+      pageName={page.name}
+      backHref={`/${companySlug}/dashboard/sites/${siteId}/pages`}
+      initialSchema={page.schemaData}
+      initialPublished={page.isPublished}
+      previewHref={`/${companySlug}/dashboard/sites/${siteId}/pages/${pageId}/edit`}
+      apiUrl={apiUrl}
     />
   )
 }

@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { Trash2, Loader2, AlertTriangle } from 'lucide-react'
 import { softDeleteProject } from '@/modules/projects/actions/softDeleteProject'
 import { useToast } from '@/hooks/use-toast'
-import { ToastContainer } from '@/components/builder/ToastContainer'
+import { ToastContainer } from '@/components/ui/toast-container'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 

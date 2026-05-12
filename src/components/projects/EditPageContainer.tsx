@@ -1,23 +1,25 @@
 'use client'
 
 import { useState } from 'react'
-import { EditProjectModal } from './EditProjectModal'
+import { EditPageModal } from './EditPageModal'
 
-interface EditProjectContainerProps {
-  projectId: string
+interface EditPageContainerProps {
+  pageId: string
   initialName: string
-  initialPreviewUrl?: string | null
-  companySlug: string
+  initialSlug: string
+  initialPreviewUrl?: string
+  projectId: string
   trigger: React.ReactNode
 }
 
-export function EditProjectContainer({
-  projectId,
+export function EditPageContainer({
+  pageId,
   initialName,
+  initialSlug,
   initialPreviewUrl,
-  companySlug,
+  projectId,
   trigger,
-}: EditProjectContainerProps) {
+}: EditPageContainerProps) {
   const [open, setOpen] = useState(false)
   const [openCount, setOpenCount] = useState(0)
 
@@ -32,12 +34,13 @@ export function EditProjectContainer({
         {trigger}
       </div>
       {open && (
-        <EditProjectModal
-          key={`${projectId}-${openCount}`}
-          projectId={projectId}
+        <EditPageModal
+          key={`${pageId}-${openCount}`}
+          pageId={pageId}
           initialName={initialName}
+          initialSlug={initialSlug}
           initialPreviewUrl={initialPreviewUrl}
-          companySlug={companySlug}
+          projectId={projectId}
           open={open}
           onOpenChange={setOpen}
         />

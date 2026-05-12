@@ -37,7 +37,14 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **Uso:** Auditoria de alterações em projetos; rastreia quem alterou o quê
 
 ### projects
-- **Actions:** `softDeleteProject.ts` — inativa projeto (isActive: false), registra deletedBy, deletionReason, deletedAt; revalida rotas de sites e landing-pages
+- **Actions:** 
+  - `softDeleteProject.ts` — inativa projeto (isActive: false), registra deletedBy, deletionReason, deletedAt; revalida rotas de sites e landing-pages
+  - `updateProject.ts` — atualiza nome e previewUrl do projeto; autoriza por companySlug; revalida listagens
+  - `createPage.ts` — cria página com nome/slug (sanitizado); valida slug único por projeto; inicializa schemaData={} e contentData={}
+  - `updatePage.ts` — atualiza nome e slug da página; autoriza por companySlug; sanitiza slug; revalida listagem
+  - `updatePageSchema.ts` — persiste JSON schema em `Page.schemaData`; valida JSON, autoriza, revalida
+  - `updatePageContentData.ts` — persiste valores preenchidos em `Page.contentData`; valida, autoriza, revalida
+  - `togglePagePublish.ts` — toggle `isPublished`; valida acesso por companySlug; revalida listagem
 - **Queries:** 
   - `getProjects.ts` — busca projetos ativos (isActive: true, deletedAt: null) com filtro opcional por tipo; retorna com contagem de páginas
   - `getPagesByProjectId.ts` — busca páginas de um projeto específico; ordena por criação decrescente
@@ -48,6 +55,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 ### upload
 - **Actions:** `uploadImage.ts` — converte imagens para .avif via sharp (quality: 80), suporta subpastas dinâmicas (folder: 'avatars'), upload para BunnyCDN
+- **Actions:** `uploadMedia.ts` — suporta image (→ AVIF) e video (direto raw); valida tamanho (5MB img / 200MB vídeo); envia para BunnyCDN; retorna URL pública
 
 ### auth
 - **Actions:** `checkIpStatus.ts` — Server Action que verifica status de bloqueio do IP, retorna `{ blocked, remainingSeconds, reason }`
@@ -58,12 +66,18 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 - `src/components/auth/LoginForm.tsx` — Client — formulário de login com useActionState + checkIpStatus, countdown regressivo (MM:SS), overlay bloqueio com cor #514030
 - `src/components/dashboard/Sidebar.tsx` — Client — sidebar colapsável com useState(initialCollapsed) + startTransition; logo 48px→28px; toggle PanelLeftClose/PanelLeftOpen; avatar next/image + fallback UserCircle; estado persistido via updatePreferences em background
-- `src/components/dashboard/ContextSidebar.tsx` — **Novo:** Sidebar de contexto para dentro de projetos (sites/landing-pages); exibe nome do projeto, tipo, links para Páginas/Resultados/Blog; destaca seção atual
-- `src/components/builder/CoreRenderer.tsx` — Client — renderização pura HTML de EditorNode; usado no preview e pelo RenderNode
-- `src/components/builder/RenderNode.tsx` — Client — wrapper de edição com feedback visual (ring azul + tag flutuante); usa CoreRenderer via renderChild
-- `src/components/builder/Canvas.tsx` — Client — área de drop do builder; renderiza nodes com RenderNode
-- `src/components/builder/PropertiesPanel.tsx` — Client — painel de propriedades contextual por tipo (Layout, Tipografia, Aparência)
-- `src/components/builder/ComponentsPanel.tsx` — Client — paleta de componentes arrastáveis para o canvas
+- `src/components/schema-builder/SchemaBuilderEditor.tsx` — Client — workspace 3 painéis: Esquerda (w-72) com Tabs Estrutura/Componentes — Estrutura lista seções com ícone `Layers`, `Trash2` hover-only para excluir via Monaco ref e click para `scrollIntoView` no preview com ring highlight 1s; Componentes tem 8 cards de snippets com ícone/descrição; Centro: Monaco full-width endpoint; IDs únicos por sufixo random ao inserir snippet; Direita: LiveFormPreview reativo
+- `src/components/schema-builder/LiveFormPreview.tsx` — Client — preview read-only; aceita `focusedSectionId?: string | null`; cada seção tem `id="section-{key}"` para `scrollIntoView`; highlight `ring-2 ring-brand-primary/20` quando focada; suporta tipos: text, textarea, image, number, color, boolean, select, url, html, list, video
+- `src/components/schema-builder/IframePreview.tsx` — Client — iframe de preview com toggle Desktop/Tablet/Mobile; fallback elegante quando sem previewUrl; mobile simula iPhone (375px), tablet simula iPad (768px)
+- `src/components/schema-builder/DynamicForm.tsx` — Client — formulário dinâmico com upload CDN BunnyCDN para `image` (→ AVIF) e `video` (direto); `uploadingFields: Set<string>` e `uploadErrors` por campo; botão Salvar desabilitado durante upload; suporta todos os tipos: text, textarea, image, number, color, boolean, select, url, html, list, video; tipo `list` dinâmico com adicionar/remover/itens e sub-campos (`itemFields`); chave de seção via `section.id ?? section.name ?? section.section`
+- `src/components/projects/CreatePageModal.tsx` — Client — modal de criação de página com nome e slug (auto-gerado); valida slug único por projeto
+- `src/components/projects/PublishPageButton.tsx` — Client — toggle Publicar/Despublicar com ícones Globe/GlobeOff; server action `togglePagePublish`
+- `src/components/projects/EditPageContainer.tsx` — Client — container que gerencia estado e key incremental do `EditPageModal` (força re-mount com dados frescos)
+- `src/components/projects/EditPageModal.tsx` — Client — modal de edição de página (nome/slug); usa `useActionState` + `useEffect` para fechar; aviso sobre slug alterar URL da API
+- `src/components/projects/EditProjectContainer.tsx` — Client — container com key incremental para `EditProjectModal` (força re-mount com previewUrl atualizado)
+- `src/components/projects/EditProjectModal.tsx` — Client — modal de configurações do projeto (nome + previewUrl); salva via `updateProject`
+- `src/components/ui/toast-container.tsx` — Client — toast notifications (success/error) com tokens semânticos
+- `src/components/_archived_builder/*` — **ARQUIVADO** — Low-code builder antigo (não importado em nenhuma rota; excluído do tsconfig)
 - `src/components/users/update-avatar-modal.tsx` — Client — modal com Dialog/Tabs para upload de avatar via arquivo ou URL com preview
 - `src/components/ThemeProvider.tsx` — Client — provedor de tema para dashboard com preferências do usuário
 - `src/components/GlobalThemeProvider.tsx` — Client — provedor global de tema com sincronização periódica
@@ -84,18 +98,22 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/app/[companySlug]/dashboard/landing-pages/[lpId]/layout.tsx` — layout aninhado para landing pages; mesma estrutura de validação
 
 **Páginas de Contexto (Sites):**
-- `src/app/[companySlug]/dashboard/sites/[siteId]/pages/page.tsx` — listagem de páginas do site; tabela com nome, slug, data; botão Editar aponta para builder
+- `src/app/[companySlug]/dashboard/sites/[siteId]/pages/page.tsx` — listagem de páginas; botões: Publicar, Configurações, Construir, Editar; modal CreatePageModal funcional
 - `src/app/[companySlug]/dashboard/sites/[siteId]/analytics/page.tsx` — tela de resultados (placeholder)
 - `src/app/[companySlug]/dashboard/sites/[siteId]/blog/page.tsx` — tela de blog (placeholder)
 
 **Páginas de Contexto (Landing Pages):**
-- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/page.tsx` — listagem de páginas da landing page
+- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/page.tsx` — listagem de páginas; mesma estrutura de botões e modal
 - `src/app/[companySlug]/dashboard/landing-pages/[lpId]/analytics/page.tsx` — tela de resultados
 - `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/page.tsx` — tela de blog
 
-**Construtor Low-Code Visual:**
-- `src/app/[companySlug]/dashboard/sites/[siteId]/pages/[pageId]/builder/page.tsx` — editor visual com layout 3 colunas: componentes (esquerda), canvas (centro #EBE6DA), propriedades (direita); top bar com Sair, Desfazer/Refazer, Salvar, Publicar
-- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/[pageId]/builder/page.tsx` — mesmo construtor para landing pages
+**Construir (Schema Editor — Headless):**
+- `src/app/[companySlug]/dashboard/sites/[siteId]/pages/[pageId]/builder/page.tsx` — Server Component; busca `schemaData` e `slug`; calcula URL da API pública; renderiza `<SchemaBuilderEditor />`
+- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/[pageId]/builder/page.tsx` — mesmo padrão para landing pages
+
+**Editar Conteúdo (Split-Pane):**
+- `src/app/[companySlug]/dashboard/sites/[siteId]/pages/[pageId]/edit/page.tsx` — Split-Pane: esquerda `DynamicForm` (w-1/3), direita `IframePreview` (w-2/3); passa `previewUrl` do projeto
+- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/[pageId]/edit/page.tsx` — mesmo padrão para landing pages
 
 ---
 
@@ -104,8 +122,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **Company** (`companies`) — id (UUID), slug (unique, indexed), name (string), description (String?), logo (String?), createdAt, updatedAt, deletedAt
 - **User** (`users`) — id (UUID), email (unique), password (text), role (DEFAULT/ADMIN), image (String?), preferences (Json? default {}), **companyId (UUID, fk→companies)**, createdAt, updatedAt, deletedAt
 - **LoginAttempt** (`login_attempts`) — id (UUID), ip (string, indexed), email (string optional), createdAt
-- **Project** (`projects`) — id (UUID), companyId (UUID, fk→companies), name (string), type (LANDING_PAGE|INSTITUTIONAL), createdAt, updatedAt, deletedAt
-- **Page** (`pages`) — id (UUID), projectId (UUID, fk→projects), name (string), slug (string, unique per project), content (Json default {}), createdAt, updatedAt, deletedAt
+- **Project** (`projects`) — id (UUID), companyId (UUID, fk→companies), name (string), type (LANDING_PAGE|INSTITUTIONAL), **previewUrl (String?, nullable)**, isActive (bool), deletedBy, deletionReason, deletedAt, createdAt, updatedAt
+- **Page** (`pages`) — id (UUID), projectId (UUID, fk→projects), name, slug (unique per project), content (Json, legacy), **schemaData (Json, default {}, headless schema)**, **contentData (Json, default {}, valores preenchidos)**, isPublished (bool, default false), createdAt, updatedAt, deletedAt
 - **ProjectHistory** (`project_histories`) — id (UUID), projectId (UUID, fk→projects), userId (UUID, fk→users), previousState (Json?), newState (Json?), version (Int), createdAt
 
 ---
@@ -391,6 +409,34 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-10 | `[siteId]/layout.tsx` | **REFACTOR:** Removido `ContextSidebar` e wrapper div — apenas auth check + `<>{children}</>` |
 | 2026-05-10 | `[lpId]/layout.tsx` | **REFACTOR:** Removido `ContextSidebar` e wrapper div — apenas auth check + `<>{children}</>` |
 | 2026-05-10 | `ContextSidebar.tsx` | **DELETED:** Arquivo removido — lógica absorvida pela Sidebar principal (modelo drill-down/context switching) |
+| 2026-05-11 | `schema.prisma` | **PIVOT Headless CMS:** `Page` ganha `schemaData` (estrutura JSON) e `contentData` (valores preenchidos); aplicado via `prisma db push` |
+| 2026-05-11 | `_archived_builder/` | **ARCHIVED:** Pasta `src/components/builder` renomeada; excluída de `tsconfig.json` (junto com `hooks/use-builder.ts`) |
+| 2026-05-11 | `SchemaBuilderEditor.tsx` | **NEW:** Cliente Monaco Editor (JSON, vs-dark/light dinâmico, minimap off, formatOnPaste, automaticLayout) com toolbar Voltar + Salvar |
+| 2026-05-11 | `updatePageSchema.ts` | **NEW:** Server Action que valida JSON, autoriza por `companySlug` e persiste em `Page.schemaData`; revalida path da API pública |
+| 2026-05-11 | `sites/[siteId]/.../builder/page.tsx` + `landing-pages/[lpId]/.../builder/page.tsx` | **REPLACED:** Renderizam `<SchemaBuilderEditor />` em vez de `<BuilderWorkspace />`; `page.client.tsx`/`BuilderSkeleton.tsx`/`useIsMounted.ts` órfãos removidos |
+| 2026-05-11 | `api/v1/content/[companySlug]/[pageSlug]/route.ts` | **NEW:** Endpoint público GET (CORS `*`, OPTIONS); retorna `{ slug, name, schema, content, updatedAt }` apenas para páginas publicadas; cache 60s |
+| 2026-05-11 | `sites/.../edit/page.tsx` + `landing-pages/.../edit/page.tsx` | **NEW:** Página "Editar Conteúdo" com arquitetura Split-Pane (Esquerda: Formulário w-1/3; Direita: Preview w-2/3) |
+| 2026-05-11 | `IframePreview.tsx` | **NEW:** Componente de preview via iframe para a tela de edição, com toggle responsivo Desktop/Mobile. Fallback state se não houver URL |
+| 2026-05-11 | `sites/[siteId]/pages/page.tsx` + `landing-pages/[lpId]/pages/page.tsx` | **UX:** Botões atualizados para "Configurações" (Modal), "Construir" (Schema Editor) e "Editar" (Content Split-Pane) |
+| 2026-05-11 | `schema.prisma` | **DB:** Adicionado campo `previewUrl` (String?) em `Project` para linkar o host real do iframe do cliente |
+| 2026-05-11 | `EditProjectModal.tsx` + `updateProject.ts` | **FEAT:** Adicionado campo `URL de Preview do Site` nas configurações do projeto para salvar o endpoint renderizador |
+| 2026-05-11 | `DynamicForm.tsx` + `updatePageContentData.ts` | **NEW:** Formulário dinâmico que lê o json `schemaData` e renderiza Inputs/Textareas. Salva dados no `contentData` (server action) |
+| 2026-05-11 | `SchemaBuilderEditor.tsx` | **UX:** Inclusão de Info Bar ("Endpoint da API Pública") com copy to clipboard para instruir o desenvolvedor |
+| 2026-05-11 | `CreatePageModal.tsx` + `createPage.ts` | **NEW:** Modal de criação de página com nome e slug (auto-gerado); validação de slug único por projeto; revalida listagem |
+| 2026-05-11 | `PublishPageButton.tsx` + `togglePagePublish.ts` | **NEW:** Botão Publicar/Despublicar com toggle visual e server action para expor página na API pública |
+| 2026-05-11 | `SchemaBuilderEditor.tsx` + `LiveFormPreview.tsx` + `DynamicForm.tsx` + `uploadMedia.ts` | **FEAT:** Ajustes finais UX — (1) Aba Estrutura: ícone Layers + Trash2 hover-only por seção; `handleDeleteSection` filtra JSON no Monaco sem re-render; `handleFocusSection` scrollIntoView + ring highlight 1s sincronizando Painel Esq ↔ Painel Dir; (2) LiveFormPreview: `id="section-{key}"` em cada card + ring animado quando focado; (3) DynamicForm: campos `image` e `video` usam uploader CDN BunnyCDN via `uploadMedia` (imagem→AVIF, vídeo→raw); loading state por campo; Salvar bloqueado durante uploads; (4) `uploadMedia.ts`: suporte a image + video com validação de tamanho |
+| 2026-05-11 | `SchemaBuilderEditor.tsx` + `LiveFormPreview.tsx` | **FEAT:** Workspace Headless 3 painéis — Esquerda: índice de seções reativo; Centro: Monaco + toolbar Endpoint + dropdown Snippets (Hero, Features, SEO) com insert sem resetar cursor; Direita: preview read-only do formulário com badge por tipo de campo; badge "JSON Inválido" sutil; `SNIPPETS` e `DEFAULT_SCHEMA` usam novo formato `[{ id, name, fields[] }]` |
+| 2026-05-11 | `EditPageContainer.tsx` + `EditPageModal.tsx` | **FIX:** Padrão Container/Modal com `key` incremental para forçar re-mount; corrige `name="slug"` no input (antes `pageSlug` que não lia na action); `useEffect` para fechar modal após sucesso; aviso sobre slug alterar URL da API |
+| 2026-05-11 | `EditProjectContainer.tsx` | **FIX:** Adicionado `key` incremental para forçar re-mount do `EditProjectModal`, garantindo `defaultValue` atualizado ao reabrir |
+| 2026-05-11 | `ui/toast-container.tsx` | **MOVED:** Extraído de `_archived_builder` (substitui `text-white` por `text-brand-btn-light`); imports atualizados em `DeleteProjectModal.tsx` e `settings.client.tsx` |
+| 2026-05-12 | `SchemaBuilderEditor.tsx` + builder pages | **FEAT:** Botão Publicar (`PublishPageButton`) no topo ao lado do Salvar; botão Visualizar redireciona para tela de edição (split-pane) em nova aba; ordem: Publicar → Salvar → Visualizar |
+| 2026-05-12 | `SchemaBuilderEditor.tsx` | **FEAT:** `insertSnippet` adiciona campo `active` (type: boolean) automaticamente no início de toda nova seção inserida via snippet; permite ativar/desativar seções no formulário de edição |
+| 2026-05-12 | `SchemaBuilderEditor.tsx` | **UX:** Ícone `Library` adicionado à aba "Componentes" no painel esquerdo |
+| 2026-05-12 | `IframePreview.tsx` | **FEAT:** Botão Tablet (`Tablet` icon) entre Desktop e Mobile; dimensões tablet: 768px width, rounded-3xl, shadow-2xl |
+| 2026-05-12 | `DynamicForm.tsx` + `LiveFormPreview.tsx` | **FEAT:** Tipo `list` dinâmico — cards expansíveis com sub-campos (`itemFields`: image, text, textarea, boolean); botões "Adicionar" e "Remover" por item; upload CDN funciona dentro de itens de lista |
+| 2026-05-12 | `SchemaBuilderEditor.tsx` (snippets) | **UPDATE:** Hero snippet expandido com 11 campos (video, url, color, boolean, number, select, html); Carrossel usa `type: 'list'` com `itemFields: [image, caption]` para quantidade ilimitada de slides |
+| 2026-05-12 | `dashboard/layout.tsx` + `globals.css` + edit pages | **FIX:** Body `overflow: hidden` + `html/body height: 100%` no globals.css; dashboard container `h-screen`; edit pages e SchemaBuilderEditor usam `h-full` em vez de `calc(100vh-...)`; elimina scroll duplo |
+| 2026-05-12 | `uploadMedia.ts` | **NEW:** Server Action genérica para upload de mídia (image→AVIF via Sharp, video→raw); BunnyCDN; validação de tamanho e tipo |
 
 ---
 

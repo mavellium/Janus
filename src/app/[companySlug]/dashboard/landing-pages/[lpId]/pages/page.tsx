@@ -1,11 +1,13 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Edit3 } from 'lucide-react'
+import { Edit3, Settings } from 'lucide-react'
 import { db } from '@/lib/prisma'
 import { getPagesByProjectId } from '@/modules/projects/queries/getPagesByProjectId'
 import { formatDate } from '@/lib/utils'
-import { EditPageModal } from '@/components/projects/EditPageModal'
+import { EditPageContainer } from '@/components/projects/EditPageContainer'
+import { PublishPageButton } from '@/components/projects/PublishPageButton'
+import { CreatePageModal } from '@/components/projects/CreatePageModal'
 
 export const metadata = { title: 'Páginas — Janus' }
 
@@ -41,11 +43,7 @@ export default async function LandingPagePagesPage({
             {pages.length} {pages.length === 1 ? 'página' : 'páginas'}
           </p>
         </div>
-        <button
-          className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-primary hover:bg-brand-hover"
-        >
-          Nova Página
-        </button>
+        <CreatePageModal projectId={lpId} companySlug={companySlug} />
       </div>
 
       <div className="bg-card rounded-xl border border-brand-btn-light overflow-hidden">
@@ -63,25 +61,35 @@ export default async function LandingPagePagesPage({
                 <p className="text-xs text-brand-muted mt-2">{formatDate(page.createdAt)}</p>
               </div>
               <div className="flex gap-2">
-                <EditPageModal
+                <PublishPageButton pageId={page.id} initialPublished={page.isPublished} />
+                <EditPageContainer
                   pageId={page.id}
                   initialName={page.name}
                   initialSlug={page.slug}
+                  initialPreviewUrl={page.previewUrl ?? undefined}
                   projectId={lpId}
                   trigger={
                     <button
-                      className="px-3 py-2 rounded-lg text-sm font-semibold transition border border-brand-btn-light text-brand-text hover:bg-brand-btn-light/40"
+                      className="px-3 py-2 rounded-lg text-sm font-semibold transition border border-brand-btn-light text-brand-text hover:bg-brand-btn-light/40 flex items-center gap-2"
                     >
-                      Editar
+                      <Settings className="w-4 h-4" />
+                      Configurações
                     </button>
                   }
                 />
                 <Link
                   href={`/${companySlug}/dashboard/landing-pages/${lpId}/pages/${page.id}/builder`}
+                  className="px-3 py-2 rounded-lg text-sm font-semibold transition border border-brand-btn-light text-brand-text hover:bg-brand-btn-light/40 flex items-center gap-2"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Construir
+                </Link>
+                <Link
+                  href={`/${companySlug}/dashboard/landing-pages/${lpId}/pages/${page.id}/edit`}
                   className="px-3 py-2 rounded-lg text-sm font-semibold text-white transition flex items-center gap-2 bg-brand-primary hover:bg-brand-hover"
                 >
                   <Edit3 className="w-4 h-4" />
-                  Construtor
+                  Editar
                 </Link>
               </div>
             </div>
