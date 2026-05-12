@@ -37,7 +37,7 @@ export default async function LandingPageContentEditPage({
   const previewUrl = page.previewUrl || project.previewUrl || ''
 
   return (
-    <div className="flex w-full h-full overflow-hidden bg-brand-bg overflow-x-hidden">
+    <div className="flex w-full h-full overflow-hidden bg-brand-bg">
       <div className="w-1/3 border-r border-brand-btn-light h-full overflow-y-auto flex flex-col bg-sidebar-bg">
         <header className="flex items-center gap-3 px-6 py-4 border-b border-brand-btn-light shrink-0">
           <Link

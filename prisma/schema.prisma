@@ -11,6 +11,7 @@ datasource db {
 enum UserRole {
   ADMIN
   DEFAULT
+  DEVELOPER
 
   @@map("user_role")
 }
@@ -23,42 +24,47 @@ enum ProjectType {
 }
 
 model Company {
-  id          String    @id @default(uuid()) @db.Uuid
-  slug        String    @unique
-  name        String
-  description String?
-  logo        String?
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
+  id            String    @id @default(uuid()) @db.Uuid
+  slug          String    @unique
+  name          String
+  description   String?
+  logo          String?
+  createdById   String?   @db.Uuid @map("created_by_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
   users    User[]
   projects Project[]
 
   @@index([slug])
   @@index([deletedAt])
+  @@index([createdById])
   @@map("companies")
 }
 
 model User {
-  id        String    @id @default(uuid()) @db.Uuid
-  email     String    @unique
-  password  String    @db.Text
-  name      String?
-  phone     String?
-  role      UserRole  @default(DEFAULT)
-  image     String?   @map("user_image")
-  preferences Json?   @default("{}") @map("preferences")
-  companyId String    @db.Uuid
-  company   Company   @relation(fields: [companyId], references: [id])
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id                     String    @id @default(uuid()) @db.Uuid
+  email                  String    @unique
+  password               String    @db.Text
+  name                   String?
+  phone                  String?
+  role                   UserRole  @default(DEFAULT)
+  image                  String?   @map("user_image")
+  preferences            Json?     @default("{}") @map("preferences")
+  requiresPasswordReset  Boolean   @default(false) @map("requires_password_reset")
+  companyId              String    @db.Uuid
+  company                Company   @relation(fields: [companyId], references: [id])
+  createdById            String?   @db.Uuid @map("created_by_id")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+  deletedAt              DateTime? @map("deleted_at")
 
   projectHistories ProjectHistory[]
 
   @@index([email])
   @@index([companyId])
+  @@index([createdById])
   @@index([deletedAt])
   @@map("users")
 }

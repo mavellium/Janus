@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useParams, usePathname } from 'next/navigation'
@@ -29,6 +29,10 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
   const companySlug = params.companySlug as string
   const siteId = params.siteId as string | undefined
   const lpId = params.lpId as string | undefined
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--sidebar-width', collapsed ? '80px' : '220px')
+  }, [collapsed])
 
   const userName = email.split('@')[0]
 
@@ -101,8 +105,9 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
       style={{
         width: collapsed ? '80px' : '220px',
         height: '100vh',
-        position: 'sticky',
+        position: 'fixed',
         top: 0,
+        left: 0,
         flexShrink: 0,
         backgroundColor: 'var(--sidebar-bg)',
         color: 'var(--brand-text)',
@@ -110,6 +115,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
         flexDirection: 'column',
         overflow: 'hidden',
         transition: 'width 300ms ease',
+        zIndex: 40,
       }}
     >
       <div

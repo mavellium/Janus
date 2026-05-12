@@ -41,7 +41,7 @@ export default async function PreviewPage({
   const apiUrl = `/api/v1/content/${companySlug}/${page.slug}`
 
   return (
-    <div className="h-screen overflow-y-auto bg-brand-bg text-brand-text">
+    <div className="min-h-screen bg-brand-bg text-brand-text">
       <div className="max-w-4xl mx-auto p-8">
         <div className="mb-6">
           <p className="text-xs uppercase tracking-wide text-brand-muted">Preview Headless</p>

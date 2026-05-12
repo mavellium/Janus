@@ -1,10 +1,12 @@
 'use client'
 
 import { useActionState, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { signInAction, type SignInState } from '@/modules/users/actions/signInAction'
 import { checkIpStatus, type IpStatusResponse } from '@/modules/auth/actions/checkIpStatus'
 
 export function LoginForm() {
+  const router = useRouter()
   const [state, action, pending] = useActionState<SignInState, FormData>(signInAction, {})
   const [ipStatus, setIpStatus] = useState<IpStatusResponse>({
     blocked: false,
@@ -16,6 +18,12 @@ export function LoginForm() {
   useEffect(() => {
     checkIpStatus().then(setIpStatus)
   }, [])
+
+  useEffect(() => {
+    if (state.redirectUrl) {
+      router.push(state.redirectUrl)
+    }
+  }, [state.redirectUrl, router])
 
   useEffect(() => {
     if (!ipStatus.blocked || ipStatus.remainingSeconds <= 0) return

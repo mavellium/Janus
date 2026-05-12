@@ -6,9 +6,30 @@
 
 ---
 
-## Arquitetura Multi-Tenant
+## Arquitetura Multi-Tenant + Dev Panel
 
 Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas. Cada usuário pertence a uma `Company` e acessa suas páginas/projetos através de rotas namespaceadas por `[companySlug]`.
+
+### Separação de Rotas
+
+| Tipo | Prefixo | Acesso |
+|------|---------|--------|
+| Tenant (empresa) | `/[companySlug]/dashboard/...` | role `DEFAULT` |
+| Developer | `/dev/[devId]/dashboard/...` | role `DEVELOPER` |
+| Admin (God Mode) | `/dashboard-admin/...` | role `ADMIN` |
+
+### Lógica de Redirecionamento no Login
+
+1. `signInAction` usa `redirect: false`, obtém a sessão após autenticação e redireciona manualmente.
+2. `DEVELOPER` → `redirect('/dev/${user.id}/dashboard')`
+3. `ADMIN` → `redirect('/dashboard-admin')`
+4. `DEFAULT` → `redirect('/${companySlug}/dashboard')`
+5. Middleware (`auth.config.ts` authorized callback) reforça a separação:
+   - ADMIN acessando qualquer outra rota que não `/dashboard-admin` → autorizado
+   - Não-ADMIN acessando rota `/dashboard-admin` → redireciona para `/login`
+   - DEVELOPER acessando rota de tenant → redireciona para `/dev/[id]/dashboard`
+   - Não-DEVELOPER acessando rota `/dev/...` → redireciona para `/[slug]/dashboard`
+   - DEVELOPER com devId errado na URL → redireciona para o ID correto
 
 ---
 
@@ -49,9 +70,34 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
   - `getProjects.ts` — busca projetos ativos (isActive: true, deletedAt: null) com filtro opcional por tipo; retorna com contagem de páginas
   - `getPagesByProjectId.ts` — busca páginas de um projeto específico; ordena por criação decrescente
 
+### dev
+- **Queries:**
+  - `getCompanies.ts` — lista todas empresas ativas com contagem de users/projects
+  - `getRecentCompanies.ts` — últimas N empresas criadas (padrão 3)
+  - `getRecentUsers.ts` — últimos N usuários DEFAULT (padrão 3), inclui company
+  - `getUsers.ts` — todos os usuários ativos com company e role
+- **Actions:**
+  - `createCompany.ts` — cria empresa; valida slug único; revalida dev dashboard
+  - `editCompany.ts` — edita nome/slug/descrição de empresa; valida conflito de slug
+  - `deleteCompany.ts` — soft delete de empresa (set deletedAt)
+  - `createUser.ts` — cria usuário com role DEFAULT vinculado a empresa; hash bcrypt
+
 ### admin
-- **Queries:** `getLoginLogs.ts` — lista tentativas falhas de login | `getLoginLogsByIp.ts` — filtra por IP
-- **Actions:** `unblockIp.ts` — remove bloqueio de um IP (admin-only)
+- **Queries:**
+  - `getLoginLogs.ts` — lista tentativas falhas de login (limit param)
+  - `getLoginLogsByIp.ts` — filtra por IP
+  - `getAdminStats.ts` — contagens globais: usersCount, developersCount, companiesCount, blockedCount
+  - `getAdminCompanies.ts` — todas as empresas ativas com contagem de users/projects
+  - `getAdminUsers.ts` — usuários com role DEFAULT/ADMIN, inclui company
+  - `getAdminDevelopers.ts` — usuários com role DEVELOPER, inclui company
+  - `getBlockedIps.ts` — IPs com 3+ tentativas na última hora, agrupados com contagem e emails
+- **Actions:**
+  - `unblockIp.ts` — remove bloqueio de um IP (admin-only)
+  - `adminCreateCompany.ts` — cria empresa; verifica role ADMIN
+  - `adminEditCompany.ts` — edita empresa; verifica role ADMIN; valida conflito de slug
+  - `adminDeleteCompany.ts` — soft delete de empresa; verifica role ADMIN
+  - `adminCreateUser.ts` — cria usuário com role DEFAULT; verifica role ADMIN; hash bcrypt
+  - `createDeveloper.ts` — cria usuário com role DEVELOPER; verifica role ADMIN; hash bcrypt
 
 ### upload
 - **Actions:** `uploadImage.ts` — converte imagens para .avif via sharp (quality: 80), suporta subpastas dinâmicas (folder: 'avatars'), upload para BunnyCDN
@@ -65,6 +111,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 ## Componentes
 
 - `src/components/auth/LoginForm.tsx` — Client — formulário de login com useActionState + checkIpStatus, countdown regressivo (MM:SS), overlay bloqueio com cor #514030
+- `src/components/dev/DevSidebar.tsx` — Client — sidebar colapsável exclusiva do Dev Dashboard; links para dashboard, empresas, usuários e configurações do dev
+- `src/components/admin/AdminSidebar.tsx` — Client — sidebar colapsável exclusiva do Admin Panel; links para `/dashboard-admin/*` (dashboard, empresas, desenvolvedores, usuários, logs, configurações)
 - `src/components/dashboard/Sidebar.tsx` — Client — sidebar colapsável com useState(initialCollapsed) + startTransition; logo 48px→28px; toggle PanelLeftClose/PanelLeftOpen; avatar next/image + fallback UserCircle; estado persistido via updatePreferences em background
 - `src/components/schema-builder/SchemaBuilderEditor.tsx` — Client — workspace 3 painéis: Esquerda (w-72) com Tabs Estrutura/Componentes — Estrutura lista seções com ícone `Layers`, `Trash2` hover-only para excluir via Monaco ref e click para `scrollIntoView` no preview com ring highlight 1s; Componentes tem 8 cards de snippets com ícone/descrição; Centro: Monaco full-width endpoint; IDs únicos por sufixo random ao inserir snippet; Direita: LiveFormPreview reativo
 - `src/components/schema-builder/LiveFormPreview.tsx` — Client — preview read-only; aceita `focusedSectionId?: string | null`; cada seção tem `id="section-{key}"` para `scrollIntoView`; highlight `ring-2 ring-brand-primary/20` quando focada; suporta tipos: text, textarea, image, number, color, boolean, select, url, html, list, video
@@ -86,7 +134,22 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 ## Páginas
 
-- `src/app/page.tsx` — root redireciona para `/{companySlug}/dashboard` (redireciona para empresa do usuário autenticado)
+- `src/app/page.tsx` — root redireciona para `/dev/[id]/dashboard` (DEVELOPER) ou `/{companySlug}/dashboard` (outros roles)
+- `src/app/dev/[devId]/dashboard/layout.tsx` — layout protegido do Dev; valida role=DEVELOPER e devId === session.user.id; suporte a DevSidebar colapsável via CSS var
+- `src/app/dev/[devId]/dashboard/page.tsx` — resumo: últimas 3 empresas + últimos 3 usuários, com links "Ver todas/todos"
+- `src/app/dev/[devId]/dashboard/companies/page.tsx` — Server Component; busca getCompanies(); passa para CompaniesClient
+- `src/app/dev/[devId]/dashboard/companies/CompaniesClient.tsx` — Client — CRUD de empresas: criar, editar, soft-delete via Dialog/useActionState
+- `src/app/dev/[devId]/dashboard/users/page.tsx` — Server Component; busca getUsers() e getCompanies(); passa para UsersClient
+- `src/app/dev/[devId]/dashboard/users/UsersClient.tsx` — Client — tabela de usuários + modal de criação com Select de empresa
+- `src/app/dev/[devId]/dashboard/settings/page.tsx` — Server Component; busca user do DB; passa para DevSettingsClient
+- `src/app/dev/[devId]/dashboard/settings/DevSettingsClient.tsx` — Client — perfil + segurança + preferências (sem aba Empresa)
+- `src/app/dashboard-admin/layout.tsx` — layout protegido do Admin; valida role=ADMIN; AdminSidebar + ThemeProvider
+- `src/app/dashboard-admin/page.tsx` — dashboard global: 4 cards de métricas + listas de últimas empresas/usuários
+- `src/app/dashboard-admin/companies/page.tsx` + `AdminCompaniesClient.tsx` — CRUD completo de empresas (criar/editar/soft-delete)
+- `src/app/dashboard-admin/users/page.tsx` + `AdminUsersClient.tsx` — tabela de usuários DEFAULT/ADMIN + modal de criação
+- `src/app/dashboard-admin/developers/page.tsx` + `AdminDevelopersClient.tsx` — tabela de DEVELOPERs + modal de criação com role DEVELOPER
+- `src/app/dashboard-admin/logs/page.tsx` + `AdminLogsClient.tsx` — Tabs: IPs Bloqueados (com botão Desbloquear) + Tentativas Recentes
+- `src/app/dashboard-admin/settings/page.tsx` — configurações do admin; reutiliza DevSettingsClient
 - `src/app/(auth)/login/page.tsx` — tela de login (Server Component)
 - `src/app/[companySlug]/dashboard/layout.tsx` — layout protegido; valida se usuário pode acessar a empresa; busca image e preferences do DB; passa initialCollapsed, email e image como props para Sidebar
 - `src/app/[companySlug]/dashboard/page.tsx` — dashboard principal com dados reais de projetos; busca institutional e landing page projects; exibe estatísticas; links dinâmicos para /sites e /landing-pages
@@ -119,8 +182,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 ## Schema Prisma
 
-- **Company** (`companies`) — id (UUID), slug (unique, indexed), name (string), description (String?), logo (String?), createdAt, updatedAt, deletedAt
-- **User** (`users`) — id (UUID), email (unique), password (text), role (DEFAULT/ADMIN), image (String?), preferences (Json? default {}), **companyId (UUID, fk→companies)**, createdAt, updatedAt, deletedAt
+- **Company** (`companies`) — id (UUID), slug (unique, indexed), name (string), description (String?), logo (String?), **createdById (UUID?, id do criador)**, createdAt, updatedAt, deletedAt
+- **User** (`users`) — id (UUID), email (unique), password (text), role (**DEFAULT/ADMIN/DEVELOPER**), image (String?), preferences (Json? default {}), **companyId (UUID, fk→companies)**, **createdById (UUID?, id do criador)**, requiresPasswordReset (bool), createdAt, updatedAt, deletedAt
 - **LoginAttempt** (`login_attempts`) — id (UUID), ip (string, indexed), email (string optional), createdAt
 - **Project** (`projects`) — id (UUID), companyId (UUID, fk→companies), name (string), type (LANDING_PAGE|INSTITUTIONAL), **previewUrl (String?, nullable)**, isActive (bool), deletedBy, deletionReason, deletedAt, createdAt, updatedAt
 - **Page** (`pages`) — id (UUID), projectId (UUID, fk→projects), name, slug (unique per project), content (Json, legacy), **schemaData (Json, default {}, headless schema)**, **contentData (Json, default {}, valores preenchidos)**, isPublished (bool, default false), createdAt, updatedAt, deletedAt
@@ -131,7 +194,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 ## Lib / Utilitários
 
 - `src/lib/prisma.ts` — singleton do PrismaClient com `accelerateUrl` (Prisma 7, export `db`)
-- `src/lib/auth.config.ts` — NextAuthConfig base: JWT callbacks propagam apenas id, role, image (preferences removido para evitar HTTP 431)
+- `src/lib/auth.config.ts` — NextAuthConfig base: authorized callback trata 3 casos (rota raiz, /dev/[devId]/dashboard, /[slug]/dashboard); DEVELOPER pode acessar qualquer rota tenant sem redirect
 - `src/lib/auth.ts` — NextAuth v5: CredentialsProvider + PrismaAdapter + JWT strategy
 - `src/lib/utils.ts` — `cn`, `formatCurrency` (BRL), `formatDate` (pt-BR)
 
@@ -180,6 +243,19 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 ## Últimas alterações
 
 | Data       | Arquivo                                       | O que foi feito                                            |
+| :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
+| 2026-05-12 | `src/modules/admin/queries/getAdminUsers.ts` | Adicionado campo `requiresPasswordReset` ao select |
+| 2026-05-12 | `src/app/dashboard-admin/users/AdminUsersClient.tsx` | Adicionada coluna "Senha" com status Redefinida/Pendente |
+| 2026-05-12 | `src/app/dev/[devId]/dashboard/settings/DevSettingsClient.tsx` | Adicionada seção visual de status de redefinição de senha |
+| 2026-05-12 | `src/app/dev/[devId]/dashboard/settings/page.tsx` | Adicionado `requiresPasswordReset` ao select e props |
+| 2026-05-12 | `src/app/dashboard-admin/settings/page.tsx` | Adicionado `requiresPasswordReset` ao select e props |
+| 2026-05-12 | `src/modules/users/actions/signInAction.ts` | FIX: Retorna `redirectUrl` em vez de usar `redirect()` dentro de useActionState |
+| 2026-05-12 | `src/components/auth/LoginForm.tsx` | FIX: Adiciona `useRouter` e `useEffect` para fazer redirect após sucesso do login |
+| 2026-05-12 | `src/modules/users/actions/signInAction.ts` | FIX: Adiciona try/catch com console.error para debugar erro na autenticação |
+| 2026-05-12 | `src/lib/auth.config.ts` | FIX: Adiciona rota `/first-access` explicitamente no callback authorized |
+| 2026-05-12 | `prisma/schema.prisma` | FEAT: Adicionado `createdById` em Company e User para rastrear criador |
+| 2026-05-12 | `getAdminUsers.ts` + `getAdminCompanies.ts` | FEAT: Filtra por `createdById` do admin logado |
+| 2026-05-12 | `adminCreateCompany.ts` + `adminCreateUser.ts` | FEAT: Salva `createdById` com id do admin ao criar |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
 | 2026-05-05 | `prisma/schema.prisma`                        | Model User com enum UserRole (ADMIN/DEFAULT), soft delete  |
 | 2026-05-05 | `src/modules/users/domain/User.ts`            | Entidade User: create, reconstitute, toObject              |

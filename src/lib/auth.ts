@@ -92,7 +92,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           role: user.role,
           image: user.image,
-          companySlug: user.company.slug,
+          companySlug: user.role === 'DEVELOPER' ? undefined : user.company.slug,
         }
       },
     }),

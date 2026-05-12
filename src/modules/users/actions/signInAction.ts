@@ -3,13 +3,14 @@
 import { z } from 'zod'
 import { signIn } from '@/lib/auth'
 import { AuthError } from 'next-auth'
+import { db } from '@/lib/prisma'
 
 const schema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 })
 
-export type SignInState = { error?: string }
+export type SignInState = { error?: string; redirectUrl?: string }
 
 export async function signInAction(
   _prev: SignInState,
@@ -23,7 +24,7 @@ export async function signInAction(
   if (!parsed.success) return { error: 'Email ou senha inválidos.' }
 
   try {
-    await signIn('credentials', { ...parsed.data, redirect: true })
+    await signIn('credentials', { ...parsed.data, redirect: false })
   } catch (err) {
     if (err instanceof AuthError) {
       if (err.message === 'IP_BLOCKED') {
@@ -34,5 +35,27 @@ export async function signInAction(
     throw err
   }
 
-  return {}
+  // auth() não tem sessão disponível na mesma Server Action — buscar pelo email do form
+  const user = await db.user.findUnique({
+    where: { email: parsed.data.email },
+    include: { company: { select: { slug: true } } },
+  })
+
+  if (!user || user.deletedAt) {
+    return { error: 'Usuário não encontrado.' }
+  }
+
+  if (user.requiresPasswordReset) {
+    return { redirectUrl: '/first-access' }
+  }
+
+  if (user.role === 'DEVELOPER') {
+    return { redirectUrl: `/dev/${user.id}/dashboard` }
+  }
+
+  if (user.role === 'ADMIN') {
+    return { redirectUrl: '/dashboard-admin' }
+  }
+
+  return { redirectUrl: `/${user.company.slug}/dashboard` }
 }

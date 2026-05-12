@@ -22,7 +22,7 @@ export default async function DashboardLayout({
 
   if (!company) redirect('/login')
 
-  if (session.user.companySlug !== companySlug) {
+  if (session.user.role !== 'DEVELOPER' && session.user.companySlug !== companySlug) {
     redirect(`/${session.user.companySlug}/dashboard`)
   }
 
@@ -35,14 +35,14 @@ export default async function DashboardLayout({
 
   return (
     <ThemeProvider darkMode={prefs.darkMode}>
-      <div className="h-screen flex bg-brand-bg overflow-hidden">
+      <div className="h-screen flex bg-brand-bg">
         <Sidebar
           email={session.user.email ?? ''}
           image={user?.image ?? null}
           initialCollapsed={prefs.sidebar_collapsed ?? false}
           companyName={company.name}
         />
-        <main className="flex-1 h-full overflow-hidden">{children}</main>
+        <main className="flex-1 h-full" style={{ marginLeft: 'var(--sidebar-width, 220px)' }}>{children}</main>
       </div>
     </ThemeProvider>
   )
