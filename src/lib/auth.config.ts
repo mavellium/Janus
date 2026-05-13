@@ -43,7 +43,10 @@ export const authConfig = {
 
       const isProtectedRoute = /^\/[^/]+\/dashboard/.test(nextUrl.pathname)
       if (isProtectedRoute) {
-        if (!isLoggedIn) return false
+        if (!isLoggedIn) {
+          const pathCompanySlug = nextUrl.pathname.split('/')[1]
+          return NextResponse.redirect(new URL(`/${pathCompanySlug}/welcome`, nextUrl))
+        }
         if (isDeveloper) return true
         const pathCompanySlug = nextUrl.pathname.split('/')[1]
         if (slug && pathCompanySlug !== slug) {

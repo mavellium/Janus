@@ -1,13 +1,15 @@
 'use client'
 
-import { useActionState, useState } from 'react'
-import { Building2, Pencil, Trash2, ExternalLink, Plus, Loader2 } from 'lucide-react'
+import { useActionState, useState, useTransition } from 'react'
+import { Building2, Pencil, Trash2, ExternalLink, Plus, Loader2, Code2, Copy, CheckCircle2 } from 'lucide-react'
 import { adminCreateCompany } from '@/modules/admin/actions/adminCreateCompany'
 import { adminEditCompany } from '@/modules/admin/actions/adminEditCompany'
 import { adminDeleteCompany } from '@/modules/admin/actions/adminDeleteCompany'
+import { toggleGuestMode } from '@/modules/admin/actions/toggleGuestMode'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 interface Company {
@@ -15,6 +17,7 @@ interface Company {
   name: string
   slug: string
   description: string | null
+  guestModeEnabled: boolean
   createdAt: Date
   users: { id: string }[]
   projects: { id: string }[]
@@ -118,8 +121,106 @@ function DeleteDialog({ company, onClose }: { company: Company; onClose: () => v
   )
 }
 
+function GuestModeSwitch({ company }: { company: Company }) {
+  const [enabled, setEnabled] = useState(company.guestModeEnabled)
+  const [, startTransition] = useTransition()
+
+  function handleToggle(value: boolean) {
+    setEnabled(value)
+    startTransition(async () => {
+      await toggleGuestMode(company.id, value)
+    })
+  }
+
+  return (
+    <div className="flex items-center justify-center gap-1.5">
+      <Switch checked={enabled} onCheckedChange={handleToggle} />
+    </div>
+  )
+}
+
+function GuestEndpointModal({ onClose }: { onClose: () => void }) {
+  const [copied, setCopied] = useState(false)
+
+  const endpoint = '/api/v1/admin/guests'
+  const fullUrl = typeof window !== 'undefined' ? `${window.location.origin}${endpoint}` : endpoint
+
+  function handleCopy() {
+    navigator.clipboard.writeText(fullUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="bg-card border-border max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-brand-text flex items-center gap-2">
+            <Code2 className="w-4 h-4 text-brand-primary" />
+            Endpoint de Convidados
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4">
+          <div className="bg-brand-btn-light/30 rounded-lg p-4 border border-border">
+            <p className="text-xs text-brand-muted mb-2 uppercase font-semibold">Endpoint</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-sm text-brand-primary font-mono bg-brand-bg p-3 rounded border border-border">
+                GET {endpoint}
+              </code>
+              <button
+                onClick={handleCopy}
+                className="p-2 rounded hover:bg-brand-btn-light transition"
+                title="Copiar"
+              >
+                {copied ? (
+                  <CheckCircle2 className="w-4 h-4 text-green-600" />
+                ) : (
+                  <Copy className="w-4 h-4 text-brand-muted" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-brand-btn-light/30 rounded-lg p-4 border border-border">
+            <p className="text-xs text-brand-muted mb-2 uppercase font-semibold">Estrutura da Resposta</p>
+            <code className="block text-xs text-brand-text font-mono bg-brand-bg p-3 rounded border border-border overflow-auto max-h-40">
+{`{
+  "ok": true,
+  "data": [
+    {
+      "id": "uuid",
+      "name": "João Silva",
+      "email": "joao@example.com",
+      "company": { "id", "name", "slug" },
+      "posts": [
+        {
+          "id": "uuid",
+          "title": "Título",
+          "message": "Mensagem...",
+          "imageUrl": "https://...",
+          "createdAt": "2026-05-13T..."
+        }
+      ],
+      "createdAt": "2026-05-13T..."
+    }
+  ]
+}`}
+            </code>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={onClose}>Fechar</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function AdminCompaniesClient({ companies }: { companies: Company[] }) {
   const [modal, setModal] = useState<null | 'create' | { mode: 'edit'; company: Company } | { mode: 'delete'; company: Company }>(null)
+  const [showEndpoint, setShowEndpoint] = useState(false)
 
   return (
     <div className="p-8">
@@ -150,6 +251,7 @@ export function AdminCompaniesClient({ companies }: { companies: Company[] }) {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Slug</th>
                 <th className="text-center px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Usuários</th>
                 <th className="text-center px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Projetos</th>
+                <th className="text-center px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Convidados</th>
                 <th className="px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide text-right">Ações</th>
               </tr>
             </thead>
@@ -176,8 +278,20 @@ export function AdminCompaniesClient({ companies }: { companies: Company[] }) {
                   </td>
                   <td className="px-5 py-4 text-center text-sm text-brand-text">{company.users.length}</td>
                   <td className="px-5 py-4 text-center text-sm text-brand-text">{company.projects.length}</td>
+                  <td className="px-5 py-4 text-center">
+                    <GuestModeSwitch company={company} />
+                  </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-1">
+                      {company.guestModeEnabled && (
+                        <button
+                          onClick={() => setShowEndpoint(true)}
+                          className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
+                          title="Ver endpoint de convidados"
+                        >
+                          <Code2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       <a
                         href={`/${company.slug}/dashboard`}
                         target="_blank"
@@ -218,6 +332,9 @@ export function AdminCompaniesClient({ companies }: { companies: Company[] }) {
       )}
       {modal !== null && typeof modal === 'object' && modal.mode === 'delete' && (
         <DeleteDialog company={modal.company} onClose={() => setModal(null)} />
+      )}
+      {showEndpoint && (
+        <GuestEndpointModal onClose={() => setShowEndpoint(false)} />
       )}
     </div>
   )

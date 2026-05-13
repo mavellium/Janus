@@ -1,0 +1,95 @@
+'use client'
+
+import Link from 'next/link'
+import Image from 'next/image'
+import { useParams, usePathname } from 'next/navigation'
+import { UserCircle, LogOut, ImageIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
+
+interface GuestSidebarProps {
+  name: string
+  companyName: string
+}
+
+export function GuestSidebar({ name, companyName }: GuestSidebarProps) {
+  const params = useParams()
+  const pathname = usePathname()
+  const router = useRouter()
+  const companySlug = params.companySlug as string
+
+  async function handleSignOut() {
+    await fetch('/api/guest/signout', { method: 'POST' })
+    router.push('/login')
+  }
+
+  const galleryHref = `/${companySlug}/guest`
+  const isActive = pathname === galleryHref || pathname.startsWith(`/${companySlug}/guest`)
+
+  return (
+    <aside
+      style={{
+        width: '220px',
+        height: '100vh',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        flexShrink: 0,
+        backgroundColor: 'var(--sidebar-bg)',
+        color: 'var(--brand-text)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        zIndex: 40,
+      }}
+    >
+      <div style={{ padding: '16px 12px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+        <Link href={galleryHref} style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '90px', height: '40px' }}>
+          <Image
+            src="/janus-logo.svg"
+            alt="Janus"
+            width={90}
+            height={40}
+            priority
+            style={{ objectFit: 'contain' }}
+          />
+        </Link>
+      </div>
+
+      <nav style={{ flex: 1, padding: '8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <Link
+          href={galleryHref}
+          className={cn(
+            'flex flex-row items-center gap-3 px-3 py-2 rounded-lg transition-colors',
+            isActive
+              ? 'bg-sidebar-hover-bg text-sidebar-hover-text'
+              : 'text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text'
+          )}
+        >
+          <ImageIcon size={16} className="flex-shrink-0" />
+          <span>Minhas Postagens</span>
+        </Link>
+      </nav>
+
+      <div style={{ padding: '12px 8px', borderTop: '1px solid var(--brand-btn-light)', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="flex items-center gap-3 px-3 py-2">
+          <UserCircle size={32} style={{ flexShrink: 0, color: 'var(--sidebar-icon)' }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0, color: 'var(--brand-text)' }}>
+              {name}
+            </p>
+            <p style={{ fontSize: '11px', opacity: 0.6, margin: 0 }}>{companyName}</p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleSignOut}
+          className="flex flex-row items-center gap-3 px-3 py-2 w-full rounded-lg transition-colors text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text"
+        >
+          <LogOut size={16} className="flex-shrink-0" />
+          <span>Sair</span>
+        </button>
+      </div>
+    </aside>
+  )
+}
