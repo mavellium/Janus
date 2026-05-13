@@ -11,6 +11,7 @@ const schema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   companyId: z.string().uuid(),
+  role: z.enum(['DEFAULT', 'ADMIN']),
 })
 
 export async function adminCreateUser(
@@ -28,6 +29,7 @@ export async function adminCreateUser(
     email: formData.get('email'),
     password: formData.get('password'),
     companyId: formData.get('companyId'),
+    role: formData.get('role'),
   })
 
   if (!parsed.success) {
@@ -52,7 +54,7 @@ export async function adminCreateUser(
       email: parsed.data.email,
       password: hashedPassword,
       companyId: parsed.data.companyId,
-      role: 'DEFAULT',
+      role: parsed.data.role,
       requiresPasswordReset: true,
       createdById: session.user.id,
     },

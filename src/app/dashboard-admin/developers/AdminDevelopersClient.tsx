@@ -1,7 +1,7 @@
 'use client'
 
-import { useActionState, useState } from 'react'
-import { Code2, Plus, Loader2, UserCircle } from 'lucide-react'
+import { useActionState, useState, useEffect } from 'react'
+import { Code2, Plus, Loader2, UserCircle, CheckCircle2, Clock } from 'lucide-react'
 import { createDeveloper } from '@/modules/admin/actions/createDeveloper'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,14 +13,18 @@ interface Developer {
   name: string | null
   email: string
   role: string
+  requiresPasswordReset: boolean
   createdAt: Date
-  company: { id: string; name: string; slug: string }
 }
 
 function CreateDeveloperModal({ onClose }: { onClose: () => void }) {
   const [state, formAction, isPending] = useActionState(createDeveloper, { ok: false })
 
-  if (state.ok) onClose()
+  useEffect(() => {
+    if (state.ok) {
+      onClose()
+    }
+  }, [state.ok, onClose])
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -100,7 +104,7 @@ export function AdminDevelopersClient({
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Desenvolvedor</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Empresa</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Senha</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Painel</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Criado em</th>
               </tr>
@@ -115,9 +119,19 @@ export function AdminDevelopersClient({
                     </div>
                   </td>
                   <td className="px-5 py-4">
-                    <code className="text-xs text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded">
-                      {dev.company.slug}
-                    </code>
+                    <div className="flex items-center gap-1.5">
+                      {dev.requiresPasswordReset ? (
+                        <>
+                          <Clock className="w-4 h-4 text-yellow-600" />
+                          <span className="text-xs text-yellow-600 font-medium">Pendente</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          <span className="text-xs text-green-600 font-medium">Redefinida</span>
+                        </>
+                      )}
+                    </div>
                   </td>
                   <td className="px-5 py-4">
                     <a

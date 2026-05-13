@@ -37,9 +37,14 @@ export async function createDeveloper(
     return { ok: false, error: 'E-mail já está em uso.' }
   }
 
-  const defaultCompany = await db.company.findFirst({ where: { slug: 'default' } })
+  let defaultCompany = await db.company.findFirst({ where: { slug: 'default' } })
   if (!defaultCompany) {
-    return { ok: false, error: 'Empresa padrão não encontrada.' }
+    defaultCompany = await db.company.create({
+      data: {
+        slug: 'default',
+        name: 'Default',
+      },
+    })
   }
 
   const hashedPassword = await hash(parsed.data.password, 10)
@@ -52,6 +57,7 @@ export async function createDeveloper(
       companyId: defaultCompany.id,
       role: 'DEVELOPER',
       requiresPasswordReset: true,
+      createdById: session.user.id,
     },
   })
 

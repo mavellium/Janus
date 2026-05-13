@@ -34,6 +34,7 @@ interface User {
 function CreateUserModal({ companies, onClose }: { companies: Company[]; onClose: () => void }) {
   const [state, formAction, isPending] = useActionState(adminCreateUser, { ok: false })
   const [companyId, setCompanyId] = useState('')
+  const [role, setRole] = useState('DEFAULT')
 
   if (state.ok) onClose()
 
@@ -49,6 +50,7 @@ function CreateUserModal({ companies, onClose }: { companies: Company[]; onClose
 
         <form action={formAction} className="flex flex-col gap-4">
           <input type="hidden" name="companyId" value={companyId} />
+          <input type="hidden" name="role" value={role} />
 
           <div className="flex flex-col gap-1.5">
             <Label>Nome</Label>
@@ -81,6 +83,19 @@ function CreateUserModal({ companies, onClose }: { companies: Company[]; onClose
             </Select>
           </div>
 
+          <div className="flex flex-col gap-1.5">
+            <Label>Role</Label>
+            <Select value={role} onValueChange={setRole}>
+              <SelectTrigger className="w-full h-9 border-input bg-transparent">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="DEFAULT">Usuário</SelectItem>
+                <SelectItem value="ADMIN">Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {state.error && (
             <p className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-lg border border-destructive/20">
               {state.error}
@@ -89,7 +104,7 @@ function CreateUserModal({ companies, onClose }: { companies: Company[]; onClose
 
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" disabled={isPending || !companyId}>
+            <Button type="submit" disabled={isPending || !companyId || !role}>
               {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
               Criar Usuário
             </Button>
