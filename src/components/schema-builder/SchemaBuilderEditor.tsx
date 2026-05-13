@@ -322,7 +322,7 @@ export function SchemaBuilderEditor({
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
-      <header className="flex items-center justify-between gap-4 px-6 py-3 border-b border-border bg-card shrink-0">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 px-4 sm:px-6 py-3 border-b border-border bg-card shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href={backHref}
@@ -344,7 +344,7 @@ export function SchemaBuilderEditor({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2">
           {feedback && (
             <span
               className={`flex items-center gap-1.5 text-xs shrink-0 ${
@@ -380,8 +380,8 @@ export function SchemaBuilderEditor({
         </div>
       </header>
 
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        <aside className="w-72 shrink-0 bg-sidebar-bg border-r border-border flex flex-col overflow-hidden">
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-y-auto lg:overflow-hidden">
+        <aside className="w-full lg:w-72 shrink-0 bg-sidebar-bg border-b lg:border-b-0 lg:border-r border-border flex flex-col overflow-hidden max-h-[40vh] lg:max-h-none">
           <Tabs defaultValue="structure" className="flex flex-col flex-1 min-h-0">
             <TabsList className="w-full rounded-none border-b border-border bg-sidebar-bg h-10 p-0 gap-0">
               <TabsTrigger
@@ -459,7 +459,7 @@ export function SchemaBuilderEditor({
           </Tabs>
         </aside>
 
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-brand-bg">
+        <div className="flex-1 flex flex-col min-w-0 min-h-[400px] lg:min-h-0 overflow-hidden bg-brand-bg">
           <div className="px-4 py-2 border-b border-border bg-card shrink-0 flex items-center gap-3">
             <span className="text-xs font-semibold text-brand-muted whitespace-nowrap">Endpoint:</span>
             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -509,7 +509,7 @@ export function SchemaBuilderEditor({
           </div>
         </div>
 
-        <aside className="w-[360px] shrink-0 bg-card border-l border-border flex flex-col overflow-hidden">
+        <aside className="w-full lg:w-[360px] shrink-0 bg-card border-t lg:border-t-0 lg:border-l border-border flex flex-col overflow-hidden min-h-[400px] lg:min-h-0">
           <div className="px-4 py-3 border-b border-border shrink-0 flex items-center gap-2">
             <Eye className="w-3.5 h-3.5 text-brand-muted" />
             <span className="text-xs font-semibold text-brand-muted uppercase tracking-wide">

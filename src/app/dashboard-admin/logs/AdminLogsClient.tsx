@@ -82,7 +82,8 @@ export function AdminLogsClient({
                 <p className="text-sm text-brand-muted">Nenhum IP bloqueado no momento</p>
               </div>
             ) : (
-              <table className="w-full">
+              <div className="w-full overflow-x-auto">
+              <table className="w-full min-w-[720px]">
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">IP</th>
@@ -131,6 +132,7 @@ export function AdminLogsClient({
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         </TabsContent>
@@ -143,7 +145,8 @@ export function AdminLogsClient({
                 <p className="text-sm text-brand-muted">Nenhuma tentativa registrada</p>
               </div>
             ) : (
-              <table className="w-full">
+              <div className="w-full overflow-x-auto">
+              <table className="w-full min-w-[720px]">
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">IP</th>
@@ -167,6 +170,7 @@ export function AdminLogsClient({
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         </TabsContent>

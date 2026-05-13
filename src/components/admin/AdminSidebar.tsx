@@ -14,10 +14,12 @@ import { signOut } from 'next-auth/react'
 interface AdminSidebarProps {
   email: string
   image?: string | null
+  embedded?: boolean
 }
 
-export function AdminSidebar({ email, image }: AdminSidebarProps) {
-  const [collapsed, setCollapsed] = useState(false)
+export function AdminSidebar({ email, image, embedded = false }: AdminSidebarProps) {
+  const [collapsedState, setCollapsedState] = useState(false)
+  const collapsed = embedded ? false : collapsedState
   const pathname = usePathname()
 
   useEffect(() => {
@@ -49,23 +51,14 @@ export function AdminSidebar({ email, image }: AdminSidebarProps) {
       : 'text-sidebar-icon [&>svg]:text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text [&>svg]:hover:text-sidebar-hover-text'
   )
 
+  const asideStyle: React.CSSProperties = embedded
+    ? { width: '100%', height: '100%', flexShrink: 0, backgroundColor: 'var(--sidebar-bg)', color: 'var(--brand-text)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
+    : { width: collapsed ? '80px' : '220px', height: '100vh', position: 'fixed', top: 0, left: 0, flexShrink: 0, backgroundColor: 'var(--sidebar-bg)', color: 'var(--brand-text)', flexDirection: 'column', overflow: 'hidden', transition: 'width 300ms ease', zIndex: 40 }
+
   return (
     <aside
-      style={{
-        width: collapsed ? '80px' : '220px',
-        height: '100vh',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        flexShrink: 0,
-        backgroundColor: 'var(--sidebar-bg)',
-        color: 'var(--brand-text)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        transition: 'width 300ms ease',
-        zIndex: 40,
-      }}
+      className={embedded ? '' : 'hidden md:flex'}
+      style={asideStyle}
     >
       <div
         style={{
@@ -99,9 +92,9 @@ export function AdminSidebar({ email, image }: AdminSidebarProps) {
             style={{ position: 'absolute', width: '36px', height: '36px', objectFit: 'contain', opacity: collapsed ? 1 : 0, transition: 'opacity 200ms ease' }}
           />
         </Link>
-        {!collapsed && (
+        {!collapsed && !embedded && (
           <button
-            onClick={() => setCollapsed(true)}
+            onClick={() => setCollapsedState(true)}
             title="Minimizar"
             className="flex items-center justify-center w-8 h-8 flex-shrink-0 rounded-lg transition-colors text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text"
           >
@@ -119,9 +112,9 @@ export function AdminSidebar({ email, image }: AdminSidebarProps) {
       )}
 
       <nav style={{ flex: 1, padding: '8px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        {collapsed && (
+        {collapsed && !embedded && (
           <button
-            onClick={() => setCollapsed(false)}
+            onClick={() => setCollapsedState(false)}
             title="Expandir"
             className={cn('flex w-full rounded-lg transition-colors flex-col items-center justify-center px-1 py-2 gap-0.5 text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text')}
           >

@@ -51,7 +51,7 @@ export default async function SitesPage({
             companySlug={companySlug}
             trigger={
               <button
-                className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-destructive hover:opacity-90"
+                className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-cta hover:bg-brand-cta-hover"
               >
                 Novo Site
               </button>
@@ -60,7 +60,7 @@ export default async function SitesPage({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {projects.map((project) => (
           <div
             key={project.id}
@@ -97,6 +97,7 @@ export default async function SitesPage({
                   projectId={project.id}
                   initialName={project.name}
                   initialPreviewUrl={project.previewUrl}
+                  initialBlogEnabled={project.blogEnabled}
                   companySlug={companySlug}
                   trigger={<EditProjectButton />}
                 />
@@ -120,7 +121,7 @@ export default async function SitesPage({
               companySlug={companySlug}
               trigger={
                 <button
-                  className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-btn-dark hover:bg-brand-hover"
+                  className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-cta hover:bg-brand-cta-hover"
                 >
                   Criar primeiro site
                 </button>

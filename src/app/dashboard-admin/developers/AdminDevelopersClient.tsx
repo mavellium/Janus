@@ -100,7 +100,8 @@ export function AdminDevelopersClient({
             <p className="text-sm text-brand-muted">Nenhum desenvolvedor cadastrado</p>
           </div>
         ) : (
-          <table className="w-full">
+          <div className="w-full overflow-x-auto">
+          <table className="w-full min-w-[720px]">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Desenvolvedor</th>
@@ -150,6 +151,7 @@ export function AdminDevelopersClient({
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

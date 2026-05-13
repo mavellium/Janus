@@ -68,7 +68,7 @@ export function EditPageModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
-      <div className="relative bg-card rounded-lg shadow-lg p-6 w-full max-w-md mx-4 border border-brand-btn-light">
+      <div className="relative bg-card rounded-xl shadow-lg p-4 sm:p-6 w-[95vw] max-w-md max-h-[90vh] overflow-y-auto mx-4 border border-brand-btn-light">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-brand-text">Editar Página</h2>
         </div>
@@ -145,7 +145,7 @@ export function EditPageModal({
             <button
               type="submit"
               disabled={pending}
-              className="px-4 py-2 rounded-lg text-sm font-semibold transition bg-brand-primary text-white hover:bg-brand-hover disabled:opacity-50"
+              className="px-4 py-2 rounded-lg text-sm font-semibold transition bg-brand-cta text-white hover:bg-brand-cta-hover disabled:opacity-50"
             >
               {pending ? (
                 <>

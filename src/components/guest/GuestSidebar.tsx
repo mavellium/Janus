@@ -10,9 +10,10 @@ import { useRouter } from 'next/navigation'
 interface GuestSidebarProps {
   name: string
   companyName: string
+  embedded?: boolean
 }
 
-export function GuestSidebar({ name, companyName }: GuestSidebarProps) {
+export function GuestSidebar({ name, companyName, embedded = false }: GuestSidebarProps) {
   const params = useParams()
   const pathname = usePathname()
   const router = useRouter()
@@ -26,22 +27,14 @@ export function GuestSidebar({ name, companyName }: GuestSidebarProps) {
   const galleryHref = `/${companySlug}/guest`
   const isActive = pathname === galleryHref || pathname.startsWith(`/${companySlug}/guest`)
 
+  const asideStyle: React.CSSProperties = embedded
+    ? { width: '100%', height: '100%', flexShrink: 0, backgroundColor: 'var(--sidebar-bg)', color: 'var(--brand-text)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
+    : { width: '220px', height: '100vh', position: 'fixed', top: 0, left: 0, flexShrink: 0, backgroundColor: 'var(--sidebar-bg)', color: 'var(--brand-text)', display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 40 }
+
   return (
     <aside
-      style={{
-        width: '220px',
-        height: '100vh',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        flexShrink: 0,
-        backgroundColor: 'var(--sidebar-bg)',
-        color: 'var(--brand-text)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        zIndex: 40,
-      }}
+      className={embedded ? '' : 'hidden md:flex'}
+      style={asideStyle}
     >
       <div style={{ padding: '16px 12px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
         <Link href={galleryHref} style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '90px', height: '40px' }}>

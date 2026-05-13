@@ -54,7 +54,7 @@ export function DeleteProjectModal({ projectId, projectName, companySlug }: Dele
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/50" onClick={() => setOpen(false)} />
-          <div className="relative bg-card rounded-lg shadow-lg p-6 w-full max-w-md mx-4 border border-brand-btn-light">
+          <div className="relative bg-card rounded-xl shadow-lg p-4 sm:p-6 w-[95vw] max-w-md max-h-[90vh] overflow-y-auto mx-4 border border-brand-btn-light">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-destructive/15 rounded-lg">
                 <AlertTriangle className="w-5 h-5 text-destructive" />

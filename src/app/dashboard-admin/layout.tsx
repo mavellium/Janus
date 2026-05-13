@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
+import { MobileNav } from '@/components/dashboard/MobileNav'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { db } from '@/lib/prisma'
 import type { UserPreferences } from '@/types/next-auth'
@@ -29,7 +30,14 @@ export default async function AdminLayout({
           email={session.user.email ?? ''}
           image={user?.image ?? null}
         />
-        <main className="flex-1 min-h-screen" style={{ marginLeft: 'var(--sidebar-width, 220px)' }}>
+        <MobileNav logoHref="/dashboard-admin">
+          <AdminSidebar
+            email={session.user.email ?? ''}
+            image={user?.image ?? null}
+            embedded
+          />
+        </MobileNav>
+        <main className="flex-1 min-h-screen pt-14 md:pt-0 md:ml-[var(--sidebar-width,220px)] overflow-x-hidden">
           {children}
         </main>
       </div>

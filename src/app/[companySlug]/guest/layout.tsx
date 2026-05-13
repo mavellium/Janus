@@ -2,6 +2,7 @@ import { db } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { GuestSidebar } from '@/components/guest/GuestSidebar'
+import { MobileNav } from '@/components/dashboard/MobileNav'
 import { ThemeProvider } from '@/components/ThemeProvider'
 
 export default async function GuestLayout({
@@ -45,7 +46,14 @@ export default async function GuestLayout({
           name={guestEntry.name}
           companyName={company.name}
         />
-        <main className="flex-1 h-full" style={{ marginLeft: '220px' }}>
+        <MobileNav logoHref={`/${companySlug}/guest`}>
+          <GuestSidebar
+            name={guestEntry.name}
+            companyName={company.name}
+            embedded
+          />
+        </MobileNav>
+        <main className="flex-1 h-full pt-14 md:pt-0 md:ml-[220px] overflow-x-hidden">
           {children}
         </main>
       </div>

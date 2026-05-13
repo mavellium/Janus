@@ -118,6 +118,7 @@ model Project {
   type            ProjectType
   previewUrl      String?      @map("preview_url")
   isActive        Boolean      @default(true) @map("is_active")
+  blogEnabled     Boolean      @default(false) @map("blog_enabled")
   deletedBy       String?      @map("deleted_by")
   deletionReason  String?      @map("deletion_reason")
   createdAt       DateTime     @default(now()) @map("created_at")
@@ -126,11 +127,82 @@ model Project {
 
   pages              Page[]
   projectHistories   ProjectHistory[]
+  blogCategories     BlogCategory[]
+  blogTags           BlogTag[]
+  blogPosts          BlogPost[]
 
   @@index([companyId])
   @@index([isActive])
   @@index([deletedAt])
   @@map("projects")
+}
+
+model BlogCategory {
+  id          String     @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  imageUrl    String?    @map("image_url")
+  slug        String
+  projectId   String     @db.Uuid @map("project_id")
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  posts       BlogPost[]
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@unique([projectId, slug])
+  @@index([projectId])
+  @@map("blog_categories")
+}
+
+model BlogTag {
+  id          String        @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  imageUrl    String?       @map("image_url")
+  slug        String
+  projectId   String        @db.Uuid @map("project_id")
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  posts       BlogPostTag[]
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  @@unique([projectId, slug])
+  @@index([projectId])
+  @@map("blog_tags")
+}
+
+model BlogPost {
+  id             String        @id @default(uuid()) @db.Uuid
+  title          String
+  subtitle       String?
+  publishedAt    DateTime      @map("published_at")
+  body           String        @db.Text
+  coverImageUrl  String?       @map("cover_image_url")
+  authorName     String        @map("author_name")
+  seoTitle       String?       @map("seo_title")
+  seoDescription String?       @map("seo_description")
+  seoKeywords    String?       @map("seo_keywords")
+  projectId      String        @db.Uuid @map("project_id")
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  categoryId     String?       @db.Uuid @map("category_id")
+  category       BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags           BlogPostTag[]
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@index([projectId])
+  @@index([categoryId])
+  @@map("blog_posts")
+}
+
+model BlogPostTag {
+  postId String   @db.Uuid @map("post_id")
+  tagId  String   @db.Uuid @map("tag_id")
+  post   BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    BlogTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("blog_post_tags")
 }
 
 model Page {

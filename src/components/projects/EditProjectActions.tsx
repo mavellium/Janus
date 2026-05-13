@@ -57,7 +57,7 @@ export function EditProjectActions({
         <button
           onClick={handleSave}
           disabled={isPending}
-          className="px-2 py-1.5 text-xs rounded bg-brand-primary text-brand-bg hover:bg-brand-hover disabled:opacity-50"
+          className="px-2 py-1.5 text-xs rounded bg-brand-cta text-white hover:bg-brand-cta-hover disabled:opacity-50"
         >
           {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Salvar'}
         </button>
@@ -75,7 +75,7 @@ export function EditProjectActions({
   return (
     <button
       onClick={() => setIsEditing(true)}
-      className="flex-1 px-4 py-2.5 rounded-lg text-xs font-semibold text-white transition flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-hover"
+      className="flex-1 px-4 py-2.5 rounded-lg text-xs font-semibold text-white transition flex items-center justify-center gap-2 bg-brand-cta hover:bg-brand-cta-hover"
     >
       <Settings className="w-3 h-3" />
       Editar

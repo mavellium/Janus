@@ -58,7 +58,7 @@ export function CreatePageModal({ projectId, companySlug }: CreatePageModalProps
     <>
       <button
         onClick={() => setOpen(true)}
-        className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-primary hover:bg-brand-hover"
+        className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-cta hover:bg-brand-cta-hover"
       >
         Nova Página
       </button>
@@ -66,7 +66,7 @@ export function CreatePageModal({ projectId, companySlug }: CreatePageModalProps
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/50" onClick={() => !isPending && setOpen(false)} />
-          <div className="relative bg-card rounded-lg shadow-lg p-6 w-full max-w-md mx-4 border border-brand-btn-light">
+          <div className="relative bg-card rounded-xl shadow-lg p-4 sm:p-6 w-[95vw] max-w-md max-h-[90vh] overflow-y-auto mx-4 border border-brand-btn-light">
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-brand-text">Nova Página</h2>
             </div>
@@ -137,7 +137,7 @@ export function CreatePageModal({ projectId, companySlug }: CreatePageModalProps
                 <button
                   type="submit"
                   disabled={isPending || !name.trim() || !slug.trim()}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold transition bg-brand-primary text-white hover:bg-brand-hover disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg text-sm font-semibold transition bg-brand-cta text-white hover:bg-brand-cta-hover disabled:opacity-50"
                 >
                   {isPending ? (
                     <>

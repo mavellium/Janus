@@ -273,7 +273,7 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                 <Button
                   onClick={handleProfileSave}
                   disabled={isProfilePending}
-                  className="transition-all duration-200 bg-destructive text-white hover:opacity-90 disabled:opacity-80 disabled:cursor-not-allowed"
+                  className="transition-all duration-200 disabled:opacity-80 disabled:cursor-not-allowed"
                 >
                   {isProfilePending ? (
                     <>
@@ -350,7 +350,7 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                 <Button
                   onClick={handlePasswordUpdate}
                   disabled={isPasswordPending}
-                  className="transition-all duration-200 bg-destructive text-white hover:opacity-90 disabled:opacity-80 disabled:cursor-not-allowed"
+                  className="transition-all duration-200 disabled:opacity-80 disabled:cursor-not-allowed"
                 >
                   {isPasswordPending ? (
                     <>

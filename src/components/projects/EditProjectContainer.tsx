@@ -7,6 +7,7 @@ interface EditProjectContainerProps {
   projectId: string
   initialName: string
   initialPreviewUrl?: string | null
+  initialBlogEnabled?: boolean
   companySlug: string
   trigger: React.ReactNode
 }
@@ -15,6 +16,7 @@ export function EditProjectContainer({
   projectId,
   initialName,
   initialPreviewUrl,
+  initialBlogEnabled = false,
   companySlug,
   trigger,
 }: EditProjectContainerProps) {
@@ -37,6 +39,7 @@ export function EditProjectContainer({
           projectId={projectId}
           initialName={initialName}
           initialPreviewUrl={initialPreviewUrl}
+          initialBlogEnabled={initialBlogEnabled}
           companySlug={companySlug}
           open={open}
           onOpenChange={setOpen}

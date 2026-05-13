@@ -512,7 +512,7 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
         <button
           onClick={handleSave}
           disabled={isPending || uploadingFields.size > 0}
-          className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium bg-brand-primary text-white hover:bg-brand-hover transition disabled:opacity-60"
+          className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-medium bg-brand-cta text-white hover:bg-brand-cta-hover transition disabled:opacity-60"
         >
           {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {isPending ? 'Salvando...' : 'Salvar Alterações'}

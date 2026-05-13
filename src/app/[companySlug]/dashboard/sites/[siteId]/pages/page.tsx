@@ -46,21 +46,21 @@ export default async function SitePagesPage({
         <CreatePageModal projectId={siteId} companySlug={companySlug} />
       </div>
 
-      <div className="bg-card rounded-xl border border-brand-btn-light overflow-hidden">
-        <div className="divide-y divide-brand-btn-light">
+      <div className="bg-card rounded-xl border border-brand-btn-light overflow-x-auto">
+        <div className="divide-y divide-brand-btn-light min-w-[640px]">
           {pages.map((page) => (
             <div
               key={page.id}
-              className="p-6 flex items-center justify-between hover:bg-brand-btn-light/40 transition"
+              className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-2 sm:justify-between hover:bg-brand-btn-light/40 transition"
             >
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h3 className="text-base font-semibold text-brand-text">
                   {page.name}
                 </h3>
                 <p className="text-xs text-brand-muted mt-1">/{page.slug}</p>
                 <p className="text-xs text-brand-muted mt-2">{formatDate(page.createdAt)}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <PublishPageButton pageId={page.id} initialPublished={page.isPublished} />
                 <EditPageContainer
                   pageId={page.id}
@@ -100,7 +100,7 @@ export default async function SitePagesPage({
           <div className="p-8 text-center">
             <p className="text-sm text-brand-muted mb-4">Nenhuma página criada ainda</p>
             <button
-              className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-primary hover:bg-brand-hover"
+              className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-cta hover:bg-brand-cta-hover"
             >
               Criar primeira página
             </button>

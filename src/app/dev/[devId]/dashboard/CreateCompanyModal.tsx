@@ -13,7 +13,7 @@ export function CreateCompanyModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-card border border-border rounded-xl shadow-xl w-full max-w-md p-6">
+      <div className="bg-card border border-border rounded-xl shadow-xl w-[95vw] max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6 mx-4">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <Building2 className="w-5 h-5 text-brand-primary" />

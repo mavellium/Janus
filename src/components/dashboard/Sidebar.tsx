@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import {
   Home, FileText, Globe, Zap, FileStack,
   Bell, Settings, LogOut, PanelLeftClose, PanelLeftOpen, UserCircle,
-  ChevronLeft, BarChart3, BookOpen,
+  ChevronLeft, BarChart3, BookOpen, Newspaper, Tag, FolderOpen, ChevronDown,
 } from 'lucide-react'
 import { updatePreferences } from '@/modules/users/actions/updatePreferences'
 import { signOut } from 'next-auth/react'
@@ -19,10 +19,12 @@ interface SidebarProps {
   image?: string | null
   initialCollapsed: boolean
   companyName?: string
+  embedded?: boolean
 }
 
-export function Sidebar({ email, image, initialCollapsed, companyName }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(initialCollapsed)
+export function Sidebar({ email, image, initialCollapsed, companyName, embedded = false }: SidebarProps) {
+  const [collapsedState, setCollapsedState] = useState(embedded ? false : initialCollapsed)
+  const collapsed = embedded ? false : collapsedState
   const [, startTransition] = useTransition()
   const params = useParams()
   const pathname = usePathname()
@@ -36,13 +38,28 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
 
   const userName = email.split('@')[0]
 
-  const isInProjectContext = !!(siteId || lpId)
+  const projectId = siteId || lpId
+  const isInProjectContext = !!projectId
   const basePath = siteId
     ? `/${companySlug}/dashboard/sites/${siteId}`
     : `/${companySlug}/dashboard/landing-pages/${lpId}`
   const backPath = siteId
     ? `/${companySlug}/dashboard/sites`
     : `/${companySlug}/dashboard/landing-pages`
+
+  const [blogEnabled, setBlogEnabled] = useState(false)
+  const [blogOpen, setBlogOpen] = useState(false)
+
+  useEffect(() => {
+    if (!projectId) return
+    fetch(`/api/projects/${projectId}/blog-enabled`)
+      .then(r => r.json())
+      .then(d => setBlogEnabled(d.blogEnabled ?? false))
+  }, [projectId])
+
+  useEffect(() => {
+    if (pathname.includes('/blog')) setBlogOpen(true)
+  }, [pathname])
 
   const MAIN_ITEMS = [
     { label: 'Página Inicial', href: `/${companySlug}/dashboard`, icon: Home },
@@ -55,14 +72,19 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
   const PROJECT_ITEMS = [
     { label: 'Páginas', href: `${basePath}/pages`, icon: FileText },
     { label: 'Resultados', href: `${basePath}/analytics`, icon: BarChart3 },
-    { label: 'Blog', href: `${basePath}/blog`, icon: BookOpen },
+  ]
+
+  const BLOG_ITEMS = [
+    { label: 'Artigos', href: `${basePath}/blog/posts`, icon: Newspaper },
+    { label: 'Categorias', href: `${basePath}/blog/categories`, icon: FolderOpen },
+    { label: 'Tags', href: `${basePath}/blog/tags`, icon: Tag },
   ]
 
   const menuItems = isInProjectContext ? PROJECT_ITEMS : MAIN_ITEMS
 
   function toggleCollapsed() {
-    const next = !collapsed
-    setCollapsed(next)
+    const next = !collapsedState
+    setCollapsedState(next)
     startTransition(async () => {
       await updatePreferences({ sidebar_collapsed: next })
     })
@@ -100,9 +122,18 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
       : 'text-sidebar-icon [&>svg]:text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text [&>svg]:hover:text-sidebar-hover-text'
   )
 
-  return (
-    <aside
-      style={{
+  const asideStyle: React.CSSProperties = embedded
+    ? {
+        width: '100%',
+        height: '100%',
+        flexShrink: 0,
+        backgroundColor: 'var(--sidebar-bg)',
+        color: 'var(--brand-text)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }
+    : {
         width: collapsed ? '80px' : '220px',
         height: '100vh',
         position: 'fixed',
@@ -111,12 +142,16 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
         flexShrink: 0,
         backgroundColor: 'var(--sidebar-bg)',
         color: 'var(--brand-text)',
-        display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
         transition: 'width 300ms ease',
         zIndex: 40,
-      }}
+      }
+
+  return (
+    <aside
+      className={embedded ? '' : 'hidden md:flex'}
+      style={asideStyle}
     >
       <div
         style={{
@@ -150,7 +185,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
             style={{ position: 'absolute', width: '36px', height: '36px', objectFit: 'contain', opacity: collapsed ? 1 : 0, transition: 'opacity 200ms ease' }}
           />
         </Link>
-        {!collapsed && (
+        {!collapsed && !embedded && (
           <button
             onClick={toggleCollapsed}
             title="Minimizar sidebar"
@@ -171,7 +206,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
           gap: '2px',
         }}
       >
-        {collapsed && (
+        {collapsed && !embedded && (
           <button
             onClick={toggleCollapsed}
             title="Expandir sidebar"
@@ -207,6 +242,64 @@ export function Sidebar({ email, image, initialCollapsed, companyName }: Sidebar
             }
           </Link>
         ))}
+
+        {isInProjectContext && blogEnabled && (
+          <>
+            <button
+              onClick={() => setBlogOpen(o => !o)}
+              title={collapsed ? 'Blog' : undefined}
+              className={cn(
+                'flex w-full rounded-lg transition-colors',
+                collapsed
+                  ? 'flex-col items-center justify-center px-1 py-2 gap-0.5'
+                  : 'flex-row items-center gap-3 px-3 py-2',
+                pathname.includes('/blog')
+                  ? 'bg-sidebar-hover-bg text-sidebar-hover-text [&>svg]:text-sidebar-hover-text'
+                  : 'text-sidebar-icon [&>svg]:text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text [&>svg]:hover:text-sidebar-hover-text'
+              )}
+            >
+              <BookOpen size={16} className="flex-shrink-0" />
+              {collapsed
+                ? <span className="text-[10px] text-center leading-tight w-full">Blog</span>
+                : (
+                  <span className="flex-1 text-left flex items-center justify-between">
+                    Blog
+                    <ChevronDown size={12} className={cn('transition-transform', blogOpen && 'rotate-180')} />
+                  </span>
+                )
+              }
+            </button>
+            {blogOpen && !collapsed && (
+              <div className="flex flex-col gap-0.5 pl-4">
+                {BLOG_ITEMS.map(({ label, href, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={navItemClasses(href)}
+                  >
+                    <Icon size={14} className="flex-shrink-0" />
+                    <span className="text-sm">{label}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+            {blogOpen && collapsed && (
+              <div className="flex flex-col gap-0.5">
+                {BLOG_ITEMS.map(({ label, href, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    title={label}
+                    className={navItemClasses(href)}
+                  >
+                    <Icon size={14} className="flex-shrink-0" />
+                    <span className="text-[10px] text-center leading-tight w-full">{label}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </nav>
 
       <div style={{ padding: '8px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>

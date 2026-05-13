@@ -242,6 +242,51 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 ---
 
+## Módulo Blog
+
+### blog
+- **Actions:** `createBlogCategory.ts`, `updateBlogCategory.ts`, `deleteBlogCategory.ts` — CRUD categorias
+- **Actions:** `createBlogTag.ts`, `updateBlogTag.ts`, `deleteBlogTag.ts` — CRUD tags
+- **Actions:** `createBlogPost.ts`, `updateBlogPost.ts`, `deleteBlogPost.ts` — CRUD artigos com tags M:N
+- **Actions:** `toggleBlogEnabled.ts` — ativa/desativa blog por projeto
+- **Queries:** `getBlogCategories.ts`, `getBlogTags.ts`, `getBlogPosts.ts`, `getBlogPost.ts`
+
+## Componentes Blog
+
+- `src/components/blog/RichEditor.tsx` — Client — editor Tiptap com toolbar, upload de imagem inline (BunnyCDN)
+- `src/components/blog/CategoryModal.tsx` — Client — modal criar/editar categoria com upload de imagem
+- `src/components/blog/TagModal.tsx` — Client — modal criar/editar tag com upload de imagem
+- `src/components/blog/CategoriesClient.tsx` — Client — listagem de categorias com ações
+- `src/components/blog/TagsClient.tsx` — Client — listagem de tags com ações
+- `src/components/blog/PostsListClient.tsx` — Client — tabela de artigos com busca e ações
+- `src/components/blog/PostEditorClient.tsx` — Client — editor de artigo em abas (Principal/Conteúdo/Mídia/SEO)
+
+## Páginas Blog (Sites)
+
+- `src/app/[companySlug]/dashboard/sites/[siteId]/blog/posts/page.tsx` — lista artigos
+- `src/app/[companySlug]/dashboard/sites/[siteId]/blog/posts/new/page.tsx` — novo artigo
+- `src/app/[companySlug]/dashboard/sites/[siteId]/blog/posts/[postId]/edit/page.tsx` — editar artigo
+- `src/app/[companySlug]/dashboard/sites/[siteId]/blog/categories/page.tsx` — categorias
+- `src/app/[companySlug]/dashboard/sites/[siteId]/blog/tags/page.tsx` — tags
+
+## Páginas Blog (Landing Pages)
+
+- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/posts/page.tsx` — lista artigos
+- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/posts/new/page.tsx` — novo artigo
+- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/posts/[postId]/edit/page.tsx` — editar artigo
+- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/categories/page.tsx` — categorias
+- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/tags/page.tsx` — tags
+
+## Schema Prisma (Blog)
+
+- **BlogCategory** (`blog_categories`) — name, description, imageUrl, slug, projectId | CASCADE do Project
+- **BlogTag** (`blog_tags`) — name, description, imageUrl, slug, projectId | CASCADE do Project
+- **BlogPost** (`blog_posts`) — title, subtitle, body, publishedAt, coverImageUrl, authorName, SEO fields, projectId, categoryId | CASCADE do Project
+- **BlogPostTag** (`blog_post_tags`) — join M:N BlogPost ↔ BlogTag | CASCADE ambos os lados
+- **Project** — campo `blogEnabled Boolean @default(false)` adicionado
+
+---
+
 ## Últimas alterações
 
 | Data       | Arquivo                                       | O que foi feito                                            |
@@ -262,6 +307,27 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-12 | `tailwind.config.ts` | FEAT: Mapeados `brand.cta` e `brand.cta-hover` no tema Tailwind |
 | 2026-05-12 | `src/components/ui/button.tsx` | FEAT: Variant `default` agora usa `bg-brand-cta` (#E35336) em vez de `bg-primary` |
 | 2026-05-12 | `.claude/skills/ui-design.md` | DOCS: Adicionada regra de uso de `brand-cta` para botões CTA primários |
+| 2026-05-13 | `prisma/schema.prisma` | FEAT: Adicionados BlogCategory, BlogTag, BlogPost, BlogPostTag; blogEnabled em Project |
+| 2026-05-13 | `src/modules/blog/**` | FEAT: Módulo completo de Blog — 10 actions + 4 queries |
+| 2026-05-13 | `src/components/blog/**` | FEAT: RichEditor (Tiptap), CategoryModal, TagModal, CategoriesClient, TagsClient, PostsListClient, PostEditorClient |
+| 2026-05-13 | `src/app/.../sites/[siteId]/blog/**` | FEAT: 5 páginas de blog para Sites (posts, new, edit, categories, tags) |
+| 2026-05-13 | `src/app/.../landing-pages/[lpId]/blog/**` | FEAT: 5 páginas de blog para Landing Pages |
+| 2026-05-13 | `src/components/dashboard/Sidebar.tsx` | FEAT: Submenu Blog colapsável (fetch dinâmico de blogEnabled via API) |
+| 2026-05-13 | `src/components/projects/EditProjectModal.tsx` | FEAT: Switch para ativar/desativar blog por projeto |
+| 2026-05-13 | `src/app/api/projects/[projectId]/blog-enabled/route.ts` | FEAT: Endpoint GET para o Sidebar verificar blogEnabled |
+| 2026-05-13 | `src/lib/slug.ts` | FEAT: Utilitário generateSlug (normaliza acentos, lowercase, hífens) |
+| 2026-05-13 | `src/app/api/dev/companies/[companyId]/projects/route.ts` | FEAT: Endpoint GET para dev listar projetos de uma empresa (blog management) |
+| 2026-05-13 | `src/modules/dev/queries/getCompanyProjects.ts` | FEAT: Query para dev buscar projetos de uma empresa |
+| 2026-05-13 | `src/modules/admin/actions/updateProjectBlogEnabled.ts` | FEAT: Action para dev ativar/desativar blog em projetos |
+| 2026-05-13 | `src/components/dev/ProjectsBlogModal.tsx` | FEAT: Modal para dev gerenciar blog de múltiplos projetos de uma empresa |
+| 2026-05-13 | `src/app/dev/[devId]/dashboard/companies/CompaniesClient.tsx` | FEAT: Integrado botão BookOpen para abrir ProjectsBlogModal |
+| 2026-05-13 | `src/app/[companySlug]/dashboard/**` | FIX: Botões CTA primários migrados para `bg-brand-cta hover:bg-brand-cta-hover` (skill ui-design) |
+| 2026-05-13 | `src/components/projects/CreateProjectModal.tsx` + `CreatePageModal.tsx` | FIX: Botões submit criar agora usam `bg-brand-cta` |
+| 2026-05-13 | `src/components/projects/EditPageModal.tsx` | FIX: Botão Salvar agora usa `bg-brand-cta` |
+| 2026-05-13 | `src/components/projects/EditProjectActions.tsx` + `EditProjectButton.tsx` | FIX: Botões Editar e Salvar inline agora usam `bg-brand-cta` |
+| 2026-05-13 | `src/app/[companySlug]/dashboard/settings/settings.client.tsx` | FIX: Buttons 'Salvar' e 'Atualizar Senha' usam variant default do shadcn (bg-brand-cta) |
+| 2026-05-13 | `src/app/[companySlug]/dashboard/sites/[siteId]/pages/page.tsx` + `landing-pages/[lpId]/pages/page.tsx` | FIX: Lista de páginas responsiva (flex-col mobile, overflow-x-auto, min-w) |
+| 2026-05-13 | `src/components/dashboard/Sidebar.tsx` + `AdminSidebar.tsx` + `DevSidebar.tsx` | FIX: Remove `display:flex` inline que sobrescrevia `hidden md:flex`; drawer mobile sem collapse |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
 | 2026-05-05 | `prisma/schema.prisma`                        | Model User com enum UserRole (ADMIN/DEFAULT), soft delete  |
 | 2026-05-05 | `src/modules/users/domain/User.ts`            | Entidade User: create, reconstitute, toObject              |
@@ -519,6 +585,16 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-12 | `SchemaBuilderEditor.tsx` (snippets) | **UPDATE:** Hero snippet expandido com 11 campos (video, url, color, boolean, number, select, html); Carrossel usa `type: 'list'` com `itemFields: [image, caption]` para quantidade ilimitada de slides |
 | 2026-05-12 | `dashboard/layout.tsx` + `globals.css` + edit pages | **FIX:** Body `overflow: hidden` + `html/body height: 100%` no globals.css; dashboard container `h-screen`; edit pages e SchemaBuilderEditor usam `h-full` em vez de `calc(100vh-...)`; elimina scroll duplo |
 | 2026-05-12 | `uploadMedia.ts` | **NEW:** Server Action genérica para upload de mídia (image→AVIF via Sharp, video→raw); BunnyCDN; validação de tamanho e tipo |
+| 2026-05-13 | `src/components/dashboard/MobileNav.tsx` | **NEW:** Drawer mobile (`flex md:hidden`) com Topbar + hamburger; aceita qualquer Sidebar como children; backdrop + slide-in animation; trava scroll do body quando aberto |
+| 2026-05-13 | `Sidebar.tsx` + `AdminSidebar.tsx` + `DevSidebar.tsx` + `GuestSidebar.tsx` | **FEAT:** Prop `embedded` adicionada — sidebar fixa esconde-se com `hidden md:flex`; quando `embedded` renderiza em fluxo (sem position: fixed) para uso dentro do MobileNav |
+| 2026-05-13 | `dashboard/layout.tsx` + `dashboard-admin/layout.tsx` + `dev/.../layout.tsx` + `guest/layout.tsx` | **FEAT:** Layouts agora renderizam Sidebar normal + `<MobileNav>` com Sidebar embedded; `<main>` usa `pt-14 md:pt-0 md:ml-[var(--sidebar-width,220px)] overflow-x-hidden` |
+| 2026-05-13 | `ui/dialog.tsx` | **FEAT:** `DialogContent` base agora aplica responsividade automática: `w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto rounded-xl p-4 sm:p-6` |
+| 2026-05-13 | Modais custom (`CreatePageModal`, `EditPageModal`, `CreateProjectModal`, `EditProjectModal`, `DeleteProjectModal`, `CreateCompanyModal`) | **FEAT:** Padronização responsiva: `w-[95vw] max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6` |
+| 2026-05-13 | `sites/page.tsx` + `landing-pages/page.tsx` + `GuestGalleryClient.tsx` + `dashboard-admin/page.tsx` + `dashboard/page.tsx` | **FEAT:** Grids progressivos `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6` (cards) e `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4` (métricas admin) |
+| 2026-05-13 | 9 tabelas CRUD (AdminUsers, AdminCompanies, AdminDevelopers, AdminLogs (2), DevCompanies, DevUsers, CompaniesTable, BlogCategories, BlogPosts, BlogTags) | **FEAT:** Cada `<table>` envolvida em `<div className="w-full overflow-x-auto">` + `min-w-[600/720px]` para evitar overflow horizontal no mobile |
+| 2026-05-13 | `SchemaBuilderEditor.tsx` | **FEAT:** Split-pane responsivo — `flex flex-col lg:flex-row`; sidebars laterais `w-full lg:w-72`/`lg:w-[360px]` com bordas adaptativas; Monaco editor central `min-h-[400px] lg:min-h-0`; header `flex-col sm:flex-row` |
+| 2026-05-13 | `sites/.../edit/page.tsx` + `landing-pages/.../edit/page.tsx` | **FEAT:** Edit page split-pane empilha mobile: form `w-full lg:w-1/3`, iframe preview `w-full lg:w-2/3 min-h-[60vh]` |
+| 2026-05-13 | `.windsurf/skills/ui-design/SKILL.md` + `.claude/skills/ui-design.md` | **DOCS:** Seção "Padrões de Responsividade" obrigatória + 7 novos itens no checklist (sidebar drawer, grids progressivos, modais 95vw, tabelas overflow-x, split-pane flex-col, touch targets ≥ 40px, breakpoints sm/md/lg/xl) |
 
 ---
 

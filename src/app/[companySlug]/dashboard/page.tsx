@@ -56,7 +56,7 @@ export default async function DashboardPage({
             <p className="text-white/70 text-sm mb-6">
               Converse com IA pública ou comum clique aqui
             </p>
-            <button className="px-6 py-2 bg-brand-bg text-brand-text text-sm font-semibold rounded-lg hover:opacity-80 transition">
+            <button className="px-6 py-2 bg-brand-cta text-white text-sm font-semibold rounded-lg hover:bg-brand-cta-hover transition">
               Começar
             </button>
           </div>
@@ -73,7 +73,7 @@ export default async function DashboardPage({
                 Sites
               </h3>
             </div>
-            <div className="grid grid-cols-3 gap-4 text-sm">
+            <div className="grid grid-cols-3 gap-3 sm:gap-4 text-sm">
               <div>
                 <p className="text-brand-muted text-xs mb-1">Total</p>
                 <p className="font-semibold text-brand-text">
@@ -145,7 +145,7 @@ export default async function DashboardPage({
                 Landing Pages
               </h3>
             </div>
-            <div className="grid grid-cols-3 gap-4 text-sm">
+            <div className="grid grid-cols-3 gap-3 sm:gap-4 text-sm">
               <div>
                 <p className="text-brand-muted text-xs mb-1">Total</p>
                 <p className="font-semibold text-brand-text">

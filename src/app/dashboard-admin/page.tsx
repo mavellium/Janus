@@ -33,7 +33,7 @@ export default async function AdminDashboardPage() {
         <p className="text-sm text-brand-muted mt-1">Visão global do sistema</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
         {METRICS.map(({ label, value, icon: Icon, href }) => (
           <Link key={label} href={href}>
             <Card className="bg-card hover:border-brand-primary/40 transition-colors cursor-pointer">

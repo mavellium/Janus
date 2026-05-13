@@ -5,7 +5,7 @@ import { Settings } from 'lucide-react'
 export function EditProjectButton() {
   return (
     <button
-      className="flex-1 px-4 py-2.5 rounded-lg text-xs font-semibold text-white transition flex items-center justify-center gap-2 bg-brand-primary hover:bg-brand-hover"
+      className="flex-1 px-4 py-2.5 rounded-lg text-xs font-semibold text-white transition flex items-center justify-center gap-2 bg-brand-cta hover:bg-brand-cta-hover"
     >
       <Settings className="w-3 h-3" />
       Editar

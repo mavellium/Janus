@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/prisma'
 import { Sidebar } from '@/components/dashboard/Sidebar'
+import { MobileNav } from '@/components/dashboard/MobileNav'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import type { UserPreferences } from '@/types/next-auth'
 
@@ -42,7 +43,16 @@ export default async function DashboardLayout({
           initialCollapsed={prefs.sidebar_collapsed ?? false}
           companyName={company.name}
         />
-        <main className="flex-1 h-full" style={{ marginLeft: 'var(--sidebar-width, 220px)' }}>{children}</main>
+        <MobileNav logoHref={`/${companySlug}/dashboard`}>
+          <Sidebar
+            email={session.user.email ?? ''}
+            image={user?.image ?? null}
+            initialCollapsed={false}
+            companyName={company.name}
+            embedded
+          />
+        </MobileNav>
+        <main className="flex-1 h-full pt-14 md:pt-0 md:ml-[var(--sidebar-width,220px)] overflow-x-hidden">{children}</main>
       </div>
     </ThemeProvider>
   )
