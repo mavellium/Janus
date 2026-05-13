@@ -5,6 +5,8 @@
 @layer base {
   :root {
     --brand-primary: #514030;
+    --brand-cta: #E35336;
+    --brand-cta-hover: #C94120;
     --brand-text: #161718;
     --brand-btn-dark: #161718;
     --brand-btn-light: #DCDCDC;
@@ -39,6 +41,8 @@
 
   .dark {
     --brand-primary: #8B7355;
+    --brand-cta: #E35336;
+    --brand-cta-hover: #F06040;
     --brand-text: #EAE6E1;
     --brand-btn-dark: #2A2724;
     --brand-btn-light: #403B37;

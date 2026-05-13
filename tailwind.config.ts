@@ -8,6 +8,8 @@ export default {
       colors: {
         brand: {
           primary: 'var(--brand-primary)',
+          cta: 'var(--brand-cta)',
+          'cta-hover': 'var(--brand-cta-hover)',
           text: 'var(--brand-text)',
           'btn-dark': 'var(--brand-btn-dark)',
           'btn-light': 'var(--brand-btn-light)',

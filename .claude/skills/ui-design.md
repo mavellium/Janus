@@ -12,6 +12,7 @@ instructions: >
   - **Texto principal:** `text-brand-text`
   - **Texto secundário/ícones:** `text-brand-muted`
   - **Cor de marca/destaque:** `bg-brand-primary`, `text-brand-primary`, `hover:bg-brand-hover`
+  - **Botões CTA (call-to-action primário):** `bg-brand-cta text-white hover:bg-brand-cta-hover` — cor #E35336. Use para o botão de ação principal de cada tela (submit, criar, salvar). O componente `<Button>` (variant default) já aplica isso automaticamente.
   - **Botões dark/light:** `bg-brand-btn-dark`, `bg-brand-btn-light`
   - **Cards/painéis elevados:** `bg-card` (mapeia para `--sidebar-bg`)
   - **Bordas/divisores:** `border-brand-btn-light`, `divide-brand-btn-light`
@@ -40,5 +41,6 @@ instructions: >
   - [ ] Componente legível em light mode E dark mode?
   - [ ] Bordas e divisores usam `border-brand-btn-light`?
   - [ ] Cards/modais usam `bg-card` e não `bg-white`?
+  - [ ] Botão CTA principal usa `<Button>` (variant default) ou `bg-brand-cta hover:bg-brand-cta-hover text-white`?
 
   **Ação Final OBRIGATÓRIA:** Após criar a interface, invoque a skill `registry` para documentar os novos componentes de UI no `PROJECT.md`.

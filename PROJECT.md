@@ -235,8 +235,10 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 ## Design System
 
-- `src/app/globals.css` — variáveis brand: primary, text, btn-dark, btn-light, hover, muted, bg
-- `tailwind.config.ts` — conteúdo `src/**/*.{ts,tsx}`, cores brand mapeadas
+- `src/app/globals.css` — variáveis brand: primary, **cta** (#E35336), cta-hover, text, btn-dark, btn-light, hover, muted, bg (light + dark)
+- `tailwind.config.ts` — cores brand mapeadas incluindo `brand.cta` e `brand.cta-hover`
+- `src/components/ui/button.tsx` — variant `default` usa `bg-brand-cta text-white hover:bg-brand-cta-hover`
+- `.claude/skills/ui-design.md` — documentada regra CTA: usar `bg-brand-cta` / `<Button>` default
 
 ---
 
@@ -256,6 +258,10 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-12 | `prisma/schema.prisma` | FEAT: Adicionado `createdById` em Company e User para rastrear criador |
 | 2026-05-12 | `getAdminUsers.ts` + `getAdminCompanies.ts` | FEAT: Filtra por `createdById` do admin logado |
 | 2026-05-12 | `adminCreateCompany.ts` + `adminCreateUser.ts` | FEAT: Salva `createdById` com id do admin ao criar |
+| 2026-05-12 | `src/app/globals.css` | FEAT: Adicionadas variáveis `--brand-cta` (#E35336) e `--brand-cta-hover` (light + dark) |
+| 2026-05-12 | `tailwind.config.ts` | FEAT: Mapeados `brand.cta` e `brand.cta-hover` no tema Tailwind |
+| 2026-05-12 | `src/components/ui/button.tsx` | FEAT: Variant `default` agora usa `bg-brand-cta` (#E35336) em vez de `bg-primary` |
+| 2026-05-12 | `.claude/skills/ui-design.md` | DOCS: Adicionada regra de uso de `brand-cta` para botões CTA primários |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
 | 2026-05-05 | `prisma/schema.prisma`                        | Model User com enum UserRole (ADMIN/DEFAULT), soft delete  |
 | 2026-05-05 | `src/modules/users/domain/User.ts`            | Entidade User: create, reconstitute, toObject              |
