@@ -29,11 +29,11 @@ export function GuestSidebar({ name, companyName, embedded = false }: GuestSideb
 
   const asideStyle: React.CSSProperties = embedded
     ? { width: '100%', height: '100%', flexShrink: 0, backgroundColor: 'var(--sidebar-bg)', color: 'var(--brand-text)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
-    : { width: '220px', height: '100vh', position: 'fixed', top: 0, left: 0, flexShrink: 0, backgroundColor: 'var(--sidebar-bg)', color: 'var(--brand-text)', display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 40 }
+    : { width: '220px', height: '100vh', position: 'fixed', top: 0, left: 0, flexShrink: 0, backgroundColor: 'var(--sidebar-bg)', color: 'var(--brand-text)', flexDirection: 'column', overflow: 'hidden', zIndex: 40 }
 
   return (
     <aside
-      className={embedded ? '' : 'hidden md:flex'}
+      className={embedded ? '' : 'hidden md:flex flex-col'}
       style={asideStyle}
     >
       <div style={{ padding: '16px 12px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
