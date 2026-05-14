@@ -627,6 +627,9 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-14 | `src/app/dashboard-admin/companies/AdminCompaniesClient.tsx` | **FEAT:** DeleteDialog inline substituído por DeleteAlertModal reutilizável; router.refresh() após exclusão |
 | 2026-05-14 | `src/app/dashboard-admin/users/AdminUsersClient.tsx` | **FEAT:** Coluna Ações com botão Trash2 + DeleteAlertModal; router.refresh() após exclusão |
 | 2026-05-14 | `src/app/dashboard-admin/developers/AdminDevelopersClient.tsx` | **FEAT:** Botão Trash2 ao lado de LayoutDashboard + DeleteAlertModal; router.refresh() após exclusão |
+| 2026-05-14 | `src/app/[companySlug]/preview/[pageId]/page.tsx` | **FIX:** Adicionado check `isAdmin` para permitir admins visualizarem páginas não publicadas de qualquer empresa (God Mode) |
+| 2026-05-14 | `src/app/dashboard-admin/developers/AdminDevelopersClient.tsx` | **FIX:** Alterado `<a>` para `<Link>` no botão "Acessar Painel Dev" para melhor navegação client-side |
+| 2026-05-14 | `src/app/[companySlug]/guest/layout.tsx` | **FIX:** Adicionado `md:overflow-y-auto` no main para scrolling adequado em desktop no contexto guest |
 
 ---
 

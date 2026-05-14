@@ -53,7 +53,7 @@ export default async function GuestLayout({
             embedded
           />
         </MobileNav>
-        <main className="flex-1 h-full pt-14 md:pt-0 md:ml-[220px] overflow-x-hidden">
+        <main className="flex-1 h-full pt-14 md:pt-0 md:ml-[220px] overflow-x-hidden md:overflow-y-auto">
           {children}
         </main>
       </div>
