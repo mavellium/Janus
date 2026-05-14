@@ -73,9 +73,11 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 ### dev
 - **Queries:**
   - `getCompanies.ts` — lista todas empresas ativas com contagem de users/projects
-  - `getRecentCompanies.ts` — últimas N empresas criadas (padrão 3)
-  - `getRecentUsers.ts` — últimos N usuários DEFAULT (padrão 3), inclui company
+  - `getRecentCompanies.ts` — últimas N empresas criadas (padrão 5)
+  - `getRecentUsers.ts` — últimos N usuários DEFAULT (padrão 5), inclui company
   - `getUsers.ts` — todos os usuários ativos com company e role
+  - `getDevStats.ts` — contagens paralelas: totalCompanies, totalUsers, totalProjects (filtrado por createdById)
+  - `getRecentProjects.ts` — últimos N projetos atualizados (padrão 5), inclui nome da empresa
 - **Actions:**
   - `createCompany.ts` — cria empresa; valida slug único; revalida dev dashboard
   - `editCompany.ts` — edita nome/slug/descrição de empresa; valida conflito de slug
@@ -95,7 +97,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
   - `unblockIp.ts` — remove bloqueio de um IP (admin-only)
   - `adminCreateCompany.ts` — cria empresa; verifica role ADMIN
   - `adminEditCompany.ts` — edita empresa; verifica role ADMIN; valida conflito de slug
-  - `adminDeleteCompany.ts` — soft delete de empresa; verifica role ADMIN
+  - `adminDeleteCompany.ts` — **hard delete** em cascata de empresa; verifica role ADMIN; apaga tudo via DB cascade
+  - `adminDeleteUser.ts` — **hard delete** de usuário ou desenvolvedor; verifica role ADMIN; cascade automático via DB
   - `adminCreateUser.ts` — cria usuário com role DEFAULT; verifica role ADMIN; hash bcrypt
   - `createDeveloper.ts` — cria usuário com role DEVELOPER; verifica role ADMIN; hash bcrypt
 
@@ -125,10 +128,13 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/components/projects/EditProjectContainer.tsx` — Client — container com key incremental para `EditProjectModal` (força re-mount com previewUrl atualizado)
 - `src/components/projects/EditProjectModal.tsx` — Client — modal de configurações do projeto (nome + previewUrl); salva via `updateProject`
 - `src/components/ui/toast-container.tsx` — Client — toast notifications (success/error) com tokens semânticos
+- `src/components/ui/alert-dialog.tsx` — Client — AlertDialog primitivos (Radix) com overlay, header, footer, action, cancel
+- `src/components/ui/delete-alert-modal.tsx` — Client — modal reutilizável de confirmação de exclusão; props: isOpen, onClose, onConfirm, title, description, isDeleting
 - `src/components/_archived_builder/*` — **ARQUIVADO** — Low-code builder antigo (não importado em nenhuma rota; excluído do tsconfig)
 - `src/components/users/update-avatar-modal.tsx` — Client — modal com Dialog/Tabs para upload de avatar via arquivo ou URL com preview
 - `src/components/ThemeProvider.tsx` — Client — provedor de tema para dashboard com preferências do usuário
-- `src/components/GlobalThemeProvider.tsx` — Client — provedor global de tema com sincronização periódica
+- `src/components/GlobalThemeProvider.tsx` — Client — provedor global de tema com sincronização periódica + troca de favicon (favicon.png claro / favicon-white.png escuro)
+- `src/components/ThemeScript.tsx` — Client — aplica classe dark no HTML e observa mudanças para atualizar favicon dinamicamente
 
 ---
 
@@ -136,7 +142,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 - `src/app/page.tsx` — root redireciona para `/dev/[id]/dashboard` (DEVELOPER) ou `/{companySlug}/dashboard` (outros roles)
 - `src/app/dev/[devId]/dashboard/layout.tsx` — layout protegido do Dev; valida role=DEVELOPER e devId === session.user.id; suporte a DevSidebar colapsável via CSS var
-- `src/app/dev/[devId]/dashboard/page.tsx` — resumo: últimas 3 empresas + últimos 3 usuários, com links "Ver todas/todos"
+- `src/app/dev/[devId]/dashboard/page.tsx` — Centro de Comando: 4 top cards (totalCompanies, totalUsers, totalProjects, atividade recente) + grid 3 colunas (últimos projetos, últimas empresas, últimos usuários)
 - `src/app/dev/[devId]/dashboard/companies/page.tsx` — Server Component; busca getCompanies(); passa para CompaniesClient
 - `src/app/dev/[devId]/dashboard/companies/CompaniesClient.tsx` — Client — CRUD de empresas: criar, editar, soft-delete via Dialog/useActionState
 - `src/app/dev/[devId]/dashboard/users/page.tsx` — Server Component; busca getUsers() e getCompanies(); passa para UsersClient
@@ -182,12 +188,12 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 ## Schema Prisma
 
-- **Company** (`companies`) — id (UUID), slug (unique, indexed), name (string), description (String?), logo (String?), **createdById (UUID?, id do criador)**, createdAt, updatedAt, deletedAt
-- **User** (`users`) — id (UUID), email (unique), password (text), role (**DEFAULT/ADMIN/DEVELOPER**), image (String?), preferences (Json? default {}), **companyId (UUID, fk→companies)**, **createdById (UUID?, id do criador)**, requiresPasswordReset (bool), createdAt, updatedAt, deletedAt
+- **Company** (`companies`) — id (UUID), slug (unique, indexed), name (string), description (String?), logo (String?), **createdById (UUID?, id do criador)**, createdAt, updatedAt, deletedAt | relações: User, Project, GuestEntry com **onDelete: Cascade**
+- **User** (`users`) — id (UUID), email (unique), password (text), role (**DEFAULT/ADMIN/DEVELOPER**), image (String?), preferences (Json? default {}), **companyId (UUID, fk→companies CASCADE)**, **createdById (UUID?, id do criador)**, requiresPasswordReset (bool), createdAt, updatedAt, deletedAt
 - **LoginAttempt** (`login_attempts`) — id (UUID), ip (string, indexed), email (string optional), createdAt
-- **Project** (`projects`) — id (UUID), companyId (UUID, fk→companies), name (string), type (LANDING_PAGE|INSTITUTIONAL), **previewUrl (String?, nullable)**, isActive (bool), deletedBy, deletionReason, deletedAt, createdAt, updatedAt
-- **Page** (`pages`) — id (UUID), projectId (UUID, fk→projects), name, slug (unique per project), content (Json, legacy), **schemaData (Json, default {}, headless schema)**, **contentData (Json, default {}, valores preenchidos)**, isPublished (bool, default false), createdAt, updatedAt, deletedAt
-- **ProjectHistory** (`project_histories`) — id (UUID), projectId (UUID, fk→projects), userId (UUID, fk→users), previousState (Json?), newState (Json?), version (Int), createdAt
+- **Project** (`projects`) — id (UUID), companyId (UUID, fk→companies **CASCADE**), name (string), type (LANDING_PAGE|INSTITUTIONAL), **previewUrl (String?, nullable)**, isActive (bool), deletedBy, deletionReason, deletedAt, createdAt, updatedAt
+- **Page** (`pages`) — id (UUID), projectId (UUID, fk→projects **CASCADE**), name, slug (unique per project), content (Json, legacy), **schemaData (Json, default {}, headless schema)**, **contentData (Json, default {}, valores preenchidos)**, isPublished (bool, default false), createdAt, updatedAt, deletedAt
+- **ProjectHistory** (`project_histories`) — id (UUID), projectId (UUID, fk→projects **CASCADE**), userId (UUID, fk→users **CASCADE**), previousState (Json?), newState (Json?), version (Int), createdAt
 
 ---
 
@@ -601,6 +607,26 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-13 | `SchemaBuilderEditor.tsx` | **FEAT:** Split-pane responsivo — `flex flex-col lg:flex-row`; sidebars laterais `w-full lg:w-72`/`lg:w-[360px]` com bordas adaptativas; Monaco editor central `min-h-[400px] lg:min-h-0`; header `flex-col sm:flex-row` |
 | 2026-05-13 | `sites/.../edit/page.tsx` + `landing-pages/.../edit/page.tsx` | **FEAT:** Edit page split-pane empilha mobile: form `w-full lg:w-1/3`, iframe preview `w-full lg:w-2/3 min-h-[60vh]` |
 | 2026-05-13 | `.windsurf/skills/ui-design/SKILL.md` + `.claude/skills/ui-design.md` | **DOCS:** Seção "Padrões de Responsividade" obrigatória + 7 novos itens no checklist (sidebar drawer, grids progressivos, modais 95vw, tabelas overflow-x, split-pane flex-col, touch targets ≥ 40px, breakpoints sm/md/lg/xl) |
+| 2026-05-14 | `src/app/layout.tsx` | **FEAT:** title "Janus", description da aplicação, favicon dinâmico via metadata.icons com media queries (light/dark) |
+| 2026-05-14 | `src/components/ThemeScript.tsx` | **FEAT:** Atualiza favicon dinamicamente via MutationObserver ao detectar mudança da classe `dark` |
+| 2026-05-14 | `src/components/GlobalThemeProvider.tsx` | **FEAT:** Troca favicon junto com o tema (favicon.png claro / favicon-white.png escuro) |
+| 2026-05-14 | `src/components/dashboard/Sidebar.tsx` | **FEAT:** Logo alterna dinamicamente: janus-logo-white.svg + janus-logo-min-white.svg no dark mode |
+| 2026-05-14 | `src/components/admin/AdminSidebar.tsx` | **FEAT:** Logo alterna dinamicamente no dark mode (mesmas imagens white) |
+| 2026-05-14 | `src/components/dev/DevSidebar.tsx` | **FEAT:** Logo alterna dinamicamente no dark mode (mesmas imagens white) |
+| 2026-05-14 | `sites/[siteId]/pages/page.tsx` + `landing-pages/[lpId]/pages/page.tsx` | **RBAC:** Botões Nova Página, Construir, Configurações ocultos para USER/ADMIN (visão user); só DEVELOPER vê ferramentas de estrutura |
+| 2026-05-14 | `sites/.../builder/page.tsx` + `landing-pages/.../builder/page.tsx` | **RBAC:** Redirect server-side para lista de páginas se role !== DEVELOPER |
+| 2026-05-14 | `createPage.ts` + `updatePage.ts` + `updatePageSchema.ts` | **RBAC:** Bloqueio para role !== DEVELOPER; removido bypass ADMIN (ADMIN em user view = permissões de USER) |
+| 2026-05-14 | `src/modules/dev/queries/getDevStats.ts` | **NOVO:** Contagens paralelas para Dev Dashboard (totalCompanies, totalUsers, totalProjects filtrados por createdById) |
+| 2026-05-14 | `src/modules/dev/queries/getRecentProjects.ts` | **NOVO:** Últimos 5 projetos atualizados das empresas do dev |
+| 2026-05-14 | `src/app/dev/[devId]/dashboard/page.tsx` | **REFACTOR:** Layout Centro de Comando — 4 top cards + grid 3 colunas (projetos, empresas, usuários) + formatRelative helper |
+| 2026-05-14 | `prisma/schema.prisma` | **FEAT:** onDelete: Cascade adicionado em GuestEntry.company, User.company, Project.company, Page.project, ProjectHistory.project/user |
+| 2026-05-14 | `src/components/ui/alert-dialog.tsx` | **NOVO:** Componente AlertDialog baseado em @radix-ui/react-alert-dialog (overlay, content, header, footer, action, cancel) |
+| 2026-05-14 | `src/components/ui/delete-alert-modal.tsx` | **NOVO:** Modal reutilizável de confirmação de exclusão com botões "Não, cancelar" (outline) e "Sim, excluir" (destructive) |
+| 2026-05-14 | `src/modules/admin/actions/adminDeleteCompany.ts` | **BREAKING:** Alterado de soft delete para hard delete (`company.delete`); cascade apaga tudo automaticamente |
+| 2026-05-14 | `src/modules/admin/actions/adminDeleteUser.ts` | **NOVO:** Hard delete de usuário (DEFAULT, ADMIN ou DEVELOPER); verifica role ADMIN; revalida rotas users + developers |
+| 2026-05-14 | `src/app/dashboard-admin/companies/AdminCompaniesClient.tsx` | **FEAT:** DeleteDialog inline substituído por DeleteAlertModal reutilizável; router.refresh() após exclusão |
+| 2026-05-14 | `src/app/dashboard-admin/users/AdminUsersClient.tsx` | **FEAT:** Coluna Ações com botão Trash2 + DeleteAlertModal; router.refresh() após exclusão |
+| 2026-05-14 | `src/app/dashboard-admin/developers/AdminDevelopersClient.tsx` | **FEAT:** Botão Trash2 ao lado de LayoutDashboard + DeleteAlertModal; router.refresh() após exclusão |
 
 ---
 

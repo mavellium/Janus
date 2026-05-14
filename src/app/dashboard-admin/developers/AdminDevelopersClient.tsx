@@ -1,12 +1,15 @@
 'use client'
 
 import { useActionState, useState, useEffect } from 'react'
-import { Code2, Plus, Loader2, UserCircle, CheckCircle2, Clock, LayoutDashboard } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Code2, Plus, Loader2, UserCircle, CheckCircle2, Clock, LayoutDashboard, Trash2 } from 'lucide-react'
 import { createDeveloper } from '@/modules/admin/actions/createDeveloper'
+import { adminDeleteUser } from '@/modules/admin/actions/adminDeleteUser'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { DeleteAlertModal } from '@/components/ui/delete-alert-modal'
 
 interface Developer {
   id: string
@@ -76,7 +79,18 @@ export function AdminDevelopersClient({
 }: {
   developers: Developer[]
 }) {
+  const router = useRouter()
   const [showModal, setShowModal] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Developer | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  async function handleDelete(id: string) {
+    setIsDeleting(true)
+    await adminDeleteUser(id)
+    setIsDeleting(false)
+    setDeleteTarget(null)
+    router.refresh()
+  }
 
   return (
     <div className="p-8">
@@ -146,6 +160,13 @@ export function AdminDevelopersClient({
                       >
                         <LayoutDashboard className="w-3.5 h-3.5" />
                       </a>
+                      <button
+                        onClick={() => setDeleteTarget(dev)}
+                        className="p-1.5 rounded text-brand-muted hover:text-destructive hover:bg-destructive/10 transition"
+                        title="Excluir"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -157,6 +178,16 @@ export function AdminDevelopersClient({
       </div>
 
       {showModal && <CreateDeveloperModal onClose={() => setShowModal(false)} />}
+
+      {deleteTarget && (
+        <DeleteAlertModal
+          isOpen
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => handleDelete(deleteTarget.id)}
+          isDeleting={isDeleting}
+          description={`Esta ação excluirá permanentemente o desenvolvedor "${deleteTarget.name || deleteTarget.email}" e todos os dados associados.`}
+        />
+      )}
     </div>
   )
 }

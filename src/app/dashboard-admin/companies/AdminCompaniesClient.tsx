@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Building2, Pencil, Trash2, LayoutDashboard, Plus, Loader2, Code2, Copy, CheckCircle2 } from 'lucide-react'
 import { adminCreateCompany } from '@/modules/admin/actions/adminCreateCompany'
 import { adminEditCompany } from '@/modules/admin/actions/adminEditCompany'
@@ -11,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { DeleteAlertModal } from '@/components/ui/delete-alert-modal'
 
 interface Company {
   id: string
@@ -86,36 +88,6 @@ function CompanyFormModal({
             </Button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function DeleteDialog({ company, onClose }: { company: Company; onClose: () => void }) {
-  const [isPending, setIsPending] = useState(false)
-
-  async function handleDelete() {
-    setIsPending(true)
-    await adminDeleteCompany(company.id)
-    onClose()
-  }
-
-  return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="text-brand-text">Excluir Empresa</DialogTitle>
-        </DialogHeader>
-        <p className="text-sm text-brand-muted">
-          Tem certeza que deseja excluir <strong className="text-brand-text">{company.name}</strong>? Esta ação não pode ser desfeita.
-        </p>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button variant="destructive" disabled={isPending} onClick={handleDelete}>
-            {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
-            Excluir
-          </Button>
-        </div>
       </DialogContent>
     </Dialog>
   )
@@ -219,8 +191,18 @@ function GuestEndpointModal({ onClose }: { onClose: () => void }) {
 }
 
 export function AdminCompaniesClient({ companies }: { companies: Company[] }) {
+  const router = useRouter()
   const [modal, setModal] = useState<null | 'create' | { mode: 'edit'; company: Company } | { mode: 'delete'; company: Company }>(null)
   const [showEndpoint, setShowEndpoint] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  async function handleDelete(id: string) {
+    setIsDeleting(true)
+    await adminDeleteCompany(id)
+    setIsDeleting(false)
+    setModal(null)
+    router.refresh()
+  }
 
   return (
     <div className="p-8">
@@ -331,7 +313,13 @@ export function AdminCompaniesClient({ companies }: { companies: Company[] }) {
         <CompanyFormModal mode="edit" company={modal.company} onClose={() => setModal(null)} />
       )}
       {modal !== null && typeof modal === 'object' && modal.mode === 'delete' && (
-        <DeleteDialog company={modal.company} onClose={() => setModal(null)} />
+        <DeleteAlertModal
+          isOpen
+          onClose={() => setModal(null)}
+          onConfirm={() => handleDelete(modal.company.id)}
+          isDeleting={isDeleting}
+          description={`Esta ação excluirá permanentemente "${modal.company.name}" e todos os projetos, páginas e usuários associados.`}
+        />
       )}
       {showEndpoint && (
         <GuestEndpointModal onClose={() => setShowEndpoint(false)} />

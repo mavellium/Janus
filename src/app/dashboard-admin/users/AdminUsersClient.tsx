@@ -1,12 +1,15 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import { Users, Plus, Loader2, UserCircle, CheckCircle2, Clock } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Users, Plus, Loader2, UserCircle, CheckCircle2, Clock, Trash2 } from 'lucide-react'
 import { adminCreateUser } from '@/modules/admin/actions/adminCreateUser'
+import { adminDeleteUser } from '@/modules/admin/actions/adminDeleteUser'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { DeleteAlertModal } from '@/components/ui/delete-alert-modal'
 import {
   Select,
   SelectContent,
@@ -122,7 +125,18 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 export function AdminUsersClient({ users, companies }: { users: User[]; companies: Company[] }) {
+  const router = useRouter()
   const [showModal, setShowModal] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  async function handleDelete(id: string) {
+    setIsDeleting(true)
+    await adminDeleteUser(id)
+    setIsDeleting(false)
+    setDeleteTarget(null)
+    router.refresh()
+  }
 
   return (
     <div className="p-8">
@@ -155,6 +169,7 @@ export function AdminUsersClient({ users, companies }: { users: User[]; companie
                 <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Role</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Senha</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Criado em</th>
+                <th className="px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -194,6 +209,17 @@ export function AdminUsersClient({ users, companies }: { users: User[]; companie
                   <td className="px-5 py-4 text-sm text-brand-muted">
                     {new Date(user.createdAt).toLocaleDateString('pt-BR')}
                   </td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setDeleteTarget(user)}
+                        className="p-1.5 rounded text-brand-muted hover:text-destructive hover:bg-destructive/10 transition"
+                        title="Excluir"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -203,6 +229,16 @@ export function AdminUsersClient({ users, companies }: { users: User[]; companie
       </div>
 
       {showModal && <CreateUserModal companies={companies} onClose={() => setShowModal(false)} />}
+
+      {deleteTarget && (
+        <DeleteAlertModal
+          isOpen
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => handleDelete(deleteTarget.id)}
+          isDeleting={isDeleting}
+          description={`Esta ação excluirá permanentemente o usuário "${deleteTarget.name || deleteTarget.email}" e todos os dados associados.`}
+        />
+      )}
     </div>
   )
 }
