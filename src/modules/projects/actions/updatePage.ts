@@ -23,6 +23,9 @@ export async function updatePage({
   if (!session?.user?.id) {
     return { ok: false, error: 'Não autenticado' }
   }
+  if (session.user.role !== 'DEVELOPER') {
+    return { ok: false, error: 'Apenas desenvolvedores podem editar a estrutura de páginas' }
+  }
 
   try {
     const page = await db.page.findUnique({

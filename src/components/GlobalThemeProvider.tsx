@@ -7,33 +7,44 @@ interface GlobalThemeProviderProps {
   children: React.ReactNode
 }
 
+function updateFavicon(isDark: boolean) {
+  let link = document.querySelector('link[rel="icon"]') as HTMLLinkElement
+
+  if (!link) {
+    link = document.createElement('link')
+    link.rel = 'icon'
+    link.type = 'image/png'
+    document.head.appendChild(link)
+  }
+
+  link.href = isDark ? '/favicon-white.png' : '/favicon.png'
+}
+
 export function GlobalThemeProvider({ children }: GlobalThemeProviderProps) {
   useEffect(() => {
-    // Função para buscar preferências e aplicar tema
     const applyThemeFromPreferences = async () => {
       try {
         const prefs = await getUserPreferences()
         const isDarkMode = prefs?.darkMode
-        
-        // Sincronizar com localStorage
+
         if (isDarkMode) {
           document.documentElement.classList.add('dark')
           localStorage.setItem('theme', 'dark')
+          updateFavicon(true)
         } else {
           document.documentElement.classList.remove('dark')
           localStorage.setItem('theme', 'light')
+          updateFavicon(false)
         }
       } catch (error) {
         console.error('Erro ao carregar preferências de tema:', error)
       }
     }
 
-    // Aplicar tema imediatamente
     applyThemeFromPreferences()
-    
-    // Sincronizar preferências periodicamente (para múltiplos dispositivos)
-    const interval = setInterval(applyThemeFromPreferences, 30000) // 30 segundos
-    
+
+    const interval = setInterval(applyThemeFromPreferences, 30000)
+
     return () => clearInterval(interval)
   }, [])
 

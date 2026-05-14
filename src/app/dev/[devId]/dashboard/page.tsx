@@ -1,10 +1,27 @@
 import Link from 'next/link'
-import { Building2, Users, ChevronRight } from 'lucide-react'
+import { Building2, Users, ChevronRight, Globe, Activity, FolderKanban } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getRecentCompanies } from '@/modules/dev/queries/getRecentCompanies'
 import { getRecentUsers } from '@/modules/dev/queries/getRecentUsers'
+import { getRecentProjects } from '@/modules/dev/queries/getRecentProjects'
+import { getDevStats } from '@/modules/dev/queries/getDevStats'
 import { formatDate } from '@/lib/utils'
 
 export const metadata = { title: 'Dev Dashboard — Janus' }
+
+function formatRelative(date: Date): string {
+  const now = new Date()
+  const diff = now.getTime() - new Date(date).getTime()
+  const minutes = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+
+  if (minutes < 1) return 'agora mesmo'
+  if (minutes < 60) return `${minutes}min atrás`
+  if (hours < 24) return `${hours}h atrás`
+  if (days === 1) return 'ontem'
+  return `${days} dias atrás`
+}
 
 export default async function DevDashboardPage({
   params,
@@ -12,25 +29,94 @@ export default async function DevDashboardPage({
   params: Promise<{ devId: string }>
 }) {
   const { devId } = await params
-  const [companies, users] = await Promise.all([
-    getRecentCompanies(3),
-    getRecentUsers(3),
+
+  const [stats, companies, users, projects] = await Promise.all([
+    getDevStats(devId),
+    getRecentCompanies(5),
+    getRecentUsers(5),
+    getRecentProjects(5),
   ])
+
+  const lastActivity = projects[0]?.updatedAt
 
   return (
     <div className="p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-brand-text">Dev Dashboard</h1>
-        <p className="text-sm text-brand-muted mt-1">Visão geral do sistema</p>
+        <p className="text-sm text-brand-muted mt-1">Centro de comando — visão geral do sistema</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-brand-muted">Empresas Ativas</CardTitle>
+            <Building2 className="w-4 h-4 text-brand-primary" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-brand-text">{stats.totalCompanies}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-brand-muted">Usuários Gerenciados</CardTitle>
+            <Users className="w-4 h-4 text-brand-primary" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-brand-text">{stats.totalUsers}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-brand-muted">Projetos no Ar</CardTitle>
+            <Globe className="w-4 h-4 text-brand-primary" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-brand-text">{stats.totalProjects}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-brand-muted">Atividade Recente</CardTitle>
+            <Activity className="w-4 h-4 text-brand-primary" />
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-bold text-brand-text truncate">
+              {lastActivity ? formatRelative(lastActivity) : '—'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-card rounded-xl border border-border">
-          <div className="p-5 border-b border-border flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-brand-primary" />
-              <h2 className="text-sm font-semibold text-brand-text">Últimas Empresas</h2>
-            </div>
+          <div className="p-5 border-b border-border flex items-center gap-2">
+            <FolderKanban className="w-4 h-4 text-brand-primary" />
+            <h2 className="text-sm font-semibold text-brand-text">Últimos Projetos</h2>
+          </div>
+          <div className="divide-y divide-border">
+            {projects.length === 0 && (
+              <p className="p-5 text-sm text-brand-muted">Nenhum projeto encontrado.</p>
+            )}
+            {projects.map((project) => (
+              <div key={project.id} className="p-4 hover:bg-brand-btn-light/30 transition">
+                <p className="text-sm font-medium text-brand-text truncate">{project.name}</p>
+                <p className="text-xs text-brand-muted mt-0.5">
+                  <span className="text-brand-primary">{project.company.name}</span>
+                  {' · '}
+                  {formatRelative(project.updatedAt)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-card rounded-xl border border-border">
+          <div className="p-5 border-b border-border flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-brand-primary" />
+            <h2 className="text-sm font-semibold text-brand-text">Últimas Empresas</h2>
           </div>
           <div className="divide-y divide-border">
             {companies.length === 0 && (
@@ -61,11 +147,9 @@ export default async function DevDashboardPage({
         </div>
 
         <div className="bg-card rounded-xl border border-border">
-          <div className="p-5 border-b border-border flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-brand-primary" />
-              <h2 className="text-sm font-semibold text-brand-text">Últimos Usuários</h2>
-            </div>
+          <div className="p-5 border-b border-border flex items-center gap-2">
+            <Users className="w-4 h-4 text-brand-primary" />
+            <h2 className="text-sm font-semibold text-brand-text">Últimos Usuários</h2>
           </div>
           <div className="divide-y divide-border">
             {users.length === 0 && (

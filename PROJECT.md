@@ -321,6 +321,12 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-13 | `src/modules/admin/actions/updateProjectBlogEnabled.ts` | FEAT: Action para dev ativar/desativar blog em projetos |
 | 2026-05-13 | `src/components/dev/ProjectsBlogModal.tsx` | FEAT: Modal para dev gerenciar blog de múltiplos projetos de uma empresa |
 | 2026-05-13 | `src/app/dev/[devId]/dashboard/companies/CompaniesClient.tsx` | FEAT: Integrado botão BookOpen para abrir ProjectsBlogModal |
+| 2026-05-13 | `src/lib/auth.config.ts` | FEAT: Impersonation — ADMIN pode acessar rotas /dev/[devId]/dashboard |
+| 2026-05-13 | `src/app/[companySlug]/dashboard/layout.tsx` | FEAT: Impersonation — bypass ADMIN + banner "Modo Administrador" com link Voltar |
+| 2026-05-13 | `src/app/dev/[devId]/dashboard/layout.tsx` | FEAT: Impersonation — bypass ADMIN + banner com nome do dev + link Voltar |
+| 2026-05-13 | `src/modules/projects/actions/*.ts` (8 actions) | FEAT: Impersonation — ADMIN bypassa checks de companySlug em todas as actions |
+| 2026-05-13 | `src/app/dashboard-admin/companies/AdminCompaniesClient.tsx` | FEAT: Botão "Acessar Painel" (LayoutDashboard) na coluna Ações, mesmo tab |
+| 2026-05-13 | `src/app/dashboard-admin/developers/AdminDevelopersClient.tsx` | FEAT: Coluna Ações com botão "Acessar Painel Dev" (LayoutDashboard), mesmo tab |
 | 2026-05-13 | `src/app/[companySlug]/dashboard/**` | FIX: Botões CTA primários migrados para `bg-brand-cta hover:bg-brand-cta-hover` (skill ui-design) |
 | 2026-05-13 | `src/components/projects/CreateProjectModal.tsx` + `CreatePageModal.tsx` | FIX: Botões submit criar agora usam `bg-brand-cta` |
 | 2026-05-13 | `src/components/projects/EditPageModal.tsx` | FIX: Botão Salvar agora usa `bg-brand-cta` |

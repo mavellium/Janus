@@ -21,11 +21,28 @@ interface DevSidebarProps {
 export function DevSidebar({ email, image, devId, embedded = false }: DevSidebarProps) {
   const [collapsedState, setCollapsedState] = useState(false)
   const collapsed = embedded ? false : collapsedState
+  const [isDark, setIsDark] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
     document.documentElement.style.setProperty('--sidebar-width', collapsed ? '80px' : '220px')
   }, [collapsed])
+
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    }
+
+    checkDarkMode()
+
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    })
+
+    return () => observer.disconnect()
+  }, [])
 
   const NAV_ITEMS = [
     { label: 'Dashboard', href: `/dev/${devId}/dashboard`, icon: LayoutDashboard },
@@ -75,7 +92,7 @@ export function DevSidebar({ email, image, devId, embedded = false }: DevSidebar
           title="Dev Dashboard"
         >
           <Image
-            src="/janus-logo.svg"
+            src={isDark ? '/janus-logo-white.svg' : '/janus-logo.svg'}
             alt="Janus"
             width={90}
             height={90}
@@ -83,7 +100,7 @@ export function DevSidebar({ email, image, devId, embedded = false }: DevSidebar
             style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'contain', opacity: collapsed ? 0 : 1, transition: 'opacity 200ms ease' }}
           />
           <Image
-            src="/logo-min.svg"
+            src={isDark ? '/janus-logo-min-white.svg' : '/logo-min.svg'}
             alt="Janus"
             width={36}
             height={36}

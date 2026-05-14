@@ -25,6 +25,7 @@ interface SidebarProps {
 export function Sidebar({ email, image, initialCollapsed, companyName, embedded = false }: SidebarProps) {
   const [collapsedState, setCollapsedState] = useState(embedded ? false : initialCollapsed)
   const collapsed = embedded ? false : collapsedState
+  const [isDark, setIsDark] = useState(false)
   const [, startTransition] = useTransition()
   const params = useParams()
   const pathname = usePathname()
@@ -35,6 +36,22 @@ export function Sidebar({ email, image, initialCollapsed, companyName, embedded 
   useEffect(() => {
     document.documentElement.style.setProperty('--sidebar-width', collapsed ? '80px' : '220px')
   }, [collapsed])
+
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    }
+
+    checkDarkMode()
+
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    })
+
+    return () => observer.disconnect()
+  }, [])
 
   const userName = email.split('@')[0]
 
@@ -169,7 +186,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName, embedded 
           title="Dashboard"
         >
           <Image
-            src="/janus-logo.svg"
+            src={isDark ? '/janus-logo-white.svg' : '/janus-logo.svg'}
             alt="Janus"
             width={90}
             height={90}
@@ -177,7 +194,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName, embedded 
             style={{ position: 'absolute', width: '100%', height: '100%', objectFit: 'contain', opacity: collapsed ? 0 : 1, transition: 'opacity 200ms ease' }}
           />
           <Image
-            src="/logo-min.svg"
+            src={isDark ? '/janus-logo-min-white.svg' : '/logo-min.svg'}
             alt="Janus"
             width={36}
             height={36}

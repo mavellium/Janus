@@ -17,6 +17,9 @@ export async function createPage({ projectId, name, slug, companySlug, previewUr
   if (!session?.user?.id) {
     return { ok: false, error: 'Não autenticado' }
   }
+  if (session.user.role !== 'DEVELOPER') {
+    return { ok: false, error: 'Apenas desenvolvedores podem criar páginas estruturais' }
+  }
 
   const trimmedName = name.trim()
   const trimmedSlug = slug.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')

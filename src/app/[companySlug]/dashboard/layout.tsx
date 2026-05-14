@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/dashboard/Sidebar'
 import { MobileNav } from '@/components/dashboard/MobileNav'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import type { UserPreferences } from '@/types/next-auth'
+import Link from 'next/link'
 
 export default async function DashboardLayout({
   children,
@@ -23,7 +24,9 @@ export default async function DashboardLayout({
 
   if (!company) redirect('/login')
 
-  if (session.user.role !== 'DEVELOPER' && session.user.companySlug !== companySlug) {
+  const isAdmin = session.user.role === 'ADMIN'
+
+  if (!isAdmin && session.user.role !== 'DEVELOPER' && session.user.companySlug !== companySlug) {
     redirect(`/${session.user.companySlug}/dashboard`)
   }
 
@@ -52,7 +55,17 @@ export default async function DashboardLayout({
             embedded
           />
         </MobileNav>
-        <main className="flex-1 h-full pt-14 md:pt-0 md:ml-[var(--sidebar-width,220px)] overflow-x-hidden">{children}</main>
+        <main className="flex-1 h-full pt-14 md:pt-0 md:ml-[var(--sidebar-width,220px)] overflow-x-hidden">
+          {isAdmin && (
+            <div className="sticky top-0 z-50 w-full bg-destructive text-destructive-foreground px-4 py-2 flex items-center justify-between text-sm font-medium shadow-md">
+              <span>Modo Administrador: Visualizando {company.name}</span>
+              <Link href="/dashboard-admin" className="underline underline-offset-2 hover:opacity-80 transition">
+                Voltar ao Admin
+              </Link>
+            </div>
+          )}
+          {children}
+        </main>
       </div>
     </ThemeProvider>
   )

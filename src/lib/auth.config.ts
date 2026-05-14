@@ -34,8 +34,8 @@ export const authConfig = {
       const devMatch = nextUrl.pathname.match(/^\/dev\/([^/]+)\/dashboard/)
       if (devMatch) {
         if (!isLoggedIn) return NextResponse.redirect(new URL('/login', nextUrl))
-        if (!isDeveloper) return NextResponse.redirect(new URL(`/${slug}/dashboard`, nextUrl))
-        if (devMatch[1] !== userId) {
+        if (!isDeveloper && !isAdmin) return NextResponse.redirect(new URL(`/${slug}/dashboard`, nextUrl))
+        if (!isAdmin && devMatch[1] !== userId) {
           return NextResponse.redirect(new URL(`/dev/${userId}/dashboard`, nextUrl))
         }
         return true

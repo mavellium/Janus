@@ -14,6 +14,7 @@ export default async function SiteSchemaBuilderPage({
   const { companySlug, siteId, pageId } = await params
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
+  if (session.user.role !== 'DEVELOPER') redirect(`/${companySlug}/dashboard/sites/${siteId}/pages`)
 
   const company = await db.company.findUnique({
     where: { slug: companySlug, deletedAt: null },

@@ -28,7 +28,7 @@ export async function createProject({
       return { ok: false, error: 'Empresa não encontrada' }
     }
 
-    if (company.slug !== session.user.companySlug) {
+    if (company.slug !== session.user.companySlug && session.user.role !== 'ADMIN') {
       return { ok: false, error: 'Acesso negado' }
     }
 

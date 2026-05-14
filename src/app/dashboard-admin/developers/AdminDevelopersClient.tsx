@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useState, useEffect } from 'react'
-import { Code2, Plus, Loader2, UserCircle, CheckCircle2, Clock } from 'lucide-react'
+import { Code2, Plus, Loader2, UserCircle, CheckCircle2, Clock, LayoutDashboard } from 'lucide-react'
 import { createDeveloper } from '@/modules/admin/actions/createDeveloper'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -106,8 +106,8 @@ export function AdminDevelopersClient({
               <tr className="border-b border-border">
                 <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Desenvolvedor</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Senha</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Painel</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">Criado em</th>
+                <th className="px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -134,18 +134,19 @@ export function AdminDevelopersClient({
                       )}
                     </div>
                   </td>
-                  <td className="px-5 py-4">
-                    <a
-                      href={`/dev/${dev.id}/dashboard`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-brand-primary hover:underline"
-                    >
-                      /dev/{dev.id.slice(0, 8)}…
-                    </a>
-                  </td>
                   <td className="px-5 py-4 text-sm text-brand-muted">
                     {new Date(dev.createdAt).toLocaleDateString('pt-BR')}
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center justify-end gap-1">
+                      <a
+                        href={`/dev/${dev.id}/dashboard`}
+                        className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
+                        title="Acessar Painel Dev"
+                      >
+                        <LayoutDashboard className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
                   </td>
                 </tr>
               ))}

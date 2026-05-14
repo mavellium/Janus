@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useState, useTransition } from 'react'
-import { Building2, Pencil, Trash2, ExternalLink, Plus, Loader2, Code2, Copy, CheckCircle2 } from 'lucide-react'
+import { Building2, Pencil, Trash2, LayoutDashboard, Plus, Loader2, Code2, Copy, CheckCircle2 } from 'lucide-react'
 import { adminCreateCompany } from '@/modules/admin/actions/adminCreateCompany'
 import { adminEditCompany } from '@/modules/admin/actions/adminEditCompany'
 import { adminDeleteCompany } from '@/modules/admin/actions/adminDeleteCompany'
@@ -295,12 +295,10 @@ export function AdminCompaniesClient({ companies }: { companies: Company[] }) {
                       )}
                       <a
                         href={`/${company.slug}/dashboard`}
-                        target="_blank"
-                        rel="noopener noreferrer"
                         className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
-                        title="Acessar empresa"
+                        title="Acessar Painel"
                       >
-                        <ExternalLink className="w-3.5 h-3.5" />
+                        <LayoutDashboard className="w-3.5 h-3.5" />
                       </a>
                       <button
                         onClick={() => setModal({ mode: 'edit', company })}

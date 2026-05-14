@@ -31,6 +31,7 @@ export default async function LandingPagePagesPage({
   if (!project) redirect(`/${companySlug}/dashboard/landing-pages`)
 
   const pages = await getPagesByProjectId(lpId)
+  const isDevOrAdmin = session.user.role === 'DEVELOPER'
 
   return (
     <div className="p-8 w-full">
@@ -43,7 +44,7 @@ export default async function LandingPagePagesPage({
             {pages.length} {pages.length === 1 ? 'página' : 'páginas'}
           </p>
         </div>
-        <CreatePageModal projectId={lpId} companySlug={companySlug} />
+        {isDevOrAdmin && <CreatePageModal projectId={lpId} companySlug={companySlug} />}
       </div>
 
       <div className="bg-card rounded-xl border border-brand-btn-light overflow-x-auto">
@@ -62,28 +63,32 @@ export default async function LandingPagePagesPage({
               </div>
               <div className="flex flex-wrap gap-2">
                 <PublishPageButton pageId={page.id} initialPublished={page.isPublished} />
-                <EditPageContainer
-                  pageId={page.id}
-                  initialName={page.name}
-                  initialSlug={page.slug}
-                  initialPreviewUrl={page.previewUrl ?? undefined}
-                  projectId={lpId}
-                  trigger={
-                    <button
-                      className="px-3 py-2 rounded-lg text-sm font-semibold transition border border-brand-btn-light text-brand-text hover:bg-brand-btn-light/40 flex items-center gap-2"
-                    >
-                      <Settings className="w-4 h-4" />
-                      Configurações
-                    </button>
-                  }
-                />
-                <Link
-                  href={`/${companySlug}/dashboard/landing-pages/${lpId}/pages/${page.id}/builder`}
-                  className="px-3 py-2 rounded-lg text-sm font-semibold transition border border-brand-btn-light text-brand-text hover:bg-brand-btn-light/40 flex items-center gap-2"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Construir
-                </Link>
+                {isDevOrAdmin && (
+                  <EditPageContainer
+                    pageId={page.id}
+                    initialName={page.name}
+                    initialSlug={page.slug}
+                    initialPreviewUrl={page.previewUrl ?? undefined}
+                    projectId={lpId}
+                    trigger={
+                      <button
+                        className="px-3 py-2 rounded-lg text-sm font-semibold transition border border-brand-btn-light text-brand-text hover:bg-brand-btn-light/40 flex items-center gap-2"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Configurações
+                      </button>
+                    }
+                  />
+                )}
+                {isDevOrAdmin && (
+                  <Link
+                    href={`/${companySlug}/dashboard/landing-pages/${lpId}/pages/${page.id}/builder`}
+                    className="px-3 py-2 rounded-lg text-sm font-semibold transition border border-brand-btn-light text-brand-text hover:bg-brand-btn-light/40 flex items-center gap-2"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Construir
+                  </Link>
+                )}
                 <Link
                   href={`/${companySlug}/dashboard/landing-pages/${lpId}/pages/${page.id}/edit`}
                   className="px-3 py-2 rounded-lg text-sm font-semibold text-white transition flex items-center gap-2 bg-brand-primary hover:bg-brand-hover"

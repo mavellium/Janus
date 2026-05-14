@@ -24,7 +24,7 @@ export async function togglePagePublish({ pageId, isPublished }: TogglePagePubli
       return { ok: false, error: 'Página não encontrada' }
     }
 
-    if (page.project.company.slug !== session.user.companySlug) {
+    if (page.project.company.slug !== session.user.companySlug && session.user.role !== 'ADMIN') {
       return { ok: false, error: 'Acesso negado' }
     }
 

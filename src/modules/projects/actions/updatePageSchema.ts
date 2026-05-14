@@ -14,6 +14,9 @@ export async function updatePageSchema({ pageId, schemaJson }: UpdatePageSchemaP
   if (!session?.user?.id) {
     return { ok: false, error: 'Não autenticado' }
   }
+  if (session.user.role !== 'DEVELOPER') {
+    return { ok: false, error: 'Apenas desenvolvedores podem editar o schema de páginas' }
+  }
 
   let parsed: unknown
   try {

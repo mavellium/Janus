@@ -32,7 +32,7 @@ export async function updateProject({
       return { ok: false, error: 'Projeto não encontrado' }
     }
 
-    if (project.company.slug !== session.user.companySlug || project.company.slug !== companySlug) {
+    if (session.user.role !== 'ADMIN' && (project.company.slug !== session.user.companySlug || project.company.slug !== companySlug)) {
       return { ok: false, error: 'Acesso negado' }
     }
 
