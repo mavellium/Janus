@@ -57,7 +57,7 @@ export function EditProjectModal({
   function handleBlogToggle(value: boolean) {
     setBlogEnabled(value)
     startTransition(async () => {
-      await toggleBlogEnabled(projectId, value)
+      await toggleBlogEnabled(projectId, companySlug, value)
     })
   }
 

@@ -25,9 +25,10 @@ export default async function PreviewPage({
     redirect('/404')
   }
 
+  const isAdmin = session?.user?.role === 'ADMIN'
   const isOwner = session?.user?.companySlug === companySlug
 
-  if (!page.isPublished && !isOwner) {
+  if (!page.isPublished && !isOwner && !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-brand-bg">
         <div className="text-center">

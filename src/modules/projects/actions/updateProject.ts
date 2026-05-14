@@ -23,17 +23,24 @@ export async function updateProject({
   }
 
   try {
+    const company = await db.company.findUnique({
+      where: { slug: companySlug, deletedAt: null },
+    })
+
+    if (!company) {
+      return { ok: false, error: 'Empresa não encontrada' }
+    }
+
+    if (session.user.role !== 'ADMIN' && session.user.companySlug !== companySlug) {
+      return { ok: false, error: 'Acesso negado' }
+    }
+
     const project = await db.project.findUnique({
-      where: { id: projectId },
-      include: { company: true },
+      where: { id: projectId, companyId: company.id, deletedAt: null },
     })
 
     if (!project) {
       return { ok: false, error: 'Projeto não encontrado' }
-    }
-
-    if (session.user.role !== 'ADMIN' && (project.company.slug !== session.user.companySlug || project.company.slug !== companySlug)) {
-      return { ok: false, error: 'Acesso negado' }
     }
 
     const updated = await db.project.update({

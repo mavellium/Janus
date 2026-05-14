@@ -26,6 +26,7 @@ interface Tag {
 
 interface PostEditorClientProps {
   projectId: string
+  companySlug: string
   basePath: string
   authorName: string
   categories: Category[]
@@ -48,6 +49,7 @@ interface PostEditorClientProps {
 
 export function PostEditorClient({
   projectId,
+  companySlug,
   basePath,
   authorName,
   categories,
@@ -122,7 +124,8 @@ export function PostEditorClient({
 
       <form id="post-form" action={formAction} className="flex-1 overflow-y-auto">
         {post && <input type="hidden" name="id" value={post.id} />}
-        {!post && <input type="hidden" name="projectId" value={projectId} />}
+        <input type="hidden" name="projectId" value={projectId} />
+        <input type="hidden" name="companySlug" value={companySlug} />
         <input type="hidden" name="body" value={body} />
         <input type="hidden" name="coverImageUrl" value={coverImageUrl} />
         {selectedTagIds.map(id => (

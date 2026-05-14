@@ -1,8 +1,9 @@
 'use client'
 
-import { useActionState, useState, useTransition } from 'react'
+import Link from 'next/link'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Building2, Pencil, Trash2, LayoutDashboard, Plus, Loader2, Code2, Copy, CheckCircle2 } from 'lucide-react'
+import { Building2, Pencil, Trash2, LayoutDashboard, Plus, Loader2, UsersRound } from 'lucide-react'
 import { adminCreateCompany } from '@/modules/admin/actions/adminCreateCompany'
 import { adminEditCompany } from '@/modules/admin/actions/adminEditCompany'
 import { adminDeleteCompany } from '@/modules/admin/actions/adminDeleteCompany'
@@ -34,10 +35,25 @@ function CompanyFormModal({
   company?: Company
   onClose: () => void
 }) {
+  const router = useRouter()
   const action = mode === 'create' ? adminCreateCompany : adminEditCompany
-  const [state, formAction, isPending] = useActionState(action, { ok: false })
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
-  if (state.ok) onClose()
+  function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    setError(null)
+    startTransition(async () => {
+      const result = await action({ ok: false }, formData)
+      if (!result.ok) {
+        setError(result.error ?? 'Erro desconhecido.')
+      } else {
+        router.refresh()
+        onClose()
+      }
+    })
+  }
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -49,7 +65,7 @@ function CompanyFormModal({
           </DialogTitle>
         </DialogHeader>
 
-        <form action={formAction} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {mode === 'edit' && <input type="hidden" name="id" value={company?.id} />}
 
           <div className="flex flex-col gap-1.5">
@@ -74,9 +90,9 @@ function CompanyFormModal({
             <Input name="description" defaultValue={company?.description ?? ''} placeholder="Descrição da empresa" />
           </div>
 
-          {state.error && (
+          {error && (
             <p className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-lg border border-destructive/20">
-              {state.error}
+              {error}
             </p>
           )}
 
@@ -111,89 +127,10 @@ function GuestModeSwitch({ company }: { company: Company }) {
   )
 }
 
-function GuestEndpointModal({ onClose }: { onClose: () => void }) {
-  const [copied, setCopied] = useState(false)
-
-  const endpoint = '/api/v1/admin/guests'
-  const fullUrl = typeof window !== 'undefined' ? `${window.location.origin}${endpoint}` : endpoint
-
-  function handleCopy() {
-    navigator.clipboard.writeText(fullUrl)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="text-brand-text flex items-center gap-2">
-            <Code2 className="w-4 h-4 text-brand-primary" />
-            Endpoint de Convidados
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-4">
-          <div className="bg-brand-btn-light/30 rounded-lg p-4 border border-border">
-            <p className="text-xs text-brand-muted mb-2 uppercase font-semibold">Endpoint</p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 text-sm text-brand-primary font-mono bg-brand-bg p-3 rounded border border-border">
-                GET {endpoint}
-              </code>
-              <button
-                onClick={handleCopy}
-                className="p-2 rounded hover:bg-brand-btn-light transition"
-                title="Copiar"
-              >
-                {copied ? (
-                  <CheckCircle2 className="w-4 h-4 text-green-600" />
-                ) : (
-                  <Copy className="w-4 h-4 text-brand-muted" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-brand-btn-light/30 rounded-lg p-4 border border-border">
-            <p className="text-xs text-brand-muted mb-2 uppercase font-semibold">Estrutura da Resposta</p>
-            <code className="block text-xs text-brand-text font-mono bg-brand-bg p-3 rounded border border-border overflow-auto max-h-40">
-{`{
-  "ok": true,
-  "data": [
-    {
-      "id": "uuid",
-      "name": "João Silva",
-      "email": "joao@example.com",
-      "company": { "id", "name", "slug" },
-      "posts": [
-        {
-          "id": "uuid",
-          "title": "Título",
-          "message": "Mensagem...",
-          "imageUrl": "https://...",
-          "createdAt": "2026-05-13T..."
-        }
-      ],
-      "createdAt": "2026-05-13T..."
-    }
-  ]
-}`}
-            </code>
-          </div>
-
-          <div className="flex justify-end">
-            <Button onClick={onClose}>Fechar</Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  )
-}
 
 export function AdminCompaniesClient({ companies }: { companies: Company[] }) {
   const router = useRouter()
   const [modal, setModal] = useState<null | 'create' | { mode: 'edit'; company: Company } | { mode: 'delete'; company: Company }>(null)
-  const [showEndpoint, setShowEndpoint] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
   async function handleDelete(id: string) {
@@ -267,21 +204,21 @@ export function AdminCompaniesClient({ companies }: { companies: Company[] }) {
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-1">
                       {company.guestModeEnabled && (
-                        <button
-                          onClick={() => setShowEndpoint(true)}
+                        <Link
+                          href={`/dashboard-admin/companies/${company.id}/guests`}
                           className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
-                          title="Ver endpoint de convidados"
+                          title="Gerenciar convidados"
                         >
-                          <Code2 className="w-3.5 h-3.5" />
-                        </button>
+                          <UsersRound className="w-3.5 h-3.5" />
+                        </Link>
                       )}
-                      <a
+                      <Link
                         href={`/${company.slug}/dashboard`}
                         className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
                         title="Acessar Painel"
                       >
                         <LayoutDashboard className="w-3.5 h-3.5" />
-                      </a>
+                      </Link>
                       <button
                         onClick={() => setModal({ mode: 'edit', company })}
                         className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
@@ -320,9 +257,6 @@ export function AdminCompaniesClient({ companies }: { companies: Company[] }) {
           isDeleting={isDeleting}
           description={`Esta ação excluirá permanentemente "${modal.company.name}" e todos os projetos, páginas e usuários associados.`}
         />
-      )}
-      {showEndpoint && (
-        <GuestEndpointModal onClose={() => setShowEndpoint(false)} />
       )}
     </div>
   )

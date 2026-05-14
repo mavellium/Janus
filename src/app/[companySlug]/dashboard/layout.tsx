@@ -26,8 +26,8 @@ export default async function DashboardLayout({
 
   const isAdmin = session.user.role === 'ADMIN'
 
-  if (!isAdmin && session.user.role !== 'DEVELOPER' && session.user.companySlug !== companySlug) {
-    redirect(`/${session.user.companySlug}/dashboard`)
+  if (!isAdmin && session.user.companySlug !== companySlug) {
+    redirect('/login')
   }
 
   const user = await db.user.findUnique({

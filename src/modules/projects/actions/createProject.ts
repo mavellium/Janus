@@ -21,14 +21,14 @@ export async function createProject({
 
   try {
     const company = await db.company.findUnique({
-      where: { slug: companySlug },
+      where: { slug: companySlug, deletedAt: null },
     })
 
     if (!company) {
       return { ok: false, error: 'Empresa não encontrada' }
     }
 
-    if (company.slug !== session.user.companySlug && session.user.role !== 'ADMIN') {
+    if (session.user.role !== 'ADMIN' && session.user.companySlug !== companySlug) {
       return { ok: false, error: 'Acesso negado' }
     }
 

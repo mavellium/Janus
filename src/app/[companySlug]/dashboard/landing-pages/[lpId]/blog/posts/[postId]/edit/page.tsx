@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
+import { db } from '@/lib/prisma'
 import { getBlogPost } from '@/modules/blog/queries/getBlogPost'
 import { getBlogCategories } from '@/modules/blog/queries/getBlogCategories'
 import { getBlogTags } from '@/modules/blog/queries/getBlogTags'
@@ -16,6 +17,11 @@ export default async function LpEditPostPage({
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
+  const company = await db.company.findUnique({
+    where: { slug: companySlug, deletedAt: null },
+  })
+  if (!company) redirect('/login')
+
   const [post, categories, tags] = await Promise.all([
     getBlogPost(postId),
     getBlogCategories(lpId),
@@ -24,12 +30,18 @@ export default async function LpEditPostPage({
 
   if (!post || post.projectId !== lpId) redirect(`/${companySlug}/dashboard/landing-pages/${lpId}/blog/posts`)
 
+  const project = await db.project.findUnique({
+    where: { id: lpId, companyId: company.id },
+  })
+  if (!project) redirect(`/${companySlug}/dashboard/landing-pages`)
+
   const basePath = `/${companySlug}/dashboard/landing-pages/${lpId}`
   const authorName = session.user.name ?? session.user.email ?? ''
 
   return (
     <PostEditorClient
       projectId={lpId}
+      companySlug={companySlug}
       basePath={basePath}
       authorName={authorName}
       categories={categories}

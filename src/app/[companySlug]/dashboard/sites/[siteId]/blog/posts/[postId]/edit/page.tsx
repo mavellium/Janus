@@ -17,6 +17,11 @@ export default async function SiteEditPostPage({
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
+  const company = await db.company.findUnique({
+    where: { slug: companySlug, deletedAt: null },
+  })
+  if (!company) redirect('/login')
+
   const [post, categories, tags] = await Promise.all([
     getBlogPost(postId),
     getBlogCategories(siteId),
@@ -25,12 +30,18 @@ export default async function SiteEditPostPage({
 
   if (!post || post.projectId !== siteId) redirect(`/${companySlug}/dashboard/sites/${siteId}/blog/posts`)
 
+  const project = await db.project.findUnique({
+    where: { id: siteId, companyId: company.id },
+  })
+  if (!project) redirect(`/${companySlug}/dashboard/sites`)
+
   const basePath = `/${companySlug}/dashboard/sites/${siteId}`
   const authorName = session.user.name ?? session.user.email ?? ''
 
   return (
     <PostEditorClient
       projectId={siteId}
+      companySlug={companySlug}
       basePath={basePath}
       authorName={authorName}
       categories={categories}

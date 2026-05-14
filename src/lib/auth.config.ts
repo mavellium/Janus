@@ -47,7 +47,7 @@ export const authConfig = {
           const pathCompanySlug = nextUrl.pathname.split('/')[1]
           return NextResponse.redirect(new URL(`/${pathCompanySlug}/welcome`, nextUrl))
         }
-        if (isDeveloper) return true
+        if (isDeveloper || isAdmin) return true
         const pathCompanySlug = nextUrl.pathname.split('/')[1]
         if (slug && pathCompanySlug !== slug) {
           return NextResponse.redirect(new URL(`/${slug}/dashboard`, nextUrl))

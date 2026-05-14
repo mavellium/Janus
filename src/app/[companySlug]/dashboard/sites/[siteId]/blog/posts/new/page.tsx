@@ -16,8 +16,13 @@ export default async function SiteNewPostPage({
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
+  const company = await db.company.findUnique({
+    where: { slug: companySlug, deletedAt: null },
+  })
+  if (!company) redirect('/login')
+
   const project = await db.project.findUnique({
-    where: { id: siteId, deletedAt: null },
+    where: { id: siteId, companyId: company.id, deletedAt: null },
     select: { blogEnabled: true },
   })
   if (!project?.blogEnabled) redirect(`/${companySlug}/dashboard/sites/${siteId}/pages`)
@@ -33,6 +38,7 @@ export default async function SiteNewPostPage({
   return (
     <PostEditorClient
       projectId={siteId}
+      companySlug={companySlug}
       basePath={basePath}
       authorName={authorName}
       categories={categories}

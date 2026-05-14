@@ -1,9 +1,10 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Users, Plus, Loader2, UserCircle, CheckCircle2, Clock, Trash2 } from 'lucide-react'
+import { Users, Plus, Loader2, UserCircle, CheckCircle2, Clock, Trash2, Pencil } from 'lucide-react'
 import { adminCreateUser } from '@/modules/admin/actions/adminCreateUser'
+import { adminEditUser } from '@/modules/admin/actions/adminEditUser'
 import { adminDeleteUser } from '@/modules/admin/actions/adminDeleteUser'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,11 +36,28 @@ interface User {
 }
 
 function CreateUserModal({ companies, onClose }: { companies: Company[]; onClose: () => void }) {
-  const [state, formAction, isPending] = useActionState(adminCreateUser, { ok: false })
+  const router = useRouter()
   const [companyId, setCompanyId] = useState('')
   const [role, setRole] = useState('DEFAULT')
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
-  if (state.ok) onClose()
+  function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    formData.set('companyId', companyId)
+    formData.set('role', role)
+    setError(null)
+    startTransition(async () => {
+      const result = await adminCreateUser({ ok: false }, formData)
+      if (!result.ok) {
+        setError(result.error ?? 'Erro desconhecido.')
+      } else {
+        router.refresh()
+        onClose()
+      }
+    })
+  }
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -51,10 +69,7 @@ function CreateUserModal({ companies, onClose }: { companies: Company[]; onClose
           </DialogTitle>
         </DialogHeader>
 
-        <form action={formAction} className="flex flex-col gap-4">
-          <input type="hidden" name="companyId" value={companyId} />
-          <input type="hidden" name="role" value={role} />
-
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label>Nome</Label>
             <Input name="name" required placeholder="Nome completo" />
@@ -72,7 +87,7 @@ function CreateUserModal({ companies, onClose }: { companies: Company[]; onClose
 
           <div className="flex flex-col gap-1.5">
             <Label>Empresa</Label>
-            <Select onValueChange={setCompanyId}>
+            <Select value={companyId} onValueChange={setCompanyId}>
               <SelectTrigger className="w-full h-9 border-input bg-transparent">
                 <SelectValue placeholder="Selecione uma empresa" />
               </SelectTrigger>
@@ -99,9 +114,9 @@ function CreateUserModal({ companies, onClose }: { companies: Company[]; onClose
             </Select>
           </div>
 
-          {state.error && (
+          {error && (
             <p className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-lg border border-destructive/20">
-              {state.error}
+              {error}
             </p>
           )}
 
@@ -118,6 +133,73 @@ function CreateUserModal({ companies, onClose }: { companies: Company[]; onClose
   )
 }
 
+function EditUserModal({ user, onClose }: { user: User; onClose: () => void }) {
+  const router = useRouter()
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+
+  function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    setError(null)
+    startTransition(async () => {
+      const result = await adminEditUser(formData)
+      if (!result.ok) {
+        setError(result.error ?? 'Erro desconhecido.')
+      } else {
+        router.refresh()
+        onClose()
+      }
+    })
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="bg-card border-border">
+        <DialogHeader>
+          <DialogTitle className="text-brand-text flex items-center gap-2">
+            <UserCircle className="w-4 h-4 text-brand-primary" />
+            Editar Usuário
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <input type="hidden" name="id" value={user.id} />
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Nome</Label>
+            <Input name="name" required defaultValue={user.name ?? ''} placeholder="Nome completo" />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>E-mail</Label>
+            <Input name="email" type="email" required defaultValue={user.email} placeholder="email@exemplo.com" />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Nova senha (opcional)</Label>
+            <Input name="password" type="password" placeholder="Deixe em branco para manter" />
+          </div>
+
+          {error && (
+            <p className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-lg border border-destructive/20">
+              {error}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
+              Salvar
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 const ROLE_LABELS: Record<string, string> = {
   DEFAULT: 'Usuário',
   ADMIN: 'Admin',
@@ -126,7 +208,8 @@ const ROLE_LABELS: Record<string, string> = {
 
 export function AdminUsersClient({ users, companies }: { users: User[]; companies: Company[] }) {
   const router = useRouter()
-  const [showModal, setShowModal] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
+  const [editTarget, setEditTarget] = useState<User | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
@@ -147,7 +230,7 @@ export function AdminUsersClient({ users, companies }: { users: User[]; companie
             {users.length} usuário{users.length !== 1 ? 's' : ''} no sistema
           </p>
         </div>
-        <Button onClick={() => setShowModal(true)}>
+        <Button onClick={() => setShowCreate(true)}>
           <Plus className="w-4 h-4 mr-1.5" />
           Novo Usuário
         </Button>
@@ -212,6 +295,13 @@ export function AdminUsersClient({ users, companies }: { users: User[]; companie
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-1">
                       <button
+                        onClick={() => setEditTarget(user)}
+                        className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
+                        title="Editar"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
                         onClick={() => setDeleteTarget(user)}
                         className="p-1.5 rounded text-brand-muted hover:text-destructive hover:bg-destructive/10 transition"
                         title="Excluir"
@@ -228,7 +318,8 @@ export function AdminUsersClient({ users, companies }: { users: User[]; companie
         )}
       </div>
 
-      {showModal && <CreateUserModal companies={companies} onClose={() => setShowModal(false)} />}
+      {showCreate && <CreateUserModal companies={companies} onClose={() => setShowCreate(false)} />}
+      {editTarget && <EditUserModal user={editTarget} onClose={() => setEditTarget(null)} />}
 
       {deleteTarget && (
         <DeleteAlertModal
