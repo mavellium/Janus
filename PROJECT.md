@@ -631,6 +631,14 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-14 | `src/app/dashboard-admin/developers/AdminDevelopersClient.tsx` | **FIX:** Alterado `<a>` para `<Link>` no botão "Acessar Painel Dev" para melhor navegação client-side |
 | 2026-05-14 | `src/app/[companySlug]/guest/layout.tsx` | **FIX:** Adicionado `md:overflow-y-auto` no main para scrolling adequado em desktop no contexto guest |
 | 2026-05-14 | `src/components/guest/GuestSidebar.tsx` | **FIX:** Removido `display: flex` do style inline quando não embedded; adicionado `flex flex-col` ao className para permitir classe `hidden md:flex` funcionar corretamente no mobile |
+| 2026-05-14 | `src/components/guest/GuestSidebar.tsx` | **FIX:** Adicionado MutationObserver para monitorar dark mode; logo alterna para `janus-logo-white.svg` no dark mode |
+| 2026-05-14 | `src/components/dashboard/MobileNav.tsx` | **FIX:** Adicionado MutationObserver para monitorar dark mode; logo alterna para `janus-logo-white.svg` no dark mode |
+| 2026-05-14 | `next.config.ts` | **FEAT:** Adicionado `serverActions.bodySizeLimit: '100mb'` para aceitar uploads pesados de imagens |
+| 2026-05-14 | `src/modules/upload/actions/uploadImage.ts` | **FEAT:** Removido limite de tamanho de arquivo (maxSize 5MB); permite qualquer tamanho de imagem |
+| 2026-05-14 | `src/modules/upload/actions/uploadMedia.ts` | **FEAT:** Removido limite de tamanho de arquivo (maxSize 200MB vídeo, 5MB imagem); permite qualquer tamanho |
+| 2026-05-14 | `src/components/users/update-avatar-modal.tsx` | **FEAT:** Removido limite de tamanho de arquivo (maxSize 5MB) para avatares |
+| 2026-05-14 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **FEAT:** Adicionado feedback visual "Enviando imagem para a nuvem..." durante upload; botão desabilitado até conclusão |
+| 2026-05-14 | `src/app/[companySlug]/guest/EditPostModal.tsx` | **FEAT:** Desabilitados campos de input enquanto a ação está em progresso para melhor UX |
 
 ---
 

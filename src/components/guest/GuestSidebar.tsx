@@ -2,10 +2,10 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useParams, usePathname } from 'next/navigation'
+import { useParams, usePathname, useRouter } from 'next/navigation'
 import { UserCircle, LogOut, ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 
 interface GuestSidebarProps {
   name: string
@@ -18,6 +18,23 @@ export function GuestSidebar({ name, companyName, embedded = false }: GuestSideb
   const pathname = usePathname()
   const router = useRouter()
   const companySlug = params.companySlug as string
+  const [isDark, setIsDark] = useState(false)
+
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    }
+
+    checkDarkMode()
+
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    })
+
+    return () => observer.disconnect()
+  }, [])
 
   async function handleSignOut() {
     await fetch('/api/guest/signout', { method: 'POST' })
@@ -39,7 +56,7 @@ export function GuestSidebar({ name, companyName, embedded = false }: GuestSideb
       <div style={{ padding: '16px 12px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
         <Link href={galleryHref} style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '90px', height: '40px' }}>
           <Image
-            src="/janus-logo.svg"
+            src={isDark ? '/janus-logo-white.svg' : '/janus-logo.svg'}
             alt="Janus"
             width={90}
             height={40}

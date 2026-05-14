@@ -41,10 +41,6 @@ export function UpdateAvatarModal({ userId, currentImage, onAvatarUpdate }: Upda
         toast({ message: 'O arquivo deve ser uma imagem', type: 'error' })
         return
       }
-      if (file.size > 5 * 1024 * 1024) {
-        toast({ message: 'A imagem deve ter no máximo 5MB', type: 'error' })
-        return
-      }
       setSelectedFile(file)
       const url = URL.createObjectURL(file)
       setPreviewUrl(url)

@@ -18,11 +18,6 @@ export async function uploadMedia({
 
   if (!isImage && !isVideo) return { ok: false, error: 'Tipo de arquivo não suportado' }
 
-  const maxSize = isVideo ? 200 * 1024 * 1024 : 5 * 1024 * 1024
-  if (file.size > maxSize) {
-    return { ok: false, error: isVideo ? 'Vídeo deve ter no máximo 200MB' : 'Imagem deve ter no máximo 5MB' }
-  }
-
   const bunnyHost = process.env.BUNNY_HOST
   const storageZone = process.env.BUNNY_STORAGE_ZONE
   const accessKey = process.env.BUNNY_ACCESS_KEY

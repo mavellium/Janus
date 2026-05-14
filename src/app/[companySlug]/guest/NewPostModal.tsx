@@ -47,7 +47,7 @@ export function NewPostModal({ guestName, companySlug, onClose, onSuccess }: Pro
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label>Título (opcional)</Label>
-                <Input name="title" placeholder="Dê um título para sua foto" />
+                <Input name="title" placeholder="Dê um título para sua foto" disabled={isPending} />
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -56,9 +56,17 @@ export function NewPostModal({ guestName, companySlug, onClose, onSuccess }: Pro
                   name="message"
                   required
                   placeholder="Escreva uma mensagem sobre esta foto..."
-                  className="w-full h-24 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  disabled={isPending}
+                  className="w-full h-24 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
+
+              {isPending && (
+                <p className="text-xs text-brand-primary bg-brand-primary/10 px-3 py-2 rounded-lg border border-brand-primary/20 flex items-center gap-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Enviando imagem para a nuvem... Isso pode levar alguns segundos.
+                </p>
+              )}
 
               {state.error && (
                 <p className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-lg border border-destructive/20">
@@ -67,12 +75,18 @@ export function NewPostModal({ guestName, companySlug, onClose, onSuccess }: Pro
               )}
 
               <div className="flex gap-2 pt-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
+                <Button type="button" variant="outline" className="flex-1" onClick={onClose} disabled={isPending}>
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={isPending} className="flex-1">
-                  {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
-                  Publicar
+                  {isPending ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                      Enviando...
+                    </>
+                  ) : (
+                    'Publicar'
+                  )}
                 </Button>
               </div>
             </div>
@@ -82,7 +96,8 @@ export function NewPostModal({ guestName, companySlug, onClose, onSuccess }: Pro
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="w-full aspect-video rounded-lg border-2 border-dashed border-border hover:border-brand-primary transition flex items-center justify-center bg-brand-btn-light/30"
+                disabled={isPending}
+                className="w-full aspect-video rounded-lg border-2 border-dashed border-border hover:border-brand-primary transition flex items-center justify-center bg-brand-btn-light/30 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {preview ? (
                   <div className="relative w-full h-full">

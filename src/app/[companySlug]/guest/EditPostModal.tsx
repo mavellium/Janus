@@ -48,7 +48,7 @@ export function EditPostModal({ post, companySlug, onClose, onSuccess }: Props) 
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <Label>Título (opcional)</Label>
-                <Input name="title" placeholder="Dê um título para sua foto" defaultValue={post.title || ''} />
+                <Input name="title" placeholder="Dê um título para sua foto" defaultValue={post.title || ''} disabled={isPending} />
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -58,7 +58,8 @@ export function EditPostModal({ post, companySlug, onClose, onSuccess }: Props) 
                   required
                   placeholder="Escreva uma mensagem sobre esta foto..."
                   defaultValue={post.message}
-                  className="w-full h-24 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  disabled={isPending}
+                  className="w-full h-24 px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -69,7 +70,7 @@ export function EditPostModal({ post, companySlug, onClose, onSuccess }: Props) 
               )}
 
               <div className="flex gap-2 pt-2">
-                <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
+                <Button type="button" variant="outline" className="flex-1" onClick={onClose} disabled={isPending}>
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={isPending} className="flex-1">

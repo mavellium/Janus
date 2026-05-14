@@ -16,11 +16,6 @@ export async function uploadImage({ file, folder }: UploadImageParams): Promise<
     return { ok: false, error: 'O arquivo deve ser uma imagem' }
   }
 
-  const maxSize = 5 * 1024 * 1024
-  if (file.size > maxSize) {
-    return { ok: false, error: 'A imagem deve ter no máximo 5MB' }
-  }
-
   try {
     const arrayBuffer = await file.arrayBuffer()
     const avifBuffer = await sharp(Buffer.from(arrayBuffer)).avif({ quality: 80 }).toBuffer()

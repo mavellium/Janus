@@ -14,12 +14,29 @@ interface MobileNavProps {
 
 export function MobileNav({ children, logoHref = '/' }: MobileNavProps) {
   const [open, setOpen] = useState(false)
+  const [isDark, setIsDark] = useState(false)
   const pathname = usePathname()
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen(false)
   }, [pathname])
+
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    }
+
+    checkDarkMode()
+
+    const observer = new MutationObserver(checkDarkMode)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    })
+
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <header className="md:hidden fixed top-0 left-0 right-0 h-14 z-40 flex items-center justify-between px-4 bg-brand-bg border-b border-border">
@@ -40,7 +57,7 @@ export function MobileNav({ children, logoHref = '/' }: MobileNavProps) {
       </Sheet>
       <Link href={logoHref} aria-label="Início">
         <Image
-          src="/janus-logo.svg"
+          src={isDark ? '/janus-logo-white.svg' : '/janus-logo.svg'}
           alt="Janus"
           width={72}
           height={32}

@@ -1,7 +1,17 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   output: "standalone",
+  serverActions: {
+    bodySizeLimit: '500mb',
+    maxDuration: 300,
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '500mb',
+      maxDuration: 300,
+    },
+  },
   images: {
     remotePatterns: [
       {
@@ -10,6 +20,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-};
+} as any satisfies NextConfig;
 
 export default nextConfig;
