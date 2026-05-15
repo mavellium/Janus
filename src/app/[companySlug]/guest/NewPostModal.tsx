@@ -3,7 +3,6 @@
 import { useActionState, useRef, useState, useEffect, useTransition } from 'react'
 import { createGuestPost } from '@/modules/guests/actions/createGuestPost'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Loader2, Upload } from 'lucide-react'
@@ -123,24 +122,14 @@ export function NewPostModal({ guestName, companySlug, onClose, onSuccess }: Pro
       setUploadProgress(100)
       setIsUploading(false)
 
-      const titleInput = formRef.current?.querySelector('input[name="title"]') as HTMLInputElement
       const messageInput = formRef.current?.querySelector('textarea[name="message"]') as HTMLTextAreaElement
       const companySlugInput = formRef.current?.querySelector('input[name="companySlug"]') as HTMLInputElement
 
       const formDataToSubmit = new FormData()
       formDataToSubmit.append('companySlug', companySlugInput?.value || '')
-      formDataToSubmit.append('title', titleInput?.value || '')
       formDataToSubmit.append('message', messageInput?.value || '')
       formDataToSubmit.append('imageUrl', uploadedUrl)
       formDataToSubmit.append('mediaType', uploadedMediaType)
-
-      console.log('Enviando formData:', {
-        companySlug: formDataToSubmit.get('companySlug'),
-        imageUrl: formDataToSubmit.get('imageUrl'),
-        mediaType: formDataToSubmit.get('mediaType'),
-        title: formDataToSubmit.get('title'),
-        message: formDataToSubmit.get('message'),
-      })
 
       await new Promise(resolve => setTimeout(resolve, 300))
 
@@ -230,11 +219,6 @@ export function NewPostModal({ guestName, companySlug, onClose, onSuccess }: Pro
                   {uploadError}
                 </p>
               )}
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label>Título (opcional)</Label>
-              <Input name="title" placeholder="Dê um título para sua foto" disabled={isPending || isUploading || !preview} />
             </div>
 
             <div className="flex flex-col gap-1.5">

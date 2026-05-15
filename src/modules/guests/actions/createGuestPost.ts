@@ -6,7 +6,6 @@ import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 
 const schema = z.object({
-  title: z.string().optional(),
   message: z.string().min(1),
   imageUrl: z.string().url(),
   mediaType: z.enum(['IMAGE', 'VIDEO']).default('IMAGE'),
@@ -18,7 +17,6 @@ export async function createGuestPost(
   formData: FormData
 ) {
   const parsed = schema.safeParse({
-    title: formData.get('title') || undefined,
     message: formData.get('message') || '',
     imageUrl: formData.get('imageUrl') || '',
     mediaType: formData.get('mediaType') || 'IMAGE',
@@ -39,7 +37,6 @@ export async function createGuestPost(
 
   await db.guestPost.create({
     data: {
-      title: parsed.data.title || null,
       message: parsed.data.message,
       imageUrl: parsed.data.imageUrl,
       mediaType: parsed.data.mediaType,
