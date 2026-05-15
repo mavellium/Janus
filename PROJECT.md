@@ -639,6 +639,43 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-14 | `src/components/users/update-avatar-modal.tsx` | **FEAT:** Removido limite de tamanho de arquivo (maxSize 5MB) para avatares |
 | 2026-05-14 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **FEAT:** Adicionado feedback visual "Enviando imagem para a nuvem..." durante upload; botão desabilitado até conclusão |
 | 2026-05-14 | `src/app/[companySlug]/guest/EditPostModal.tsx` | **FEAT:** Desabilitados campos de input enquanto a ação está em progresso para melhor UX |
+| 2026-05-15 | `package.json` | **DEP:** Adicionado `browser-image-compression` (2.0.2) para compressão client-side de imagens |
+| 2026-05-15 | `prisma/schema.prisma` | **FEAT:** Adicionado campo `mediaType` String @default("IMAGE") ao model GuestPost |
+| 2026-05-15 | `prisma/migrations/20260515024918_add_media_type_to_guest_posts` | **MIGRATION:** Adiciona coluna mediaType ao guest_posts com default 'IMAGE' |
+| 2026-05-15 | `src/app/api/upload/route.ts` | **NEW:** API Route handler para upload otimizado — aceita imagem ou vídeo via FormData; comprime imagens em buffer antes de enviar BunnyCDN; retorna { url, mediaType } |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **REFACTOR:** Componente completamente refatorado com suporte a iPhones (HEIC/HEIF/MOV) — reordenação: upload de mídia PRIMEIRO (mobile-first) + título + mensagem; file input aceita `image/*, video/*, .heic, .heif, .mov, .mp4, .webm` |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **FEAT:** Compressão client-side via browser-image-compression — imagens: maxSizeMB=1, maxWidthOrHeight=1920, useWebWorker=true; vídeos: sem compressão; estado `isCompressing` com spinner "Otimizando mídia..." |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **FEAT:** Upload via API Route em vez de Server Action — FormData com arquivo comprimido + mediaType; bloqueio de campos até conclusão; preview dinâmico <video> para vídeos, <Image> para imagens |
+| 2026-05-15 | `src/modules/guests/actions/createGuestPost.ts` | **REFACTOR:** Action refatorada para aceitar imageUrl e mediaType via hidden inputs (upload feito no frontend); remove dependency de uploadImage Server Action |
+| 2026-05-15 | `src/app/[companySlug]/guest/GuestGalleryClient.tsx` | **FEAT:** Adicionado suporte a vídeos — renderização condicional <video controls> se mediaType===VIDEO, <Image> caso contrário; labels atualizadas "Mídia" em vez de "Foto" |
+| 2026-05-15 | `src/app/dashboard-admin/guests/[guestId]/posts/AdminGuestPostsClient.tsx` | **FEAT:** Adicionado suporte a vídeos no painel admin — interface Post inclui mediaType; PostCard renderiza <video> ou <img> condicionalmente |
+| 2026-05-15 | `src/app/[companySlug]/guest/page.tsx` | **FIX:** Mapeamento de posts agora inclui `mediaType: p.mediaType || 'IMAGE'` para compatibilidade com dados antigos |
+| 2026-05-15 | `src/app/dashboard-admin/guests/[guestId]/posts/page.tsx` | **FIX:** Select Prisma agora inclui `mediaType: true` ao buscar posts |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **REFACTOR:** Removido estado `isCompressing` (silencioso); adicionado rastreamento de progresso via XMLHttpRequest |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **UX:** Barra de progresso visual com porcentagem (0-100%) durante upload; feedback em tempo real `{uploadProgress}%` |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **PERF:** Compressão silenciosa (client-side, não exibe ao usuário); apenas upload exibe progresso |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **UX:** Adicionado estado "Processando arquivo..." quando atinge 100% (indica processamento servidor) com spinner |
+| 2026-05-15 | `src/app/api/upload/route.ts` | **PERF:** Otimização AVIF — reduzido quality de 80 para 70; effort de 6 para 4 (3x mais rápido, qualidade visual similar) |
+| 2026-05-15 | `src/app/api/upload/route.ts` | **PERF:** Adicionado timeout 30s para BunnyCDN; abort automático em caso de lentidão extrema |
+| 2026-05-15 | `src/app/api/upload/route.ts` | **FIX:** Adicionado `limitInputPixels: false` para processar imagens muito grandes sem erro |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **REFACTOR:** Removido browser-image-compression — arquivo enviado exatamente como o usuário seleciona (sem compressão) |
+| 2026-05-15 | `src/app/api/upload/route.ts` | **REFACTOR:** Removido processamento AVIF — arquivo enviado direto para BunnyCDN mantendo formato original (JPEG, PNG, HEIC, MOV, MP4, etc) |
+| 2026-05-15 | `src/app/api/upload/route.ts` | **SIMPLIFY:** Extension e Content-Type extraídos do arquivo original; sem conversão ou minificação |
+| 2026-05-15 | `package.json` | **DEP:** Removido `browser-image-compression` (2.0.2) — upload sem compressão client-side |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **UX:** Input file abre INSTANTANEAMENTE ao clicar (sem delay); preview mostrado imediatamente; upload acontece APENAS no submit do formulário |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **PERF:** Arquivo armazenado em `selectedFileRef` até envio; loading com barra de progresso exibido apenas durante submit |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **STATE:** Removido `uploadedUrl` e `uploadedMediaType` como estado; adicionados via FormData no handleSubmit |
+| 2026-05-15 | `next.config.ts` | **FIX:** Removido `serverActions` config (não suportado em Next.js 16); body size limit gerenciado no API route com AbortController |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **FIX:** Corrigido FormData usando `formRef.current` em vez de `e.currentTarget` no handleSubmit |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **FIX:** Adicionado `useTransition` e envolvido `formAction` em `startTransition` para respeitar hooks do React 19 |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **FIX:** Adicionado `DialogDescription` vazio para resolver aviso de acessibilidade do Radix UI |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **FIX:** Adicionado atributo `required` no textarea para forçar preenchimento (validação nativa HTML) |
+| 2026-05-15 | `src/modules/guests/actions/createGuestPost.ts` | **FIX:** Mensagem de erro detalhada mostrando todos os campos que falharam validação |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **FIX:** Pegando valores de title/message direto do DOM (não FormData) porque campos desabilitados não entram no FormData |
+| 2026-05-15 | `src/app/api/upload/route.ts` | **PERF:** Aumentado timeout de 30s → 300s (5 min) para suportar uploads grandes (200MB+) |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **PERF:** Adicionado `xhr.timeout = 600000` (10 min) no XMLHttpRequest para uploads longos |
+| 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **UX:** Adicionado handler de timeout no XHR com mensagem clara "Upload expirou (timeout)" |
+| 2026-05-15 | `src/app/api/upload/route.ts` | **UX:** Mensagem de erro diferenciada para 504 (timeout) vs outros erros |
 
 ---
 

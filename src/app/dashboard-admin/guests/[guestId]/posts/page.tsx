@@ -21,6 +21,7 @@ export default async function AdminGuestPostsPage({
           title: true,
           message: true,
           imageUrl: true,
+          mediaType: true,
           guestId: true,
           createdAt: true,
         },

@@ -13,6 +13,7 @@ interface Post {
   title: string | null
   message: string
   imageUrl: string
+  mediaType: string
   createdAt: Date
 }
 
@@ -49,11 +50,11 @@ export function GuestGalleryClient({ guest, posts, companySlug }: Props) {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-brand-text">Minhas Postagens</h1>
-            <p className="text-sm text-brand-muted mt-1">{posts.length} foto{posts.length !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-brand-muted mt-1">{posts.length} mídia{posts.length !== 1 ? '(s)' : ''}</p>
           </div>
           <Button onClick={() => setShowNewPost(true)} size="lg">
             <Plus className="w-4 h-4 mr-2" />
-            Nova Foto
+            Nova Mídia
           </Button>
         </div>
 
@@ -62,20 +63,28 @@ export function GuestGalleryClient({ guest, posts, companySlug }: Props) {
             <div className="w-16 h-16 rounded-full bg-brand-btn-light flex items-center justify-center">
               <Plus className="w-8 h-8 text-brand-muted" />
             </div>
-            <p className="text-brand-text font-medium">Nenhuma foto ainda</p>
-            <p className="text-sm text-brand-muted">Clique em "Nova Foto" para começar</p>
+            <p className="text-brand-text font-medium">Nenhuma mídia ainda</p>
+            <p className="text-sm text-brand-muted">Clique em "Nova Mídia" para começar</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {posts.map((post) => (
               <div key={post.id} className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-lg transition">
                 <div className="relative aspect-video overflow-hidden bg-brand-btn-light">
-                  <Image
-                    src={post.imageUrl}
-                    alt={post.title || 'Foto'}
-                    fill
-                    className="object-cover hover:scale-105 transition duration-300"
-                  />
+                  {post.mediaType === 'VIDEO' ? (
+                    <video
+                      src={post.imageUrl}
+                      className="w-full h-full object-cover"
+                      controls
+                    />
+                  ) : (
+                    <Image
+                      src={post.imageUrl}
+                      alt={post.title || 'Mídia'}
+                      fill
+                      className="object-cover hover:scale-105 transition duration-300"
+                    />
+                  )}
                 </div>
                 <div className="p-4 flex flex-col gap-3">
                   {post.title && (

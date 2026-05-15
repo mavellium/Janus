@@ -38,6 +38,7 @@ export default async function GuestGalleryPage({
         title: p.title,
         message: p.message,
         imageUrl: p.imageUrl,
+        mediaType: p.mediaType || 'IMAGE',
         createdAt: p.createdAt,
       }))}
       companySlug={companySlug}

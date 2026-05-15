@@ -2,13 +2,14 @@
 
 import { z } from 'zod'
 import { db } from '@/lib/prisma'
-import { uploadImage } from '@/modules/upload/actions/uploadImage'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 
 const schema = z.object({
   title: z.string().optional(),
   message: z.string().min(1),
+  imageUrl: z.string().url(),
+  mediaType: z.enum(['IMAGE', 'VIDEO']).default('IMAGE'),
   companySlug: z.string().min(1),
 })
 
@@ -19,10 +20,15 @@ export async function createGuestPost(
   const parsed = schema.safeParse({
     title: formData.get('title') || undefined,
     message: formData.get('message') || '',
+    imageUrl: formData.get('imageUrl') || '',
+    mediaType: formData.get('mediaType') || 'IMAGE',
     companySlug: formData.get('companySlug') || '',
   })
 
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message }
+  if (!parsed.success) {
+    const errors = parsed.error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join(' | ')
+    return { ok: false, error: errors }
+  }
 
   const cookieStore = await cookies()
   const guestId = cookieStore.get('guest_entry_id')?.value
@@ -31,19 +37,12 @@ export async function createGuestPost(
   const guest = await db.guestEntry.findUnique({ where: { id: guestId } })
   if (!guest) return { ok: false, error: 'Convidado não encontrado.' }
 
-  const imageFile = formData.get('image') as File | null
-  if (!imageFile || imageFile.size === 0) {
-    return { ok: false, error: 'Imagem é obrigatória.' }
-  }
-
-  const uploadResult = await uploadImage({ file: imageFile, folder: 'guest-posts' })
-  if (!uploadResult.ok) return { ok: false, error: uploadResult.error }
-
   await db.guestPost.create({
     data: {
       title: parsed.data.title || null,
       message: parsed.data.message,
-      imageUrl: uploadResult.url!,
+      imageUrl: parsed.data.imageUrl,
+      mediaType: parsed.data.mediaType,
       guestId,
     },
   })

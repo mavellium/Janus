@@ -15,6 +15,7 @@ interface Post {
   title: string | null
   message: string
   imageUrl: string
+  mediaType: string
   guestId: string
   createdAt: Date
 }
@@ -116,11 +117,19 @@ function PostCard({ post, guestId }: { post: Post; guestId: string }) {
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden group">
       <div className="relative aspect-square bg-brand-btn-light">
-        <img
-          src={post.imageUrl}
-          alt={post.title ?? 'Publicação'}
-          className="w-full h-full object-cover"
-        />
+        {post.mediaType === 'VIDEO' ? (
+          <video
+            src={post.imageUrl}
+            className="w-full h-full object-cover"
+            controls
+          />
+        ) : (
+          <img
+            src={post.imageUrl}
+            alt={post.title ?? 'Publicação'}
+            className="w-full h-full object-cover"
+          />
+        )}
       </div>
 
       <div className="p-3 flex flex-col gap-2">

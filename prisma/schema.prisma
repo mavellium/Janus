@@ -65,6 +65,7 @@ model GuestPost {
   title     String?
   message   String   @db.Text
   imageUrl  String
+  mediaType String   @default("IMAGE")
   guestId   String   @db.Uuid
   guest     GuestEntry @relation(fields: [guestId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now()) @map("created_at")
