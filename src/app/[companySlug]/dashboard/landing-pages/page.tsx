@@ -5,6 +5,7 @@ import { ChevronLeft, ArrowRight } from 'lucide-react'
 import { db } from '@/lib/prisma'
 import { getProjects } from '@/modules/projects/queries/getProjects'
 import { formatDate } from '@/lib/utils'
+import { checkPermission } from '@/lib/auth/permissions'
 import { CreateProjectModal } from '@/components/projects/CreateProjectModal'
 import { EditProjectContainer } from '@/components/projects/EditProjectContainer'
 import { EditProjectButton } from '@/components/projects/EditProjectButton'
@@ -27,6 +28,9 @@ export default async function LandingPagesPage({
   if (!company) redirect('/login')
 
   const projects = await getProjects({ companyId: company.id, type: 'LANDING_PAGE' })
+  const canCreate = await checkPermission(session, 'PROJECT_CREATE', 'landingPages', 'project')
+  const canEdit = await checkPermission(session, 'PROJECT_EDIT', 'landingPages', 'project')
+  const canDelete = await checkPermission(session, 'PROJECT_DELETE', 'landingPages', 'project')
 
   return (
     <div className="p-8">
@@ -44,7 +48,7 @@ export default async function LandingPagesPage({
             {projects.length} landing {projects.length === 1 ? 'page' : 'pages'}
           </p>
         </div>
-        {projects.length > 0 && (
+        {projects.length > 0 && canCreate && (
           <CreateProjectModal
             type="LANDING_PAGE"
             companySlug={companySlug}
@@ -66,13 +70,15 @@ export default async function LandingPagesPage({
             className="bg-card rounded-xl border border-brand-btn-light overflow-hidden hover:shadow-lg transition relative"
           >
             <div className="h-32 bg-gradient-to-br from-brand-primary/30 to-brand-primary/60 relative">
-              <div className="absolute top-3 right-3">
-                <DeleteProjectModal
-                  projectId={project.id}
-                  projectName={project.name}
-                  companySlug={companySlug}
-                />
-              </div>
+              {canDelete && (
+                <div className="absolute top-3 right-3">
+                  <DeleteProjectModal
+                    projectId={project.id}
+                    projectName={project.name}
+                    companySlug={companySlug}
+                  />
+                </div>
+              )}
             </div>
             <div className="p-6">
               <h3 className="text-lg font-semibold mb-1 text-brand-text">
@@ -92,14 +98,15 @@ export default async function LandingPagesPage({
                   <ArrowRight className="w-3 h-3" />
                   Gerenciar
                 </Link>
-                <EditProjectContainer
-                  projectId={project.id}
-                  initialName={project.name}
-                  initialPreviewUrl={project.previewUrl}
-                  initialBlogEnabled={project.blogEnabled}
-                  companySlug={companySlug}
-                  trigger={<EditProjectButton />}
-                />
+                {canEdit && (
+                  <EditProjectContainer
+                    projectId={project.id}
+                    initialName={project.name}
+                    initialPreviewUrl={project.previewUrl}
+                    companySlug={companySlug}
+                    trigger={<EditProjectButton />}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -112,20 +119,28 @@ export default async function LandingPagesPage({
             <p className="text-lg font-semibold mb-2 text-brand-text">
               Nenhuma landing page criada ainda
             </p>
-            <p className="text-sm text-brand-muted mb-6">
-              Comece criando sua primeira landing page
-            </p>
-            <CreateProjectModal
-              type="LANDING_PAGE"
-              companySlug={companySlug}
-              trigger={
-                <button
-                  className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-cta hover:bg-brand-cta-hover"
-                >
-                  Criar primeira landing page
-                </button>
-              }
-            />
+            {canCreate ? (
+              <>
+                <p className="text-sm text-brand-muted mb-6">
+                  Comece criando sua primeira landing page
+                </p>
+                <CreateProjectModal
+                  type="LANDING_PAGE"
+                  companySlug={companySlug}
+                  trigger={
+                    <button
+                      className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-cta hover:bg-brand-cta-hover"
+                    >
+                      Criar primeira landing page
+                    </button>
+                  }
+                />
+              </>
+            ) : (
+              <p className="text-sm text-brand-muted">
+                Você não tem permissão para criar landing pages. Contate o administrador.
+              </p>
+            )}
           </div>
         </div>
       )}

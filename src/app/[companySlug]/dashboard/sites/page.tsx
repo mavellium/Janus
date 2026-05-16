@@ -5,6 +5,7 @@ import { ChevronLeft, ArrowRight } from 'lucide-react'
 import { db } from '@/lib/prisma'
 import { getProjects } from '@/modules/projects/queries/getProjects'
 import { formatDate } from '@/lib/utils'
+import { checkPermission } from '@/lib/auth/permissions'
 import { CreateProjectModal } from '@/components/projects/CreateProjectModal'
 import { EditProjectContainer } from '@/components/projects/EditProjectContainer'
 import { EditProjectButton } from '@/components/projects/EditProjectButton'
@@ -27,6 +28,9 @@ export default async function SitesPage({
   if (!company) redirect('/login')
 
   const projects = await getProjects({ companyId: company.id, type: 'INSTITUTIONAL' })
+  const canCreate = await checkPermission(session, 'PROJECT_CREATE', 'sites', 'project')
+  const canEdit = await checkPermission(session, 'PROJECT_EDIT', 'sites', 'project')
+  const canDelete = await checkPermission(session, 'PROJECT_DELETE', 'sites', 'project')
 
   return (
     <div className="p-8">
@@ -45,7 +49,7 @@ export default async function SitesPage({
             {projects.length !== 1 ? 's' : ''}
           </p>
         </div>
-        {projects.length > 0 && (
+        {projects.length > 0 && canCreate && (
           <CreateProjectModal
             type="INSTITUTIONAL"
             companySlug={companySlug}
@@ -67,13 +71,15 @@ export default async function SitesPage({
             className="bg-card rounded-xl border border-brand-btn-light overflow-hidden hover:shadow-lg transition relative"
           >
             <div className="h-32 bg-gradient-to-br from-brand-btn-light to-brand-muted/40 relative">
-              <div className="absolute top-3 right-3">
-                <DeleteProjectModal
-                  projectId={project.id}
-                  projectName={project.name}
-                  companySlug={companySlug}
-                />
-              </div>
+              {canDelete && (
+                <div className="absolute top-3 right-3">
+                  <DeleteProjectModal
+                    projectId={project.id}
+                    projectName={project.name}
+                    companySlug={companySlug}
+                  />
+                </div>
+              )}
             </div>
             <div className="p-6">
               <h3 className="text-lg font-semibold mb-1 text-brand-text">
@@ -93,14 +99,15 @@ export default async function SitesPage({
                   <ArrowRight className="w-3 h-3" />
                   Gerenciar
                 </Link>
-                <EditProjectContainer
-                  projectId={project.id}
-                  initialName={project.name}
-                  initialPreviewUrl={project.previewUrl}
-                  initialBlogEnabled={project.blogEnabled}
-                  companySlug={companySlug}
-                  trigger={<EditProjectButton />}
-                />
+                {canEdit && (
+                  <EditProjectContainer
+                    projectId={project.id}
+                    initialName={project.name}
+                    initialPreviewUrl={project.previewUrl}
+                    companySlug={companySlug}
+                    trigger={<EditProjectButton />}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -113,20 +120,28 @@ export default async function SitesPage({
             <p className="text-lg font-semibold mb-2 text-brand-text">
               Nenhum site criado ainda
             </p>
-            <p className="text-sm text-brand-muted mb-6">
-              Comece criando seu primeiro site institucional
-            </p>
-            <CreateProjectModal
-              type="INSTITUTIONAL"
-              companySlug={companySlug}
-              trigger={
-                <button
-                  className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-cta hover:bg-brand-cta-hover"
-                >
-                  Criar primeiro site
-                </button>
-              }
-            />
+            {canCreate ? (
+              <>
+                <p className="text-sm text-brand-muted mb-6">
+                  Comece criando seu primeiro site institucional
+                </p>
+                <CreateProjectModal
+                  type="INSTITUTIONAL"
+                  companySlug={companySlug}
+                  trigger={
+                    <button
+                      className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-cta hover:bg-brand-cta-hover"
+                    >
+                      Criar primeiro site
+                    </button>
+                  }
+                />
+              </>
+            ) : (
+              <p className="text-sm text-brand-muted">
+                Você não tem permissão para criar sites. Contate o administrador.
+              </p>
+            )}
           </div>
         </div>
       )}
