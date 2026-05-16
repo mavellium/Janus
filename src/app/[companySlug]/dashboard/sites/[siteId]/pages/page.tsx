@@ -8,7 +8,7 @@ import { formatDate } from '@/lib/utils'
 import { EditPageContainer } from '@/components/projects/EditPageContainer'
 import { PublishPageButton } from '@/components/projects/PublishPageButton'
 import { CreatePageModal } from '@/components/projects/CreatePageModal'
-import { hasPermission } from '@/lib/auth/permissions'
+import { hasPermission, getViewMode } from '@/lib/auth/permissions'
 import { getUserPermissions } from '@/modules/auth/queries/getUserPermissions'
 
 export const metadata = { title: 'Páginas — Janus' }
@@ -36,6 +36,8 @@ export default async function SitePagesPage({
 
   // Fetch permissions fresh from database (not from session cache)
   const freshPermissions = await getUserPermissions(session.user.id)
+  const viewMode = await getViewMode()
+
   const sessionWithFreshPerms = {
     ...session,
     user: {
@@ -44,9 +46,9 @@ export default async function SitePagesPage({
     },
   }
 
-  const canCreate = hasPermission(sessionWithFreshPerms, 'PAGE_CREATE', 'sites', 'page')
-  const canBuild = hasPermission(sessionWithFreshPerms, 'PAGE_BUILD', 'sites', 'page')
-  const canDelete = hasPermission(sessionWithFreshPerms, 'PAGE_DELETE', 'sites', 'page')
+  const canCreate = hasPermission(sessionWithFreshPerms, 'PAGE_CREATE', 'sites', 'page', viewMode)
+  const canBuild = hasPermission(sessionWithFreshPerms, 'PAGE_BUILD', 'sites', 'page', viewMode)
+  const canDelete = hasPermission(sessionWithFreshPerms, 'PAGE_DELETE', 'sites', 'page', viewMode)
 
   return (
     <div className="p-8 w-full">
