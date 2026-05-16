@@ -32,7 +32,6 @@ interface Props {
   userName: string
   initialPermissions?: string | string[] | Record<string, Record<string, string[]>>
   module: ModuleType
-  tier: PermissionTier
   onClose: () => void
 }
 
@@ -110,7 +109,6 @@ export function PermissionsModal({
   userName,
   initialPermissions,
   module,
-  tier,
   onClose,
 }: Props) {
   const router = useRouter()
@@ -128,9 +126,8 @@ export function PermissionsModal({
 
   const currentModulePerms = module === 'sites' ? sitePerms : lpPerms
   const setCurrentModulePerms = module === 'sites' ? setSitePerms : setLPPerms
-  const currentTierPerms = currentModulePerms[tier]
 
-  function toggle(key: string, checked: boolean) {
+  function toggle(tier: PermissionTier, key: string, checked: boolean) {
     setCurrentModulePerms((prev) => ({
       ...prev,
       [tier]: new Set(
@@ -166,44 +163,85 @@ export function PermissionsModal({
 
   const moduleLabel = module === 'sites' ? 'Sites' : 'Landing Pages'
   const moduleIcon = module === 'sites' ? <Globe className="w-4 h-4" /> : <Zap className="w-4 h-4" />
-  const tierLabel = tier === 'project' ? 'Projeto' : 'Página'
-  const tierPermissionKeys = tier === 'project' ? PROJECT_TIER_PERMISSIONS : PAGE_TIER_PERMISSIONS
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border max-w-lg">
+      <DialogContent className="bg-card border-border max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-brand-text flex items-center gap-2">
             <KeyRound className="w-4 h-4 text-brand-primary" />
-            Permissões — {moduleIcon} {moduleLabel} • {tierLabel}
+            Permissões — {moduleIcon} {moduleLabel}
           </DialogTitle>
           <DialogDescription className="text-brand-muted text-xs">
-            {userName} — {moduleLabel} — Permissões de {tierLabel}
+            {userName} — {moduleLabel}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-3 max-h-[60vh] overflow-y-auto pr-1">
-          {tierPermissionKeys.map((key) => {
-            const meta = PERMISSION_LABELS[key]
-            const checked = currentTierPerms.has(key)
-            return (
-              <div
-                key={key}
-                className="flex items-start justify-between gap-3 p-3 rounded-lg border border-brand-btn-light bg-brand-bg/40"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-brand-text">{meta.label}</p>
-                  <p className="text-xs text-brand-muted mt-0.5">{meta.description}</p>
-                </div>
-                <Switch
-                  checked={checked}
-                  onCheckedChange={(v) => toggle(key, v)}
-                  disabled={isPending}
-                  aria-label={meta.label}
-                />
-              </div>
-            )
-          })}
+        <div className="flex flex-col gap-6 max-h-[70vh] overflow-y-auto pr-1">
+          {/* Seção de Permissões Gerais (Project) */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <h3 className="text-sm font-semibold text-brand-text">Permissões Gerais</h3>
+              <p className="text-xs text-brand-muted">Criar, editar e deletar {moduleLabel.toLowerCase()}</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              {PROJECT_TIER_PERMISSIONS.map((key) => {
+                const meta = PERMISSION_LABELS[key]
+                const checked = currentModulePerms.project.has(key)
+                return (
+                  <div
+                    key={key}
+                    className="flex items-start justify-between gap-3 p-3 rounded-lg border border-brand-btn-light bg-brand-bg/40"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-brand-text">{meta.label}</p>
+                      <p className="text-xs text-brand-muted mt-0.5">{meta.description}</p>
+                    </div>
+                    <Switch
+                      checked={checked}
+                      onCheckedChange={(v) => toggle('project', key, v)}
+                      disabled={isPending}
+                      aria-label={meta.label}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Divisor */}
+          <div className="border-t border-brand-btn-light" />
+
+          {/* Seção de Permissões de Páginas */}
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <h3 className="text-sm font-semibold text-brand-text">Permissões de Páginas</h3>
+              <p className="text-xs text-brand-muted">Gerenciar páginas dentro dos {moduleLabel.toLowerCase()}</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              {PAGE_TIER_PERMISSIONS.map((key) => {
+                const meta = PERMISSION_LABELS[key]
+                const checked = currentModulePerms.page.has(key)
+                return (
+                  <div
+                    key={key}
+                    className="flex items-start justify-between gap-3 p-3 rounded-lg border border-brand-btn-light bg-brand-bg/40"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-brand-text">{meta.label}</p>
+                      <p className="text-xs text-brand-muted mt-0.5">{meta.description}</p>
+                    </div>
+                    <Switch
+                      checked={checked}
+                      onCheckedChange={(v) => toggle('page', key, v)}
+                      disabled={isPending}
+                      aria-label={meta.label}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
 
         {error && (

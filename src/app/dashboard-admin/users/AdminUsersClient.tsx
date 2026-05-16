@@ -13,7 +13,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { DeleteAlertModal } from '@/components/ui/delete-alert-modal'
 import { PermissionsModal } from '../PermissionsModal'
 import { PermissionsModuleSelector } from '../PermissionsModuleSelector'
-import { PermissionsTierSelector } from '../PermissionsTierSelector'
 import {
   Select,
   SelectContent,
@@ -219,8 +218,7 @@ export function AdminUsersClient({ users, companies }: { users: User[]; companie
   const [editTarget, setEditTarget] = useState<User | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
   const [permissionsModuleSelector, setPermissionsModuleSelector] = useState<User | null>(null)
-  const [permissionsTierSelector, setPermissionsTierSelector] = useState<{ user: User; module: ModuleType } | null>(null)
-  const [permissionsModal, setPermissionsModal] = useState<{ user: User; module: ModuleType; tier: PermissionTier } | null>(null)
+  const [permissionsModal, setPermissionsModal] = useState<{ user: User; module: ModuleType } | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
   async function handleDelete(id: string) {
@@ -345,21 +343,9 @@ export function AdminUsersClient({ users, companies }: { users: User[]; companie
           onClose={() => setPermissionsModuleSelector(null)}
           onSelectModule={(module) => {
             setPermissionsModuleSelector(null)
-            setPermissionsTierSelector({ user: permissionsModuleSelector, module })
-          }}
-        />
-      )}
-      {permissionsTierSelector && (
-        <PermissionsTierSelector
-          open
-          module={permissionsTierSelector.module}
-          onClose={() => setPermissionsTierSelector(null)}
-          onSelectTier={(tier) => {
-            setPermissionsTierSelector(null)
             setPermissionsModal({
-              user: permissionsTierSelector.user,
-              module: permissionsTierSelector.module,
-              tier,
+              user: permissionsModuleSelector,
+              module,
             })
           }}
         />
@@ -370,7 +356,6 @@ export function AdminUsersClient({ users, companies }: { users: User[]; companie
           userName={permissionsModal.user.name || permissionsModal.user.email}
           initialPermissions={permissionsModal.user.permissions}
           module={permissionsModal.module}
-          tier={permissionsModal.tier}
           onClose={() => setPermissionsModal(null)}
         />
       )}
