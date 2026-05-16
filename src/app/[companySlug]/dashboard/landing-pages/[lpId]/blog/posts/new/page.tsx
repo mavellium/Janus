@@ -23,9 +23,8 @@ export default async function LpNewPostPage({
 
   const project = await db.project.findUnique({
     where: { id: lpId, companyId: company.id, deletedAt: null },
-    select: { blogEnabled: true },
   })
-  if (!project?.blogEnabled) redirect(`/${companySlug}/dashboard/landing-pages/${lpId}/pages`)
+  if (!project) redirect(`/${companySlug}/dashboard/landing-pages/${lpId}/pages`)
 
   const [categories, tags] = await Promise.all([
     getBlogCategories(lpId),

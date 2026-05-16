@@ -17,9 +17,8 @@ export default async function SiteBlogCategoriesPage({
 
   const project = await db.project.findUnique({
     where: { id: siteId, deletedAt: null },
-    select: { blogEnabled: true },
   })
-  if (!project?.blogEnabled) redirect(`/${companySlug}/dashboard/sites/${siteId}/pages`)
+  if (!project) redirect(`/${companySlug}/dashboard/sites/${siteId}/pages`)
 
   const categories = await getBlogCategories(siteId)
 

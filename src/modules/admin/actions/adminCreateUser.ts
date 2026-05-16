@@ -5,6 +5,7 @@ import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { hash } from 'bcryptjs'
 import { revalidatePath } from 'next/cache'
+import { ALL_PERMISSIONS } from '@/lib/auth/permissions'
 
 const schema = z.object({
   name: z.string().min(1),
@@ -48,6 +49,8 @@ export async function adminCreateUser(
 
   const hashedPassword = await hash(parsed.data.password, 10)
 
+  const permissions = parsed.data.role === 'ADMIN' ? ALL_PERMISSIONS : []
+
   await db.user.create({
     data: {
       name: parsed.data.name,
@@ -55,6 +58,7 @@ export async function adminCreateUser(
       password: hashedPassword,
       companyId: parsed.data.companyId,
       role: parsed.data.role,
+      permissions,
       requiresPasswordReset: true,
       createdById: session.user.id,
     },

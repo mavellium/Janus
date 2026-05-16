@@ -676,6 +676,46 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **PERF:** Adicionado `xhr.timeout = 600000` (10 min) no XMLHttpRequest para uploads longos |
 | 2026-05-15 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **UX:** Adicionado handler de timeout no XHR com mensagem clara "Upload expirou (timeout)" |
 | 2026-05-15 | `src/app/api/upload/route.ts` | **UX:** Mensagem de erro diferenciada para 504 (timeout) vs outros erros |
+| 2026-05-16 | `src/app/[companySlug]/guest/NewPostModal.tsx` | **REFACTOR:** Removido campo Título do form de nova postagem (UI + DOM read + import do Input) |
+| 2026-05-16 | `src/modules/guests/actions/createGuestPost.ts` | **REFACTOR:** Removido título do schema Zod e do `db.guestPost.create` |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/sites/[siteId]/pages/page.tsx` | **FIX:** RBAC — corrigida verificação `isDevOrAdmin` para incluir ADMIN (`['DEVELOPER','ADMIN'].includes(role)`) |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/sites/[siteId]/pages/[pageId]/builder/page.tsx` | **FIX:** RBAC — redirect agora permite passagem de ADMIN além de DEVELOPER |
+| 2026-05-16 | `prisma/schema.prisma` | **FEAT:** Adicionado campo `permissions String[]` no model User (RBAC granular) |
+| 2026-05-16 | `src/lib/auth/permissions.ts` | **FEAT:** Criadas constantes PERMISSIONS, ALL_PERMISSIONS, VIEW_MODE_* e utilitário `checkPermission` (suporta cookie `janus_view_mode` para impersonation de usuário) |
+| 2026-05-16 | `src/modules/auth/actions/toggleViewMode.ts` | **FEAT:** Server Action que seta/limpa cookie HTTP-Only `janus_view_mode` (USER_MODE/DEV_MODE) e revalida o layout do tenant |
+| 2026-05-16 | `src/modules/admin/actions/updateUserPermissions.ts` | **FEAT:** Server Action que atualiza array `permissions` de um usuário (validada via Zod, restrita a ADMIN) |
+| 2026-05-16 | `src/modules/admin/actions/createDeveloper.ts` | **FEAT:** DEVELOPER recém-criado recebe `permissions: ALL_PERMISSIONS` por padrão |
+| 2026-05-16 | `src/modules/admin/actions/adminCreateUser.ts` | **FEAT:** ADMIN recebe `ALL_PERMISSIONS`; DEFAULT recebe array vazio |
+| 2026-05-16 | `src/modules/dev/actions/createUser.ts` | **FEAT:** DEFAULT criado por DEVELOPER recebe `permissions: []` por padrão |
+| 2026-05-16 | `src/lib/auth.ts` | **FEAT:** `authorize` retorna `permissions` do usuário do banco |
+| 2026-05-16 | `src/lib/auth.config.ts` | **FEAT:** JWT/session callbacks incluem `permissions`; suporte a `trigger: 'update'` para refresh da sessão |
+| 2026-05-16 | `src/types/next-auth.d.ts` | **FEAT:** Tipagem da Session/JWT estendida com campo `permissions: string[]` |
+| 2026-05-16 | `src/components/dashboard/ImpersonationBanner.tsx` | **FEAT:** Banner sticky com Switch "Simular Visão do Usuário" para ADMIN e DEVELOPER (chama toggleViewMode + router.refresh) |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/layout.tsx` | **REFACTOR:** Banner inline substituído por `<ImpersonationBanner>`; agora aparece para ADMIN e DEVELOPER; usa `isPrivilegedRole()` |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/sites/[siteId]/pages/page.tsx` | **REFACTOR:** Substituída checagem de role por `checkPermission(session, 'PAGE_CREATE'/'PAGE_BUILD'/'PAGE_DELETE')` |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/page.tsx` | **REFACTOR:** Mesma migração para `checkPermission` na rota antiga landing-pages |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/sites/[siteId]/pages/[pageId]/builder/page.tsx` | **REFACTOR:** Guard agora usa `checkPermission(session, 'PAGE_BUILD')` |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/[pageId]/builder/page.tsx` | **REFACTOR:** Mesmo guard via `checkPermission` na rota antiga |
+| 2026-05-16 | `src/app/dashboard-admin/PermissionsModal.tsx` | **FEAT:** Modal com lista de Switches por permissão; salva via `updateUserPermissions` |
+| 2026-05-16 | `src/app/dashboard-admin/developers/AdminDevelopersClient.tsx` | **FEAT:** Botão "Permissões" (ícone KeyRound) que abre PermissionsModal |
+| 2026-05-16 | `src/app/dashboard-admin/users/AdminUsersClient.tsx` | **FEAT:** Botão "Permissões" (ícone KeyRound) que abre PermissionsModal |
+| 2026-05-16 | `src/modules/admin/queries/getAdminDevelopers.ts` | **FEAT:** Select inclui `permissions: true` |
+| 2026-05-16 | `src/modules/admin/queries/getAdminUsers.ts` | **FEAT:** Select inclui `permissions: true` |
+| 2026-05-16 | `src/components/projects/EditProjectModal.tsx` | **REFACTOR:** Removido toggle "Módulo de Blog" — blog agora sempre ativo para todos os projetos (LANDING_PAGE e INSTITUTIONAL) |
+| 2026-05-16 | `src/components/projects/EditProjectContainer.tsx` | **REFACTOR:** Removido prop `initialBlogEnabled` — EditProjectModal não mais aceita/passa esta propriedade |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/sites/page.tsx` | **REFACTOR:** EditProjectContainer chamada simplificada (removido `initialBlogEnabled={project.blogEnabled}`) |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/landing-pages/page.tsx` | **REFACTOR:** EditProjectContainer chamada simplificada (removido `initialBlogEnabled={project.blogEnabled}`) |
+| 2026-05-16 | `src/components/dashboard/Sidebar.tsx` | **REFACTOR:** Removida fetch ao `/api/projects/{id}/blog-enabled`; blog items (Artigos, Categorias, Tags) sempre renderizadas quando em projeto (sites/landing-pages) |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/sites/[siteId]/blog/posts/page.tsx` | **REFACTOR:** Removido check `blogEnabled` — valida apenas se projeto existe |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/posts/page.tsx` | **REFACTOR:** Removido check `blogEnabled` — valida apenas se projeto existe |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/sites/[siteId]/blog/categories/page.tsx` | **REFACTOR:** Removido check `blogEnabled` — valida apenas se projeto existe |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/categories/page.tsx` | **REFACTOR:** Removido check `blogEnabled` — valida apenas se projeto existe |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/sites/[siteId]/blog/tags/page.tsx` | **REFACTOR:** Removido check `blogEnabled` — valida apenas se projeto existe |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/tags/page.tsx` | **REFACTOR:** Removido check `blogEnabled` — valida apenas se projeto existe |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/sites/[siteId]/blog/posts/new/page.tsx` | **REFACTOR:** Removido check `blogEnabled` — valida apenas se projeto existe |
+| 2026-05-16 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/posts/new/page.tsx` | **REFACTOR:** Removido check `blogEnabled` — valida apenas se projeto existe |
+| 2026-05-16 | `src/app/dev/[devId]/dashboard/companies/CompaniesClient.tsx` | **REFACTOR:** Removido botão "Gerenciar Blog" (ícone BookOpen) e ProjectsBlogModal do painel de desenvolvedor |
+| 2026-05-16 | Blog Module Architecture | **REFACTOR:** Blog agora é sempre ativo para todos os Sites e Landing Pages; removida a configuração granular por projeto — simplifica UX e arquitetura |
 
 ---
 
@@ -691,3 +731,20 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - Após autenticação, usuários são redirecionados para `/{companySlug}/dashboard` (companySlug extraído do JWT)
 - Middleware valida se usuário está acessando a empresa correta; redireciona automaticamente caso contrário
 - Uma empresa padrão (`default`) é criada na primeira migration; usuários registrados são associados a ela por padrão
+
+**Sistema RBAC Híbrido + View Mode (desde 2026-05-16):**
+- Roles: `ADMIN | DEFAULT | DEVELOPER` (enum `UserRole` no Prisma)
+- Permissões granulares: `PAGE_CREATE | PAGE_DELETE | PAGE_BUILD | BLOG_MANAGE | GUEST_MANAGE | TEAM_MANAGE` (`User.permissions String[]`)
+- Utilitário central: `src/lib/auth/permissions.ts` — `checkPermission(session, name)` lê cookie `janus_view_mode` automaticamente
+- **Regra mestra:** ADMIN/DEVELOPER → true sempre (exceto se `janus_view_mode === 'USER_MODE'`, daí valida só `session.user.permissions`); DEFAULT → valida sempre o array de permissões
+- **View Mode (Impersonation):** ADMIN e DEVELOPER têm Switch "Simular Visão do Usuário" no banner do tenant; cookie `janus_view_mode` (HTTP-Only) controla; toggle revalida o layout
+- **Defaults na criação:** ADMIN/DEVELOPER → `ALL_PERMISSIONS`; DEFAULT → `[]`
+- **Gerenciamento:** Admin pode editar permissões de cada usuário/dev via ícone KeyRound → `PermissionsModal` → action `updateUserPermissions`
+
+**Blog Module Architecture (desde 2026-05-16):**
+- Blog **não é mais configurável por projeto** — remova toggles/modais (`EditProjectModal`, `ProjectsBlogModal`)
+- Blog é **sempre ativo** para todos os Sites (INSTITUTIONAL) e Landing Pages (LANDING_PAGE)
+- Remova checks `blogEnabled` de todas as rotas blog; valide apenas se projeto existe
+- Sidebar **sempre exibe** Artigos/Categorias/Tags quando dentro de projeto (sites/landing-pages)
+- Benefício: reduz complexidade, melhora UX (menos decisões), alinha com expectativa de que blogs são core feature
+- **Redirects pós-login:** ADMIN → `/dashboard-admin`; DEVELOPER → `/dev/{id}/dashboard`; DEFAULT → `/{companySlug}/dashboard` (gerenciado em `src/lib/auth.config.ts`)

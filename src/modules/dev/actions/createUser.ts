@@ -41,6 +41,7 @@ export async function createUser(_prev: { ok: boolean; error?: string }, formDat
       password: passwordHash,
       companyId: parsed.data.companyId,
       role: 'DEFAULT',
+      permissions: [],
       requiresPasswordReset: true,
       createdById: session.user.id,
     },

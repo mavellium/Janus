@@ -47,6 +47,8 @@ export async function updateUserPermissions(input: z.infer<typeof schema>) {
     return ALL_PERMISSIONS.includes(permissionStr as PermissionName)
   })
 
+  console.log('Saving permissions for user:', parsed.data.userId, 'Valid permissions:', validPermissions)
+
   await db.user.update({
     where: { id: parsed.data.userId },
     data: { permissions: validPermissions },

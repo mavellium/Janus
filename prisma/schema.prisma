@@ -82,6 +82,7 @@ model User {
   name                   String?
   phone                  String?
   role                   UserRole  @default(DEFAULT)
+  permissions            String[]  @default([]) @map("permissions")
   image                  String?   @map("user_image")
   preferences            Json?     @default("{}") @map("preferences")
   requiresPasswordReset  Boolean   @default(false) @map("requires_password_reset")

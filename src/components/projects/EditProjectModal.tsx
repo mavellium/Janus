@@ -1,16 +1,13 @@
 'use client'
 
-import { useActionState, useEffect, useState, useTransition } from 'react'
+import { useActionState, useEffect, useTransition } from 'react'
 import { Edit, Loader2 } from 'lucide-react'
 import { updateProject } from '@/modules/projects/actions/updateProject'
-import { toggleBlogEnabled } from '@/modules/blog/actions/toggleBlogEnabled'
-import { Switch } from '@/components/ui/switch'
 
 interface EditProjectModalProps {
   projectId: string
   initialName: string
   initialPreviewUrl?: string | null
-  initialBlogEnabled?: boolean
   companySlug: string
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -41,25 +38,17 @@ export function EditProjectModal({
   projectId,
   initialName,
   initialPreviewUrl,
-  initialBlogEnabled = false,
   companySlug,
   open,
   onOpenChange,
 }: EditProjectModalProps) {
   const [state, action, pending] = useActionState(formAction, {})
-  const [blogEnabled, setBlogEnabled] = useState(initialBlogEnabled)
   const [, startTransition] = useTransition()
 
   useEffect(() => {
     if (state.success) onOpenChange(false)
   }, [state.success, onOpenChange])
 
-  function handleBlogToggle(value: boolean) {
-    setBlogEnabled(value)
-    startTransition(async () => {
-      await toggleBlogEnabled(projectId, companySlug, value)
-    })
-  }
 
   return (
     open && (
@@ -102,14 +91,6 @@ export function EditProjectModal({
                 disabled={pending}
                 className="flex h-10 w-full rounded-md border border-brand-btn-light bg-brand-bg px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
               />
-            </div>
-
-            <div className="flex items-center justify-between py-2 border-t border-brand-btn-light">
-              <div>
-                <p className="text-sm font-medium text-brand-text">Módulo de Blog</p>
-                <p className="text-xs text-brand-muted mt-0.5">Ativa artigos, categorias e tags</p>
-              </div>
-              <Switch checked={blogEnabled} onCheckedChange={handleBlogToggle} />
             </div>
 
             {state.error && (

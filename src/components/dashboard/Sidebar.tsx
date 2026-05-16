@@ -64,15 +64,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName, embedded 
     ? `/${companySlug}/dashboard/sites`
     : `/${companySlug}/dashboard/landing-pages`
 
-  const [blogEnabled, setBlogEnabled] = useState(false)
   const [blogOpen, setBlogOpen] = useState(false)
-
-  useEffect(() => {
-    if (!projectId) return
-    fetch(`/api/projects/${projectId}/blog-enabled`)
-      .then(r => r.json())
-      .then(d => setBlogEnabled(d.blogEnabled ?? false))
-  }, [projectId])
 
   useEffect(() => {
     if (pathname.includes('/blog')) setBlogOpen(true)
@@ -260,7 +252,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName, embedded 
           </Link>
         ))}
 
-        {isInProjectContext && blogEnabled && (
+        {isInProjectContext && (
           <>
             <button
               onClick={() => setBlogOpen(o => !o)}

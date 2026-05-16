@@ -9,6 +9,7 @@ export async function getAdminDevelopers() {
       name: true,
       email: true,
       role: true,
+      permissions: true,
       requiresPasswordReset: true,
       createdAt: true,
     },

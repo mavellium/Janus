@@ -17,9 +17,8 @@ export default async function LpBlogTagsPage({
 
   const project = await db.project.findUnique({
     where: { id: lpId, deletedAt: null },
-    select: { blogEnabled: true },
   })
-  if (!project?.blogEnabled) redirect(`/${companySlug}/dashboard/landing-pages/${lpId}/pages`)
+  if (!project) redirect(`/${companySlug}/dashboard/landing-pages/${lpId}/pages`)
 
   const tags = await getBlogTags(lpId)
 

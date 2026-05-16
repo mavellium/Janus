@@ -9,6 +9,7 @@ export async function getAdminUsers() {
       name: true,
       email: true,
       role: true,
+      permissions: true,
       requiresPasswordReset: true,
       createdAt: true,
       company: { select: { id: true, name: true, slug: true } },

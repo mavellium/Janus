@@ -63,12 +63,16 @@ export const authConfig = {
 
       return true
     },
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id
         token.role = (user as { role?: string }).role
+        token.permissions = (user as { permissions?: string[] }).permissions ?? []
         token.image = (user as { image?: string | null }).image ?? null
         token.companySlug = (user as { companySlug?: string | null }).companySlug ?? undefined
+      }
+      if (trigger === 'update' && session?.permissions) {
+        token.permissions = session.permissions as string[]
       }
       return token
     },
@@ -76,6 +80,7 @@ export const authConfig = {
       if (token && session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
+        session.user.permissions = (token.permissions as string[]) ?? []
         session.user.image = token.image as string | null
         session.user.companySlug = token.companySlug as string
       }

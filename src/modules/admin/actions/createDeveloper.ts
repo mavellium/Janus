@@ -5,6 +5,7 @@ import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { hash } from 'bcryptjs'
 import { revalidatePath } from 'next/cache'
+import { ALL_PERMISSIONS } from '@/lib/auth/permissions'
 
 const schema = z.object({
   name: z.string().min(1),
@@ -56,6 +57,7 @@ export async function createDeveloper(
       password: hashedPassword,
       companyId: defaultCompany.id,
       role: 'DEVELOPER',
+      permissions: ALL_PERMISSIONS,
       requiresPasswordReset: true,
       createdById: session.user.id,
     },

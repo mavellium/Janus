@@ -1,11 +1,10 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import { Building2, Pencil, Trash2, ExternalLink, X, Loader2, Plus, BookOpen } from 'lucide-react'
+import { Building2, Pencil, Trash2, ExternalLink, X, Loader2, Plus } from 'lucide-react'
 import { createCompany } from '@/modules/dev/actions/createCompany'
 import { editCompany } from '@/modules/dev/actions/editCompany'
 import { deleteCompany } from '@/modules/dev/actions/deleteCompany'
-import { ProjectsBlogModal } from '@/components/dev/ProjectsBlogModal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -124,7 +123,7 @@ function DeleteDialog({ company, onClose }: { company: Company; onClose: () => v
 }
 
 export function CompaniesClient({ companies }: { companies: Company[] }) {
-  const [modal, setModal] = useState<null | 'create' | { mode: 'edit'; company: Company } | { mode: 'delete'; company: Company } | { mode: 'blog'; company: Company }>(null)
+  const [modal, setModal] = useState<null | 'create' | { mode: 'edit'; company: Company } | { mode: 'delete'; company: Company }>(null)
 
   return (
     <div className="p-8">
@@ -194,13 +193,6 @@ export function CompaniesClient({ companies }: { companies: Company[] }) {
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                       <button
-                        onClick={() => setModal({ mode: 'blog', company })}
-                        className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
-                        title="Gerenciar blog"
-                      >
-                        <BookOpen className="w-3.5 h-3.5" />
-                      </button>
-                      <button
                         onClick={() => setModal({ mode: 'edit', company })}
                         className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
                         title="Editar"
@@ -232,14 +224,6 @@ export function CompaniesClient({ companies }: { companies: Company[] }) {
       )}
       {modal !== null && typeof modal === 'object' && modal.mode === 'delete' && (
         <DeleteDialog company={modal.company} onClose={() => setModal(null)} />
-      )}
-      {modal !== null && typeof modal === 'object' && modal.mode === 'blog' && (
-        <ProjectsBlogModal
-          companyId={modal.company.id}
-          companyName={modal.company.name}
-          open
-          onClose={() => setModal(null)}
-        />
       )}
     </div>
   )

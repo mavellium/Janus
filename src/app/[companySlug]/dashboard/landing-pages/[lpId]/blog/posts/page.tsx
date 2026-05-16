@@ -17,9 +17,8 @@ export default async function LpBlogPostsPage({
 
   const project = await db.project.findUnique({
     where: { id: lpId, deletedAt: null },
-    select: { blogEnabled: true },
   })
-  if (!project?.blogEnabled) redirect(`/${companySlug}/dashboard/landing-pages/${lpId}/pages`)
+  if (!project) redirect(`/${companySlug}/dashboard/landing-pages/${lpId}/pages`)
 
   const posts = await getBlogPosts(lpId)
   const basePath = `/${companySlug}/dashboard/landing-pages/${lpId}`
