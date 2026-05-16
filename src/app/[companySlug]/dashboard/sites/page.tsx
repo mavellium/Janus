@@ -32,6 +32,9 @@ export default async function SitesPage({
 
   // Fetch permissions fresh from database (not from session cache)
   const freshPermissions = await getUserPermissions(session.user.id)
+  console.log('Fresh permissions from DB:', freshPermissions)
+  console.log('Session user role:', session.user.role)
+
   const sessionWithFreshPerms = {
     ...session,
     user: {
@@ -43,6 +46,9 @@ export default async function SitesPage({
   const canCreate = hasPermission(sessionWithFreshPerms, 'PROJECT_CREATE', 'sites', 'project')
   const canEdit = hasPermission(sessionWithFreshPerms, 'PROJECT_EDIT', 'sites', 'project')
   const canDelete = hasPermission(sessionWithFreshPerms, 'PROJECT_DELETE', 'sites', 'project')
+
+  console.log('Permission check results:', { canCreate, canEdit, canDelete })
+  console.log('Normalized permissions:', require('@/lib/auth/permissions').normalizePermissions(freshPermissions))
 
   return (
     <div className="p-8">
