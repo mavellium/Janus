@@ -158,7 +158,9 @@ export function hasPermission(
 export async function getViewMode(): Promise<ViewMode | null> {
   const cookieStore = await cookies()
   const value = cookieStore.get(VIEW_MODE_COOKIE)?.value
+  console.log('[getViewMode] Cookie value:', { VIEW_MODE_COOKIE, value, VIEW_MODE_USER, VIEW_MODE_DEV })
   if (value === VIEW_MODE_USER || value === VIEW_MODE_DEV) return value
+  console.log('[getViewMode] Returning null - no valid view mode')
   return null
 }
 
@@ -169,6 +171,7 @@ export async function checkPermission(
   tier: PermissionTier = 'page'
 ): Promise<boolean> {
   const viewMode = await getViewMode()
+  console.log('[checkPermission] viewMode from getViewMode():', viewMode)
   return hasPermission(session, permission, module, tier, viewMode)
 }
 
