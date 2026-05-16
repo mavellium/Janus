@@ -52,7 +52,12 @@ export async function updateUserPermissions(input: z.infer<typeof schema>) {
     data: { permissions: validPermissions },
   })
 
+  // Revalidate admin pages
   revalidatePath('/dashboard-admin/users')
   revalidatePath('/dashboard-admin/developers')
+
+  // Revalidate all dashboard pages (sites, landing pages, etc)
+  revalidatePath('/', 'layout')
+
   return { ok: true }
 }
