@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Code2, Plus, Loader2, UserCircle, CheckCircle2, Clock, LayoutDashboard, Trash2, Pencil } from 'lucide-react'
+import { Code2, Plus, Loader2, UserCircle, CheckCircle2, Clock, LayoutDashboard, Trash2, Pencil, KeyRound } from 'lucide-react'
 import { createDeveloper } from '@/modules/admin/actions/createDeveloper'
 import { adminEditUser } from '@/modules/admin/actions/adminEditUser'
 import { adminDeleteUser } from '@/modules/admin/actions/adminDeleteUser'
@@ -12,15 +12,22 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DeleteAlertModal } from '@/components/ui/delete-alert-modal'
+import { PermissionsModal } from '../PermissionsModal'
+import { PermissionsModuleSelector } from '../PermissionsModuleSelector'
+import { PermissionsTierSelector } from '../PermissionsTierSelector'
 
 interface Developer {
   id: string
   name: string | null
   email: string
   role: string
+  permissions: string | string[] | Record<string, Record<string, string[]>>
   requiresPasswordReset: boolean
   createdAt: Date
 }
+
+type ModuleType = 'sites' | 'landingPages'
+type PermissionTier = 'project' | 'page'
 
 function CreateDeveloperModal({ onClose }: { onClose: () => void }) {
   const router = useRouter()
@@ -163,6 +170,9 @@ export function AdminDevelopersClient({
   const [showCreate, setShowCreate] = useState(false)
   const [editTarget, setEditTarget] = useState<Developer | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Developer | null>(null)
+  const [permissionsModuleSelector, setPermissionsModuleSelector] = useState<Developer | null>(null)
+  const [permissionsTierSelector, setPermissionsTierSelector] = useState<{ user: Developer; module: ModuleType } | null>(null)
+  const [permissionsModal, setPermissionsModal] = useState<{ user: Developer; module: ModuleType; tier: PermissionTier } | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
   async function handleDelete(id: string) {
@@ -249,6 +259,13 @@ export function AdminDevelopersClient({
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
+                        onClick={() => setPermissionsModuleSelector(dev)}
+                        className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
+                        title="Permissões"
+                      >
+                        <KeyRound className="w-3.5 h-3.5" />
+                      </button>
+                      <button
                         onClick={() => setDeleteTarget(dev)}
                         className="p-1.5 rounded text-brand-muted hover:text-destructive hover:bg-destructive/10 transition"
                         title="Excluir"
@@ -267,6 +284,43 @@ export function AdminDevelopersClient({
 
       {showCreate && <CreateDeveloperModal onClose={() => setShowCreate(false)} />}
       {editTarget && <EditDeveloperModal developer={editTarget} onClose={() => setEditTarget(null)} />}
+      {permissionsModuleSelector && (
+        <PermissionsModuleSelector
+          userId={permissionsModuleSelector.id}
+          userName={permissionsModuleSelector.name || permissionsModuleSelector.email}
+          open
+          onClose={() => setPermissionsModuleSelector(null)}
+          onSelectModule={(module) => {
+            setPermissionsModuleSelector(null)
+            setPermissionsTierSelector({ user: permissionsModuleSelector, module })
+          }}
+        />
+      )}
+      {permissionsTierSelector && (
+        <PermissionsTierSelector
+          open
+          module={permissionsTierSelector.module}
+          onClose={() => setPermissionsTierSelector(null)}
+          onSelectTier={(tier) => {
+            setPermissionsTierSelector(null)
+            setPermissionsModal({
+              user: permissionsTierSelector.user,
+              module: permissionsTierSelector.module,
+              tier,
+            })
+          }}
+        />
+      )}
+      {permissionsModal && (
+        <PermissionsModal
+          userId={permissionsModal.user.id}
+          userName={permissionsModal.user.name || permissionsModal.user.email}
+          initialPermissions={permissionsModal.user.permissions}
+          module={permissionsModal.module}
+          tier={permissionsModal.tier}
+          onClose={() => setPermissionsModal(null)}
+        />
+      )}
 
       {deleteTarget && (
         <DeleteAlertModal

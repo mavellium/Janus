@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/utils'
 import { EditPageContainer } from '@/components/projects/EditPageContainer'
 import { PublishPageButton } from '@/components/projects/PublishPageButton'
 import { CreatePageModal } from '@/components/projects/CreatePageModal'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export const metadata = { title: 'Páginas — Janus' }
 
@@ -31,7 +32,9 @@ export default async function SitePagesPage({
   if (!project) redirect(`/${companySlug}/dashboard/sites`)
 
   const pages = await getPagesByProjectId(siteId)
-  const isDevOrAdmin = session.user.role === 'DEVELOPER'
+  const canCreate = await checkPermission(session, 'PAGE_CREATE', 'sites', 'page')
+  const canBuild = await checkPermission(session, 'PAGE_BUILD', 'sites', 'page')
+  const canDelete = await checkPermission(session, 'PAGE_DELETE', 'sites', 'page')
 
   return (
     <div className="p-8 w-full">
@@ -44,7 +47,7 @@ export default async function SitePagesPage({
             {pages.length} {pages.length === 1 ? 'página' : 'páginas'}
           </p>
         </div>
-        {isDevOrAdmin && <CreatePageModal projectId={siteId} companySlug={companySlug} />}
+        {canCreate && <CreatePageModal projectId={siteId} companySlug={companySlug} />}
       </div>
 
       <div className="bg-card rounded-xl border border-brand-btn-light overflow-x-auto">
@@ -62,8 +65,8 @@ export default async function SitePagesPage({
                 <p className="text-xs text-brand-muted mt-2">{formatDate(page.createdAt)}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <PublishPageButton pageId={page.id} initialPublished={page.isPublished} />
-                {isDevOrAdmin && (
+                {canBuild && <PublishPageButton pageId={page.id} initialPublished={page.isPublished} />}
+                {canDelete && (
                   <EditPageContainer
                     pageId={page.id}
                     initialName={page.name}
@@ -80,7 +83,7 @@ export default async function SitePagesPage({
                     }
                   />
                 )}
-                {isDevOrAdmin && (
+                {canBuild && (
                   <Link
                     href={`/${companySlug}/dashboard/sites/${siteId}/pages/${page.id}/builder`}
                     className="px-3 py-2 rounded-lg text-sm font-semibold transition border border-brand-btn-light text-brand-text hover:bg-brand-btn-light/40 flex items-center gap-2"
@@ -89,13 +92,15 @@ export default async function SitePagesPage({
                     Construir
                   </Link>
                 )}
-                <Link
-                  href={`/${companySlug}/dashboard/sites/${siteId}/pages/${page.id}/edit`}
-                  className="px-3 py-2 rounded-lg text-sm font-semibold text-white transition flex items-center gap-2 bg-brand-primary hover:bg-brand-hover"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Editar
-                </Link>
+                {canBuild && (
+                  <Link
+                    href={`/${companySlug}/dashboard/sites/${siteId}/pages/${page.id}/edit`}
+                    className="px-3 py-2 rounded-lg text-sm font-semibold text-white transition flex items-center gap-2 bg-brand-primary hover:bg-brand-hover"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Editar
+                  </Link>
+                )}
               </div>
             </div>
           ))}
@@ -104,11 +109,7 @@ export default async function SitePagesPage({
         {pages.length === 0 && (
           <div className="p-8 text-center">
             <p className="text-sm text-brand-muted mb-4">Nenhuma página criada ainda</p>
-            <button
-              className="px-6 py-2 rounded-lg text-sm font-semibold text-white transition bg-brand-cta hover:bg-brand-cta-hover"
-            >
-              Criar primeira página
-            </button>
+            {canCreate && <CreatePageModal projectId={siteId} companySlug={companySlug} />}
           </div>
         )}
       </div>

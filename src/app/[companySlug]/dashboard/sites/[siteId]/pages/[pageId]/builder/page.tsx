@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { db } from '@/lib/prisma'
 import { SchemaBuilderEditor } from '@/components/schema-builder/SchemaBuilderEditor'
 import { headers } from 'next/headers'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export const metadata = { title: 'Construir — Janus' }
 
@@ -14,7 +15,9 @@ export default async function SiteSchemaBuilderPage({
   const { companySlug, siteId, pageId } = await params
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
-  if (session.user.role !== 'DEVELOPER') redirect(`/${companySlug}/dashboard/sites/${siteId}/pages`)
+
+  const canBuild = await checkPermission(session, 'PAGE_BUILD', 'sites', 'page')
+  if (!canBuild) redirect(`/${companySlug}/dashboard/sites/${siteId}/pages`)
 
   const company = await db.company.findUnique({
     where: { slug: companySlug, deletedAt: null },
