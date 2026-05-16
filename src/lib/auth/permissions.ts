@@ -121,18 +121,37 @@ export function hasPermission(
   const normalizedPerms = normalizePermissions(session.user.permissions)
   const tierPermissions = normalizedPerms[module]?.[tier] ?? []
 
+  console.log('[hasPermission] Checking:', {
+    permission,
+    module,
+    tier,
+    viewMode,
+    role,
+    tierPermissions,
+    isUserMode: viewMode === VIEW_MODE_USER,
+  })
+
   // In USER_MODE, always check permissions strictly (overrides role)
   if (viewMode === VIEW_MODE_USER) {
-    return tierPermissions.includes(permission)
+    const result = tierPermissions.includes(permission)
+    console.log('[hasPermission] USER_MODE - returning:', result)
+    return result
   }
 
   // Admins always have access (when not in USER_MODE)
-  if (role === 'ADMIN') return true
+  if (role === 'ADMIN') {
+    console.log('[hasPermission] ADMIN - returning true')
+    return true
+  }
 
   // Developers in their own mode have full access
-  if (role === 'DEVELOPER') return true
+  if (role === 'DEVELOPER') {
+    console.log('[hasPermission] DEVELOPER - returning true')
+    return true
+  }
 
   // Regular users must have explicit permission
+  console.log('[hasPermission] Regular user - returning:', tierPermissions.includes(permission))
   return tierPermissions.includes(permission)
 }
 
