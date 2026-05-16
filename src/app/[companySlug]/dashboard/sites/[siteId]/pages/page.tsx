@@ -8,7 +8,8 @@ import { formatDate } from '@/lib/utils'
 import { EditPageContainer } from '@/components/projects/EditPageContainer'
 import { PublishPageButton } from '@/components/projects/PublishPageButton'
 import { CreatePageModal } from '@/components/projects/CreatePageModal'
-import { checkPermission } from '@/lib/auth/permissions'
+import { hasPermission } from '@/lib/auth/permissions'
+import { getUserPermissions } from '@/modules/auth/queries/getUserPermissions'
 
 export const metadata = { title: 'Páginas — Janus' }
 
@@ -32,9 +33,20 @@ export default async function SitePagesPage({
   if (!project) redirect(`/${companySlug}/dashboard/sites`)
 
   const pages = await getPagesByProjectId(siteId)
-  const canCreate = await checkPermission(session, 'PAGE_CREATE', 'sites', 'page')
-  const canBuild = await checkPermission(session, 'PAGE_BUILD', 'sites', 'page')
-  const canDelete = await checkPermission(session, 'PAGE_DELETE', 'sites', 'page')
+
+  // Fetch permissions fresh from database (not from session cache)
+  const freshPermissions = await getUserPermissions(session.user.id)
+  const sessionWithFreshPerms = {
+    ...session,
+    user: {
+      ...session.user,
+      permissions: freshPermissions,
+    },
+  }
+
+  const canCreate = hasPermission(sessionWithFreshPerms, 'PAGE_CREATE', 'sites', 'page')
+  const canBuild = hasPermission(sessionWithFreshPerms, 'PAGE_BUILD', 'sites', 'page')
+  const canDelete = hasPermission(sessionWithFreshPerms, 'PAGE_DELETE', 'sites', 'page')
 
   return (
     <div className="p-8 w-full">

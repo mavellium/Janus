@@ -5,7 +5,8 @@ import { ChevronLeft, ArrowRight } from 'lucide-react'
 import { db } from '@/lib/prisma'
 import { getProjects } from '@/modules/projects/queries/getProjects'
 import { formatDate } from '@/lib/utils'
-import { checkPermission } from '@/lib/auth/permissions'
+import { hasPermission } from '@/lib/auth/permissions'
+import { getUserPermissions } from '@/modules/auth/queries/getUserPermissions'
 import { CreateProjectModal } from '@/components/projects/CreateProjectModal'
 import { EditProjectContainer } from '@/components/projects/EditProjectContainer'
 import { EditProjectButton } from '@/components/projects/EditProjectButton'
@@ -28,9 +29,20 @@ export default async function LandingPagesPage({
   if (!company) redirect('/login')
 
   const projects = await getProjects({ companyId: company.id, type: 'LANDING_PAGE' })
-  const canCreate = await checkPermission(session, 'PROJECT_CREATE', 'landingPages', 'project')
-  const canEdit = await checkPermission(session, 'PROJECT_EDIT', 'landingPages', 'project')
-  const canDelete = await checkPermission(session, 'PROJECT_DELETE', 'landingPages', 'project')
+
+  // Fetch permissions fresh from database (not from session cache)
+  const freshPermissions = await getUserPermissions(session.user.id)
+  const sessionWithFreshPerms = {
+    ...session,
+    user: {
+      ...session.user,
+      permissions: freshPermissions,
+    },
+  }
+
+  const canCreate = hasPermission(sessionWithFreshPerms, 'PROJECT_CREATE', 'landingPages', 'project')
+  const canEdit = hasPermission(sessionWithFreshPerms, 'PROJECT_EDIT', 'landingPages', 'project')
+  const canDelete = hasPermission(sessionWithFreshPerms, 'PROJECT_DELETE', 'landingPages', 'project')
 
   return (
     <div className="p-8">

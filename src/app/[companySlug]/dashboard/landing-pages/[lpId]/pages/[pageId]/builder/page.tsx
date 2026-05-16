@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation'
 import { db } from '@/lib/prisma'
 import { SchemaBuilderEditor } from '@/components/schema-builder/SchemaBuilderEditor'
 import { headers } from 'next/headers'
-import { checkPermission } from '@/lib/auth/permissions'
+import { hasPermission } from '@/lib/auth/permissions'
+import { getUserPermissions } from '@/modules/auth/queries/getUserPermissions'
 
 export const metadata = { title: 'Construir — Janus' }
 
@@ -16,7 +17,16 @@ export default async function LandingPageSchemaBuilderPage({
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const canBuild = await checkPermission(session, 'PAGE_BUILD', 'landingPages', 'page')
+  const freshPermissions = await getUserPermissions(session.user.id)
+  const sessionWithFreshPerms = {
+    ...session,
+    user: {
+      ...session.user,
+      permissions: freshPermissions,
+    },
+  }
+
+  const canBuild = hasPermission(sessionWithFreshPerms, 'PAGE_BUILD', 'landingPages', 'page')
   if (!canBuild) redirect(`/${companySlug}/dashboard/landing-pages/${lpId}/pages`)
 
   const company = await db.company.findUnique({
