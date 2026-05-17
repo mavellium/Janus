@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { getViewMode, VIEW_MODE_DEV } from '@/lib/auth/permissions'
 
 interface UpdatePageParams {
   pageId: string
@@ -23,7 +24,11 @@ export async function updatePage({
   if (!session?.user?.id) {
     return { ok: false, error: 'Não autenticado' }
   }
-  if (session.user.role !== 'DEVELOPER') {
+
+  const viewMode = await getViewMode()
+  const isDeveloperOrInDevMode = session.user.role === 'DEVELOPER' || viewMode === VIEW_MODE_DEV
+
+  if (!isDeveloperOrInDevMode) {
     return { ok: false, error: 'Apenas desenvolvedores podem editar a estrutura de páginas' }
   }
 
