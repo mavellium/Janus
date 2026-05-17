@@ -3,7 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
-import { getViewMode, VIEW_MODE_DEV } from '@/lib/auth/permissions'
+import { getViewMode, VIEW_MODE_DEV, getImpersonatedDevId } from '@/lib/auth/permissions'
 
 interface UpdatePageSchemaParams {
   pageId: string
@@ -40,7 +40,8 @@ export async function updatePageSchema({ pageId, schemaJson }: UpdatePageSchemaP
       return { ok: false, error: 'Página não encontrada' }
     }
 
-    if (session.user.companySlug && page.project.company.slug !== session.user.companySlug) {
+    // In DEV_MODE, skip companySlug validation since admin is viewing dev's company
+    if (viewMode !== VIEW_MODE_DEV && session.user.companySlug && page.project.company.slug !== session.user.companySlug) {
       return { ok: false, error: 'Acesso negado' }
     }
 

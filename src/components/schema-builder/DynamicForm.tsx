@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { MediaUploadModal } from './MediaUploadModal'
 import { updatePageContentData } from '@/modules/projects/actions/updatePageContentData'
 import { uploadMedia } from '@/modules/upload/actions/uploadMedia'
 
@@ -47,6 +48,16 @@ function getSectionLabel(section: SchemaSection): string {
   return section.name ?? section.section ?? section.id ?? ''
 }
 
+interface MediaModalState {
+  open: boolean
+  sectionKey: string
+  fieldName: string
+  mediaType: 'image' | 'video'
+  isListItem?: boolean
+  listFieldName?: string
+  listIndex?: number
+}
+
 export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicFormProps) {
   const [content, setContent] = useState<Record<string, unknown>>(
     typeof initialContentData === 'object' && initialContentData !== null
@@ -57,6 +68,12 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [uploadingFields, setUploadingFields] = useState<Set<string>>(new Set())
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({})
+  const [mediaModal, setMediaModal] = useState<MediaModalState>({
+    open: false,
+    sectionKey: '',
+    fieldName: '',
+    mediaType: 'image',
+  })
 
   let sections: SchemaSection[] = []
   if (Array.isArray(schemaData)) {
@@ -88,6 +105,53 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
         setMessage({ type: 'error', text: result.error ?? 'Erro ao salvar' })
       }
     })
+  }
+
+  const handleMediaModalOpen = (
+    sectionKey: string,
+    fieldName: string,
+    mediaType: 'image' | 'video',
+    isListItem = false,
+    listFieldName = '',
+    listIndex = 0,
+  ) => {
+    setMediaModal({
+      open: true,
+      sectionKey,
+      fieldName,
+      mediaType,
+      isListItem,
+      listFieldName,
+      listIndex,
+    })
+  }
+
+  const handleMediaModalClose = () => {
+    setMediaModal({ ...mediaModal, open: false })
+  }
+
+  const handleMediaModalUrlSubmit = (url: string) => {
+    const { sectionKey, fieldName, isListItem, listFieldName, listIndex } = mediaModal
+
+    if (isListItem && listFieldName && listIndex !== undefined) {
+      handleListItemChange(sectionKey, listFieldName, listIndex, fieldName, url)
+    } else {
+      handleChange(sectionKey, fieldName, url)
+    }
+
+    setMediaModal({ ...mediaModal, open: false })
+  }
+
+  const handleMediaModalFileUpload = (file: File) => {
+    const { sectionKey, fieldName, isListItem, listFieldName, listIndex } = mediaModal
+
+    if (isListItem && listFieldName && listIndex !== undefined) {
+      handleListMediaUpload(sectionKey, listFieldName, listIndex, fieldName, file)
+    } else {
+      handleMediaUpload(sectionKey, fieldName, file)
+    }
+
+    setMediaModal({ ...mediaModal, open: false })
   }
 
   async function handleMediaUpload(
@@ -250,12 +314,18 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
                         ) : field.type === 'image' ? (
                           <div className="space-y-2">
                             {strValue && (
-                              <div className="relative w-full h-32 rounded-lg overflow-hidden border border-border">
+                              <div className="relative w-full h-32 rounded-lg overflow-hidden border border-border group cursor-pointer">
                                 <img src={strValue} alt="" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                  <span className="text-xs text-white font-medium">Clique para alterar</span>
+                                </div>
                               </div>
                             )}
-                            <label
-                              className={`flex items-center gap-2 bg-brand-bg border border-border rounded-lg px-3 py-2 cursor-pointer hover:bg-brand-btn-light/20 transition ${
+                            <button
+                              type="button"
+                              onClick={() => handleMediaModalOpen(sectionKey, field.name, 'image')}
+                              disabled={isUploadingField}
+                              className={`w-full flex items-center gap-2 bg-brand-bg border border-border rounded-lg px-3 py-2 hover:bg-brand-btn-light/20 transition ${
                                 isUploadingField ? 'opacity-60 pointer-events-none' : ''
                               }`}
                             >
@@ -265,15 +335,9 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
                                 <Upload className="w-4 h-4 text-brand-muted shrink-0" />
                               )}
                               <span className="text-sm text-brand-muted">
-                                {isUploadingField ? 'Enviando...' : 'Selecionar imagem'}
+                                {isUploadingField ? 'Enviando...' : 'Alterar imagem'}
                               </span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="sr-only"
-                                onChange={(e) => handleMediaUpload(sectionKey, field.name, e.target.files?.[0])}
-                              />
-                            </label>
+                            </button>
                             {uploadError && (
                               <p className="text-xs text-destructive">{uploadError}</p>
                             )}
@@ -341,8 +405,11 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
                           </Select>
                         ) : field.type === 'video' ? (
                           <div className="space-y-2">
-                            <label
-                              className={`flex items-center gap-2 bg-brand-bg border border-border rounded-lg px-3 py-2 cursor-pointer hover:bg-brand-btn-light/20 transition ${
+                            <button
+                              type="button"
+                              onClick={() => handleMediaModalOpen(sectionKey, field.name, 'video')}
+                              disabled={isUploadingField}
+                              className={`w-full flex items-center gap-2 bg-brand-bg border border-border rounded-lg px-3 py-2 hover:bg-brand-btn-light/20 transition ${
                                 isUploadingField ? 'opacity-60 pointer-events-none' : ''
                               }`}
                             >
@@ -352,15 +419,9 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
                                 <Video className="w-4 h-4 text-brand-muted shrink-0" />
                               )}
                               <span className="text-sm text-brand-muted truncate">
-                                {isUploadingField ? 'Enviando vídeo...' : 'Selecionar vídeo'}
+                                {isUploadingField ? 'Enviando vídeo...' : 'Alterar vídeo'}
                               </span>
-                              <input
-                                type="file"
-                                accept="video/*"
-                                className="sr-only"
-                                onChange={(e) => handleMediaUpload(sectionKey, field.name, e.target.files?.[0])}
-                              />
-                            </label>
+                            </button>
                             {uploadError && (
                               <p className="text-xs text-destructive">{uploadError}</p>
                             )}
@@ -425,22 +486,21 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
                                               {subField.type === 'image' ? (
                                                 <div className="space-y-1.5">
                                                   {subStr && (
-                                                    <div className="relative w-full h-20 rounded overflow-hidden border border-border">
+                                                    <div className="relative w-full h-20 rounded overflow-hidden border border-border group cursor-pointer">
                                                       <img src={subStr} alt="" className="w-full h-full object-cover" />
+                                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                                        <span className="text-[10px] text-white font-medium">Alterar</span>
+                                                      </div>
                                                     </div>
                                                   )}
-                                                  <label className="flex items-center gap-2 bg-brand-bg border border-border rounded px-2.5 py-1.5 cursor-pointer hover:bg-brand-btn-light/20 transition text-xs">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleMediaModalOpen(sectionKey, subField.name, 'image', true, field.name, idx)}
+                                                    className="w-full flex items-center gap-2 bg-brand-bg border border-border rounded px-2.5 py-1.5 hover:bg-brand-btn-light/20 transition text-xs"
+                                                  >
                                                     <Upload className="w-3.5 h-3.5 text-brand-muted shrink-0" />
-                                                    <span className="text-brand-muted">Upload</span>
-                                                    <input
-                                                      type="file"
-                                                      accept="image/*"
-                                                      className="sr-only"
-                                                      onChange={(e) =>
-                                                        handleListMediaUpload(sectionKey, field.name, idx, subField.name, e.target.files?.[0])
-                                                      }
-                                                    />
-                                                  </label>
+                                                    <span className="text-brand-muted">Alterar imagem</span>
+                                                  </button>
                                                 </div>
                                               ) : subField.type === 'textarea' ? (
                                                 <textarea
@@ -518,6 +578,16 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
           {isPending ? 'Salvando...' : 'Salvar Alterações'}
         </button>
       </div>
+
+      <MediaUploadModal
+        isOpen={mediaModal.open}
+        onClose={handleMediaModalClose}
+        onUrlSubmit={handleMediaModalUrlSubmit}
+        onFileUpload={handleMediaModalFileUpload}
+        mediaType={mediaModal.mediaType}
+        isUploading={uploadingFields.has(`${mediaModal.sectionKey}:${mediaModal.fieldName}`)}
+        uploadError={uploadErrors[`${mediaModal.sectionKey}:${mediaModal.fieldName}`]}
+      />
     </div>
   )
 }

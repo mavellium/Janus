@@ -42,7 +42,8 @@ export async function updatePage({
       return { ok: false, error: 'Página não encontrada' }
     }
 
-    if (session.user.companySlug && page.project.company.slug !== session.user.companySlug) {
+    // In DEV_MODE, skip companySlug validation since admin is viewing dev's company
+    if (viewMode !== VIEW_MODE_DEV && session.user.companySlug && page.project.company.slug !== session.user.companySlug) {
       return { ok: false, error: 'Acesso negado' }
     }
 
