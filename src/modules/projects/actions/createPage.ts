@@ -47,8 +47,9 @@ export async function createPage({ projectId, name, slug, companySlug, previewUr
       return { ok: false, error: 'Acesso negado' }
     }
 
+    // Only validate companySlug for DEVELOPERs (not for ADMIN)
     // In DEV_MODE, skip companySlug validation since admin is viewing dev's company
-    if (viewMode !== VIEW_MODE_DEV && session.user.companySlug && project.company.slug !== session.user.companySlug) {
+    if (session.user.role === 'DEVELOPER' && viewMode !== VIEW_MODE_DEV && session.user.companySlug && project.company.slug !== session.user.companySlug) {
       return { ok: false, error: 'Acesso negado' }
     }
 

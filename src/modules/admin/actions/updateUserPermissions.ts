@@ -13,8 +13,8 @@ const schema = z.object({
 
 export async function updateUserPermissions(input: z.infer<typeof schema>) {
   const session = await auth()
-  if (session?.user?.role !== 'ADMIN') {
-    return { ok: false, error: 'Acesso não autorizado.' }
+  if (!session?.user?.id) {
+    return { ok: false, error: 'Não autenticado.' }
   }
 
   const parsed = schema.safeParse(input)
@@ -22,9 +22,17 @@ export async function updateUserPermissions(input: z.infer<typeof schema>) {
 
   const target = await db.user.findUnique({
     where: { id: parsed.data.userId, deletedAt: null },
-    select: { id: true, role: true },
+    select: { id: true, role: true, createdById: true },
   })
   if (!target) return { ok: false, error: 'Usuário não encontrado.' }
+
+  // Check authorization: ADMIN can update anyone, DEVELOPER can only update their own users
+  const isAdmin = session.user.role === 'ADMIN'
+  const isDeveloperUpdatingOwnUser = session.user.role === 'DEVELOPER' && target.createdById === session.user.id
+
+  if (!isAdmin && !isDeveloperUpdatingOwnUser) {
+    return { ok: false, error: 'Acesso não autorizado.' }
+  }
 
   console.log('Processing permissions:', parsed.data.permissions)
   console.log('ALL_PERMISSIONS:', ALL_PERMISSIONS)
@@ -69,6 +77,9 @@ export async function updateUserPermissions(input: z.infer<typeof schema>) {
   // Revalidate admin pages
   revalidatePath('/dashboard-admin/users')
   revalidatePath('/dashboard-admin/developers')
+
+  // Revalidate developer's user management page
+  revalidatePath(`/dev/${session.user.id}/dashboard/users`)
 
   // Revalidate all dashboard pages (sites, landing pages, etc)
   revalidatePath('/', 'layout')

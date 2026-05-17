@@ -746,6 +746,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-17 | `src/app/[companySlug]/dashboard/sites/[siteId]/pages/[pageId]/edit/page.tsx` | **REFACTOR:** Removida verificação `PAGE_BUILD` — qualquer usuário logado pode editar conteúdo/valores do schema |
 | 2026-05-17 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/[pageId]/edit/page.tsx` | **REFACTOR:** Removida verificação `PAGE_BUILD` — qualquer usuário logado pode editar conteúdo/valores do schema |
 | 2026-05-17 | `src/app/dashboard-admin/PermissionsModal.tsx` | **FIX:** Adicionado cleaning de colons extras (`.replace(/^:+|:+$/g, '')`) na função `normalizePermissions()` — corrige parsing de landing pages permissions malformadas |
+| 2026-05-17 | `src/modules/auth/actions/viewAsUser.ts` | **FIX:** Adicionado parâmetro opcional `redirectUrl` — permite permanecer na página atual ao alternar de DEV_MODE para USER_MODE |
+| 2026-05-17 | `src/components/dashboard/ImpersonationBanner.tsx` | **FIX:** `handleUserToggle` passa `pathname` para `viewAsUser` — mantém contexto de página ao ativar USER_MODE |
 
 ---
 

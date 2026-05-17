@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/dashboard/Sidebar'
 import { MobileNav } from '@/components/dashboard/MobileNav'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ImpersonationBanner } from '@/components/dashboard/ImpersonationBanner'
+import { getDeveloperUsers } from '@/modules/auth/queries/getDeveloperUsers'
 import type { UserPreferences } from '@/types/next-auth'
 import { getViewMode, VIEW_MODE_USER, VIEW_MODE_DEV, isPrivilegedRole, getImpersonatedUserId, getImpersonatedDevId } from '@/lib/auth/permissions'
 
@@ -78,6 +79,11 @@ export default async function DashboardLayout({
     console.log('[dashboard/layout] Impersonated dev:', { impersonatedDevName, permissions: impersonatedDevPermissions })
   }
 
+  let developerUsers: Array<{ id: string; name: string | null; email: string; role: string }> = []
+  if (role === 'DEVELOPER') {
+    developerUsers = await getDeveloperUsers(session.user.id, company.id)
+  }
+
   return (
     <ThemeProvider darkMode={prefs.darkMode}>
       <div className="h-screen flex bg-brand-bg">
@@ -110,6 +116,7 @@ export default async function DashboardLayout({
               impersonatedDevId={impersonatedDevId}
               impersonatedDevName={impersonatedDevName}
               impersonatedDevPermissions={impersonatedDevPermissions}
+              developerUsers={developerUsers}
             />
           )}
           {children}

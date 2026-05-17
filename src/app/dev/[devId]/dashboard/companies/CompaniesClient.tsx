@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import { Building2, Pencil, Trash2, ExternalLink, X, Loader2, Plus } from 'lucide-react'
+import { Building2, Pencil, Trash2, X, Loader2, Plus } from 'lucide-react'
 import { SlugInput } from '@/components/ui/SlugInput'
 import { createCompany } from '@/modules/dev/actions/createCompany'
 import { editCompany } from '@/modules/dev/actions/editCompany'
@@ -180,15 +180,6 @@ export function CompaniesClient({ companies }: { companies: Company[] }) {
                   <td className="px-5 py-4 text-center text-sm text-brand-text">{company.projects.length}</td>
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-1">
-                      <a
-                        href={`/${company.slug}/dashboard`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
-                        title="Ver projetos"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
                       <button
                         onClick={() => setModal({ mode: 'edit', company })}
                         className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"

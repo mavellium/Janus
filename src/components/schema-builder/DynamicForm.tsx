@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { MediaUploadModal } from './MediaUploadModal'
+import { ImagePreviewModal } from './ImagePreviewModal'
 import { updatePageContentData } from '@/modules/projects/actions/updatePageContentData'
 import { uploadMedia } from '@/modules/upload/actions/uploadMedia'
 
@@ -18,6 +19,7 @@ interface DynamicFormProps {
   pageId: string
   schemaData: unknown
   initialContentData: unknown
+  onSave?: () => void
 }
 
 type SelectOption = {
@@ -58,7 +60,17 @@ interface MediaModalState {
   listIndex?: number
 }
 
-export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicFormProps) {
+interface ImagePreviewState {
+  open: boolean
+  imageUrl: string
+  sectionKey: string
+  fieldName: string
+  isListItem?: boolean
+  listFieldName?: string
+  listIndex?: number
+}
+
+export function DynamicForm({ pageId, schemaData, initialContentData, onSave }: DynamicFormProps) {
   const [content, setContent] = useState<Record<string, unknown>>(
     typeof initialContentData === 'object' && initialContentData !== null
       ? (initialContentData as Record<string, unknown>)
@@ -73,6 +85,12 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
     sectionKey: '',
     fieldName: '',
     mediaType: 'image',
+  })
+  const [imagePreview, setImagePreview] = useState<ImagePreviewState>({
+    open: false,
+    imageUrl: '',
+    sectionKey: '',
+    fieldName: '',
   })
 
   let sections: SchemaSection[] = []
@@ -100,6 +118,7 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
       const result = await updatePageContentData({ pageId, contentData: content })
       if (result.ok) {
         setMessage({ type: 'success', text: 'Conteúdo salvo com sucesso!' })
+        onSave?.()
         setTimeout(() => setMessage(null), 3000)
       } else {
         setMessage({ type: 'error', text: result.error ?? 'Erro ao salvar' })
@@ -140,6 +159,45 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
     }
 
     setMediaModal({ ...mediaModal, open: false })
+  }
+
+  const handleImagePreviewOpen = (
+    sectionKey: string,
+    fieldName: string,
+    imageUrl: string,
+    isListItem = false,
+    listFieldName = '',
+    listIndex = 0,
+  ) => {
+    setImagePreview({
+      open: true,
+      imageUrl,
+      sectionKey,
+      fieldName,
+      isListItem,
+      listFieldName,
+      listIndex,
+    })
+  }
+
+  const handleImagePreviewClose = () => {
+    setImagePreview({ ...imagePreview, open: false })
+  }
+
+  const handleImagePreviewRemove = () => {
+    const { sectionKey, fieldName, isListItem, listFieldName, listIndex } = imagePreview
+
+    if (isListItem && listFieldName && listIndex !== undefined) {
+      handleListItemChange(sectionKey, listFieldName, listIndex, fieldName, '')
+    } else {
+      handleChange(sectionKey, fieldName, '')
+    }
+  }
+
+  const handleImagePreviewEdit = () => {
+    const { sectionKey, fieldName, isListItem, listFieldName, listIndex } = imagePreview
+
+    handleMediaModalOpen(sectionKey, fieldName, 'image', isListItem, listFieldName, listIndex)
   }
 
   const handleMediaModalFileUpload = (file: File) => {
@@ -314,27 +372,16 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
                         ) : field.type === 'image' ? (
                           <div className="space-y-2">
                             {strValue && (
-                              <div className="relative w-full h-32 rounded-lg overflow-hidden border border-border group bg-brand-bg flex items-center justify-center">
+                              <button
+                                type="button"
+                                onClick={() => handleImagePreviewOpen(sectionKey, field.name, strValue)}
+                                className="relative w-full h-40 rounded-lg overflow-hidden border border-border group bg-brand-bg flex items-center justify-center hover:opacity-90 transition cursor-pointer"
+                              >
                                 <img src={strValue} alt="" className="w-full h-full object-cover" onDragStart={(e) => e.preventDefault()} />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleChange(sectionKey, field.name, '')}
-                                    disabled={isUploadingField}
-                                    className="px-2 py-1 rounded text-xs font-medium bg-red-600 hover:bg-red-700 text-white transition disabled:opacity-50"
-                                  >
-                                    Remover
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleMediaModalOpen(sectionKey, field.name, 'image')}
-                                    disabled={isUploadingField}
-                                    className="px-2 py-1 rounded text-xs font-medium bg-brand-primary hover:bg-brand-hover text-white transition disabled:opacity-50"
-                                  >
-                                    Alterar
-                                  </button>
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center">
+                                  <span className="text-xs text-white font-medium opacity-0 group-hover:opacity-100">Clique para ampliar</span>
                                 </div>
-                              </div>
+                              </button>
                             )}
                             <button
                               type="button"
@@ -513,12 +560,16 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
                                               {subField.type === 'image' ? (
                                                 <div className="space-y-1.5">
                                                   {subStr && (
-                                                    <div className="relative w-full h-20 rounded overflow-hidden border border-border group cursor-pointer">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => handleImagePreviewOpen(sectionKey, subField.name, subStr, true, field.name, idx)}
+                                                      className="relative w-full h-20 rounded overflow-hidden border border-border group hover:opacity-90 transition cursor-pointer bg-brand-bg flex items-center justify-center"
+                                                    >
                                                       <img src={subStr} alt="" className="w-full h-full object-cover" />
-                                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                                                        <span className="text-[10px] text-white font-medium">Alterar</span>
+                                                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center">
+                                                        <span className="text-[10px] text-white font-medium opacity-0 group-hover:opacity-100">Ampliar</span>
                                                       </div>
-                                                    </div>
+                                                    </button>
                                                   )}
                                                   <button
                                                     type="button"
@@ -614,6 +665,14 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
         mediaType={mediaModal.mediaType}
         isUploading={uploadingFields.has(`${mediaModal.sectionKey}:${mediaModal.fieldName}`)}
         uploadError={uploadErrors[`${mediaModal.sectionKey}:${mediaModal.fieldName}`]}
+      />
+
+      <ImagePreviewModal
+        isOpen={imagePreview.open}
+        onClose={handleImagePreviewClose}
+        imageUrl={imagePreview.imageUrl}
+        onRemove={handleImagePreviewRemove}
+        onEdit={handleImagePreviewEdit}
       />
     </div>
   )

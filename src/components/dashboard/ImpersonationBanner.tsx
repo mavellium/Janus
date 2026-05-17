@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Eye, EyeOff, Loader2, KeyRound } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { toggleViewMode, toggleDevViewMode } from '@/modules/auth/actions/toggleViewMode'
+import { viewAsUser } from '@/modules/auth/actions/viewAsUser'
 import { UserPermissionsModal } from './UserPermissionsModal'
 import { DevPermissionsModal } from './DevPermissionsModal'
 import type { ModuleType } from '@/lib/auth/permissions'
@@ -22,6 +23,7 @@ interface Props {
   impersonatedDevId?: string | null
   impersonatedDevName?: string | null
   impersonatedDevPermissions?: string | string[] | Record<string, Record<string, string[]>>
+  developerUsers?: Array<{ id: string; name: string | null; email: string; role: string }>
 }
 
 export function ImpersonationBanner({
@@ -36,6 +38,7 @@ export function ImpersonationBanner({
   impersonatedDevId,
   impersonatedDevName,
   impersonatedDevPermissions,
+  developerUsers = [],
 }: Props) {
   const router = useRouter()
   const pathname = usePathname()
@@ -47,10 +50,18 @@ export function ImpersonationBanner({
   const backHref = role === 'ADMIN' ? '/dashboard-admin' : '/dev'
 
   function handleUserToggle(checked: boolean) {
-    startTransition(async () => {
-      const result = await toggleViewMode(checked, companySlug)
-      if (result.ok) router.refresh()
-    })
+    if (role === 'DEVELOPER' && checked && !initialSimulating && developerUsers.length > 0) {
+      // Auto-select first user and enter USER_MODE
+      const firstUser = developerUsers[0]
+      startTransition(async () => {
+        await viewAsUser(firstUser.id, companySlug, pathname)
+      })
+    } else {
+      startTransition(async () => {
+        const result = await toggleViewMode(checked, companySlug)
+        if (result.ok) router.refresh()
+      })
+    }
   }
 
   function handleDevToggle(checked: boolean) {

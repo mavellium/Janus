@@ -26,9 +26,9 @@ export async function updatePage({
   }
 
   const viewMode = await getViewMode()
-  const isDeveloperOrInDevMode = session.user.role === 'DEVELOPER' || viewMode === VIEW_MODE_DEV
+  const canEdit = session.user.role === 'DEVELOPER' || session.user.role === 'ADMIN' || viewMode === VIEW_MODE_DEV
 
-  if (!isDeveloperOrInDevMode) {
+  if (!canEdit) {
     return { ok: false, error: 'Apenas desenvolvedores podem editar a estrutura de páginas' }
   }
 
@@ -42,8 +42,9 @@ export async function updatePage({
       return { ok: false, error: 'Página não encontrada' }
     }
 
+    // Only validate companySlug for DEVELOPERs (not for ADMIN)
     // In DEV_MODE, skip companySlug validation since admin is viewing dev's company
-    if (viewMode !== VIEW_MODE_DEV && session.user.companySlug && page.project.company.slug !== session.user.companySlug) {
+    if (session.user.role === 'DEVELOPER' && viewMode !== VIEW_MODE_DEV && session.user.companySlug && page.project.company.slug !== session.user.companySlug) {
       return { ok: false, error: 'Acesso negado' }
     }
 
