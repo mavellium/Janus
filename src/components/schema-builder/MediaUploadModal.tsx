@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Loader2, LinkIcon, Upload, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Loader2, LinkIcon, Upload, CheckCircle2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,9 +29,28 @@ export function MediaUploadModal({
   const [tab, setTab] = useState<'url' | 'upload'>('url')
   const [urlInput, setUrlInput] = useState('')
   const [urlError, setUrlError] = useState('')
+  const [uploadedSuccessfully, setUploadedSuccessfully] = useState(false)
 
   const mediaLabel = mediaType === 'image' ? 'Imagem' : 'Vídeo'
   const accept = mediaType === 'image' ? 'image/*' : 'video/*'
+
+  // Auto-close modal after successful upload
+  useEffect(() => {
+    if (!isUploading && !uploadError && uploadedSuccessfully) {
+      const timer = setTimeout(() => {
+        onClose()
+        setUploadedSuccessfully(false)
+      }, 800)
+      return () => clearTimeout(timer)
+    }
+  }, [isUploading, uploadError, uploadedSuccessfully, onClose])
+
+  // Reset state when modal opens
+  useEffect(() => {
+    if (!isOpen) {
+      setUploadedSuccessfully(false)
+    }
+  }, [isOpen])
 
   const handleUrlSubmit = () => {
     setUrlError('')
@@ -56,6 +75,7 @@ export function MediaUploadModal({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      setUploadedSuccessfully(true)
       onFileUpload(file)
     }
   }
@@ -134,18 +154,24 @@ export function MediaUploadModal({
             </div>
           ) : (
             <div className="space-y-3">
-              <label className="block">
-                <div className="border-2 border-dashed border-border rounded-lg px-6 py-8 text-center cursor-pointer hover:border-brand-primary/50 transition">
+              <label className="block cursor-pointer">
+                <div className={`border-2 border-dashed rounded-lg px-6 py-8 text-center transition ${
+                  !isUploading && !uploadError && uploadedSuccessfully
+                    ? 'border-green-500 bg-green-500/5'
+                    : 'border-border hover:border-brand-primary/50'
+                }`}>
                   {isUploading ? (
                     <Loader2 className="w-8 h-8 animate-spin text-brand-muted mx-auto mb-2" />
+                  ) : !uploadError && uploadedSuccessfully ? (
+                    <CheckCircle2 className="w-8 h-8 text-green-600 mx-auto mb-2" />
                   ) : (
                     <Upload className="w-8 h-8 text-brand-muted mx-auto mb-2" />
                   )}
                   <p className="text-sm font-medium text-brand-text">
-                    {isUploading ? `Enviando ${mediaLabel.toLowerCase()}...` : `Clique para selecionar ${mediaLabel.toLowerCase()}`}
+                    {isUploading ? `Enviando ${mediaLabel.toLowerCase()}...` : !uploadError && uploadedSuccessfully ? `${mediaLabel} enviada com sucesso!` : `Clique para selecionar ${mediaLabel.toLowerCase()}`}
                   </p>
                   <p className="text-xs text-brand-muted mt-1">
-                    ou arraste e solte
+                    {uploadedSuccessfully && !uploadError ? 'Fechando...' : 'ou arraste e solte'}
                   </p>
                 </div>
                 <input
@@ -157,11 +183,12 @@ export function MediaUploadModal({
                 />
               </label>
               {uploadError && (
-                <p className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded border border-destructive/20">
-                  {uploadError}
-                </p>
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                  <p className="text-xs font-medium text-destructive">Erro no upload:</p>
+                  <p className="text-xs text-destructive mt-1">{uploadError}</p>
+                </div>
               )}
-              {!isUploading && (
+              {!isUploading && (!uploadedSuccessfully || uploadError) && (
                 <div className="flex justify-end gap-2 pt-2">
                   <Button variant="outline" onClick={onClose}>
                     Cancelar

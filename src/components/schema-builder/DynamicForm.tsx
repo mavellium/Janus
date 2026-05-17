@@ -151,7 +151,7 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
       handleMediaUpload(sectionKey, fieldName, file)
     }
 
-    setMediaModal({ ...mediaModal, open: false })
+    // Modal will auto-close after successful upload (see MediaUploadModal useEffect)
   }
 
   async function handleMediaUpload(
@@ -314,10 +314,25 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
                         ) : field.type === 'image' ? (
                           <div className="space-y-2">
                             {strValue && (
-                              <div className="relative w-full h-32 rounded-lg overflow-hidden border border-border group cursor-pointer">
-                                <img src={strValue} alt="" className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                                  <span className="text-xs text-white font-medium">Clique para alterar</span>
+                              <div className="relative w-full h-32 rounded-lg overflow-hidden border border-border group bg-brand-bg flex items-center justify-center">
+                                <img src={strValue} alt="" className="w-full h-full object-cover" onDragStart={(e) => e.preventDefault()} />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleChange(sectionKey, field.name, '')}
+                                    disabled={isUploadingField}
+                                    className="px-2 py-1 rounded text-xs font-medium bg-red-600 hover:bg-red-700 text-white transition disabled:opacity-50"
+                                  >
+                                    Remover
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMediaModalOpen(sectionKey, field.name, 'image')}
+                                    disabled={isUploadingField}
+                                    className="px-2 py-1 rounded text-xs font-medium bg-brand-primary hover:bg-brand-hover text-white transition disabled:opacity-50"
+                                  >
+                                    Alterar
+                                  </button>
                                 </div>
                               </div>
                             )}
@@ -335,7 +350,7 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
                                 <Upload className="w-4 h-4 text-brand-muted shrink-0" />
                               )}
                               <span className="text-sm text-brand-muted">
-                                {isUploadingField ? 'Enviando...' : 'Alterar imagem'}
+                                {isUploadingField ? 'Enviando...' : strValue ? 'Trocar imagem' : 'Adicionar imagem'}
                               </span>
                             </button>
                             {uploadError && (
@@ -419,19 +434,31 @@ export function DynamicForm({ pageId, schemaData, initialContentData }: DynamicF
                                 <Video className="w-4 h-4 text-brand-muted shrink-0" />
                               )}
                               <span className="text-sm text-brand-muted truncate">
-                                {isUploadingField ? 'Enviando vídeo...' : 'Alterar vídeo'}
+                                {isUploadingField ? 'Enviando vídeo...' : strValue ? 'Trocar vídeo' : 'Adicionar vídeo'}
                               </span>
                             </button>
                             {uploadError && (
                               <p className="text-xs text-destructive">{uploadError}</p>
                             )}
                             {strValue && (
-                              <input
-                                type="text"
-                                value={strValue}
-                                readOnly
-                                className="w-full bg-brand-bg border border-border rounded-lg px-3 py-1.5 text-xs text-brand-muted font-mono truncate focus:outline-none"
-                              />
+                              <>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleChange(sectionKey, field.name, '')}
+                                    disabled={isUploadingField}
+                                    className="px-3 py-1.5 rounded text-xs font-medium bg-red-600 hover:bg-red-700 text-white transition disabled:opacity-50"
+                                  >
+                                    Remover vídeo
+                                  </button>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={strValue}
+                                  readOnly
+                                  className="w-full bg-brand-bg border border-border rounded-lg px-3 py-1.5 text-xs text-brand-muted font-mono truncate focus:outline-none"
+                                />
+                              </>
                             )}
                           </div>
                         ) : field.type === 'url' ? (
