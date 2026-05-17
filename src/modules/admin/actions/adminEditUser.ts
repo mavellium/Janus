@@ -11,6 +11,7 @@ const schema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(8).optional(),
+  companyId: z.string().uuid().optional(),
 })
 
 export async function adminEditUser(formData: FormData): Promise<{ ok: boolean; error?: string }> {
@@ -26,6 +27,7 @@ export async function adminEditUser(formData: FormData): Promise<{ ok: boolean; 
     name: formData.get('name'),
     email: formData.get('email'),
     password: rawPassword.length > 0 ? rawPassword : undefined,
+    companyId: formData.get('companyId'),
   })
 
   if (!parsed.success) {
@@ -39,13 +41,17 @@ export async function adminEditUser(formData: FormData): Promise<{ ok: boolean; 
     return { ok: false, error: 'E-mail já está em uso.' }
   }
 
-  const data: { name: string; email: string; password?: string } = {
+  const data: { name: string; email: string; password?: string; companyId?: string } = {
     name: parsed.data.name,
     email: parsed.data.email,
   }
 
   if (parsed.data.password) {
     data.password = await hash(parsed.data.password, 10)
+  }
+
+  if (parsed.data.companyId) {
+    data.companyId = parsed.data.companyId
   }
 
   await db.user.update({ where: { id: parsed.data.id }, data })

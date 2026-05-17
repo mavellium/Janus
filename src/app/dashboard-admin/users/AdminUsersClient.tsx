@@ -139,7 +139,7 @@ function CreateUserModal({ companies, onClose }: { companies: Company[]; onClose
   )
 }
 
-function EditUserModal({ user, onClose }: { user: User; onClose: () => void }) {
+function EditUserModal({ user, companies, onClose }: { user: User; companies: Company[]; onClose: () => void }) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -180,6 +180,22 @@ function EditUserModal({ user, onClose }: { user: User; onClose: () => void }) {
           <div className="flex flex-col gap-1.5">
             <Label>E-mail</Label>
             <Input name="email" type="email" required defaultValue={user.email} placeholder="email@exemplo.com" />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Empresa</Label>
+            <Select name="companyId" defaultValue={user.company.id}>
+              <SelectTrigger className="w-full h-9 border-input bg-transparent">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {companies.map((company) => (
+                  <SelectItem key={company.id} value={company.id}>
+                    {company.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -334,7 +350,7 @@ export function AdminUsersClient({ users, companies }: { users: User[]; companie
       </div>
 
       {showCreate && <CreateUserModal companies={companies} onClose={() => setShowCreate(false)} />}
-      {editTarget && <EditUserModal user={editTarget} onClose={() => setEditTarget(null)} />}
+      {editTarget && <EditUserModal user={editTarget} companies={companies} onClose={() => setEditTarget(null)} />}
       {permissionsModuleSelector && (
         <PermissionsModuleSelector
           userId={permissionsModuleSelector.id}
