@@ -320,7 +320,7 @@ export function AdminUsersClient({ users, companies }: { users: User[]; companie
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => viewAsUser(user.company.slug)}
+                        onClick={() => viewAsUser(user.id, user.company.slug)}
                         className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
                         title="Visualizar como usuário"
                       >

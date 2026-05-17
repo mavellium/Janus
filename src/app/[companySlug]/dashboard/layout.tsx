@@ -6,7 +6,7 @@ import { MobileNav } from '@/components/dashboard/MobileNav'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ImpersonationBanner } from '@/components/dashboard/ImpersonationBanner'
 import type { UserPreferences } from '@/types/next-auth'
-import { getViewMode, VIEW_MODE_USER, isPrivilegedRole } from '@/lib/auth/permissions'
+import { getViewMode, VIEW_MODE_USER, isPrivilegedRole, getImpersonatedUserId } from '@/lib/auth/permissions'
 
 export default async function DashboardLayout({
   children,
@@ -40,6 +40,18 @@ export default async function DashboardLayout({
   const prefs = (user?.preferences ?? {}) as UserPreferences
   const viewMode = await getViewMode()
   const isSimulating = viewMode === VIEW_MODE_USER
+  const impersonatedUserId = await getImpersonatedUserId()
+
+  let impersonatedUserEmail: string | null = null
+  let impersonatedUserPermissions: string | string[] | Record<string, Record<string, string[]>> | undefined
+  if (impersonatedUserId && isSimulating) {
+    const impersonatedUser = await db.user.findUnique({
+      where: { id: impersonatedUserId },
+      select: { email: true, permissions: true },
+    })
+    impersonatedUserEmail = impersonatedUser?.email ?? null
+    impersonatedUserPermissions = impersonatedUser?.permissions
+  }
 
   return (
     <ThemeProvider darkMode={prefs.darkMode}>
@@ -66,6 +78,9 @@ export default async function DashboardLayout({
               companySlug={companySlug}
               role={role as 'ADMIN' | 'DEVELOPER'}
               initialSimulating={isSimulating}
+              impersonatedUserId={impersonatedUserId}
+              impersonatedUserEmail={impersonatedUserEmail}
+              impersonatedUserPermissions={impersonatedUserPermissions}
             />
           )}
           {children}

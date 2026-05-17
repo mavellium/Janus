@@ -21,6 +21,7 @@ export const ALL_PERMISSIONS: PermissionName[] = Object.keys(PERMISSIONS) as Per
 export const VIEW_MODE_COOKIE = 'janus_view_mode'
 export const VIEW_MODE_USER = 'USER_MODE'
 export const VIEW_MODE_DEV = 'DEV_MODE'
+export const IMPERSONATED_USER_ID_COOKIE = 'janus_impersonated_user_id'
 
 export type ViewMode = typeof VIEW_MODE_USER | typeof VIEW_MODE_DEV
 
@@ -173,6 +174,11 @@ export async function checkPermission(
   const viewMode = await getViewMode()
   console.log('[checkPermission] viewMode from getViewMode():', viewMode)
   return hasPermission(session, permission, module, tier, viewMode)
+}
+
+export async function getImpersonatedUserId(): Promise<string | null> {
+  const cookieStore = await cookies()
+  return cookieStore.get(IMPERSONATED_USER_ID_COOKIE)?.value ?? null
 }
 
 export function isPrivilegedRole(role?: string | null): boolean {
