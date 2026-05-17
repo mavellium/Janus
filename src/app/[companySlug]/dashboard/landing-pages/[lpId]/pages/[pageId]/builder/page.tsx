@@ -5,6 +5,7 @@ import { SchemaBuilderEditor } from '@/components/schema-builder/SchemaBuilderEd
 import { headers } from 'next/headers'
 import { hasPermission } from '@/lib/auth/permissions'
 import { getUserPermissions } from '@/modules/auth/queries/getUserPermissions'
+import { unstable_noStore } from 'next/cache'
 
 export const metadata = { title: 'Construir — Janus' }
 
@@ -13,6 +14,7 @@ export default async function LandingPageSchemaBuilderPage({
 }: {
   params: Promise<{ companySlug: string; lpId: string; pageId: string }>
 }) {
+  unstable_noStore()
   const { companySlug, lpId, pageId } = await params
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
@@ -49,7 +51,9 @@ export default async function LandingPageSchemaBuilderPage({
   const headersList = await headers()
   const host = headersList.get('host')
   const protocol = host?.includes('localhost') ? 'http' : 'https'
-  const apiUrl = `${protocol}://${host}/api/v1/content/${companySlug}/${page.slug}`
+  const rawSlug = (page.slug ?? '').trim()
+  const pageSlug = rawSlug === '/' || !rawSlug ? 'home' : rawSlug
+  const apiUrl = `${protocol}://${host}/api/v1/content/${companySlug}/${pageSlug}`
 
   return (
     <SchemaBuilderEditor

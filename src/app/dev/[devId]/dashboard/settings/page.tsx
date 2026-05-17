@@ -6,12 +6,17 @@ import type { UserPreferences } from '@/types/next-auth'
 
 export const metadata = { title: 'Configurações — Dev' }
 
-export default async function DevSettingsPage() {
+export default async function DevSettingsPage({
+  params,
+}: {
+  params: Promise<{ devId: string }>
+}) {
+  const { devId } = await params
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
   const user = await db.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: devId },
     select: { id: true, email: true, name: true, phone: true, image: true, requiresPasswordReset: true, preferences: true },
   })
 

@@ -1,12 +1,10 @@
 import { db } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
 
-export async function getRecentProjects(take = 5) {
-  const session = await auth()
+export async function getRecentProjects(devId: string, take = 5) {
   return db.project.findMany({
     where: {
       deletedAt: null,
-      company: { createdById: session?.user?.id, deletedAt: null },
+      company: { createdById: devId, deletedAt: null },
     },
     orderBy: { updatedAt: 'desc' },
     take,

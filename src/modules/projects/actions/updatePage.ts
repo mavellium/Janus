@@ -37,7 +37,7 @@ export async function updatePage({
       return { ok: false, error: 'Página não encontrada' }
     }
 
-    if (page.project.company.slug !== session.user.companySlug) {
+    if (session.user.companySlug && page.project.company.slug !== session.user.companySlug) {
       return { ok: false, error: 'Acesso negado' }
     }
 

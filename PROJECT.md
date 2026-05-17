@@ -91,7 +91,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
   - `getAdminStats.ts` — contagens globais: usersCount, developersCount, companiesCount, blockedCount
   - `getAdminCompanies.ts` — todas as empresas ativas com contagem de users/projects
   - `getAdminUsers.ts` — usuários com role DEFAULT/ADMIN, inclui company
-  - `getAdminDevelopers.ts` — usuários com role DEVELOPER, inclui company
+  - `getAdminDevelopers.ts` — usuários com role DEVELOPER, inclui company (slug)
   - `getBlockedIps.ts` — IPs com 3+ tentativas na última hora, agrupados com contagem e emails
 - **Actions:**
   - `unblockIp.ts` — remove bloqueio de um IP (admin-only)
@@ -107,7 +107,9 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **Actions:** `uploadMedia.ts` — suporta image (→ AVIF) e video (direto raw); valida tamanho (5MB img / 200MB vídeo); envia para BunnyCDN; retorna URL pública
 
 ### auth
-- **Actions:** `checkIpStatus.ts` — Server Action que verifica status de bloqueio do IP, retorna `{ blocked, remainingSeconds, reason }`
+- **Actions:** `checkIpStatus.ts` — Server Action que verifica status de bloqueio do IP, retorna `{ blocked, remainingSeconds, reason }` | `viewAsUser.ts` — seta USER_MODE + IMPERSONATED_USER_ID_COOKIE, redireciona para `/{companySlug}/dashboard` | `viewAsDeveloper.ts` — seta DEV_MODE + IMPERSONATED_DEV_ID_COOKIE, redireciona para `/{companySlug}/dashboard`
+- **Actions:** `toggleViewMode.ts` — `toggleViewMode()` alterna USER_MODE; `clearViewMode()` limpa; `toggleDevViewMode()` alterna DEV_MODE (ADMIN only)
+- **Queries:** `getImpersonatedUserPermissions.ts` — lê IMPERSONATED_USER_ID_COOKIE, busca permissions do usuário impersonado | `getImpersonatedDevPermissions.ts` — lê IMPERSONATED_DEV_ID_COOKIE, busca permissions do dev impersonado
 
 ---
 
@@ -116,6 +118,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/components/auth/LoginForm.tsx` — Client — formulário de login com useActionState + checkIpStatus, countdown regressivo (MM:SS), overlay bloqueio com cor #514030
 - `src/components/dev/DevSidebar.tsx` — Client — sidebar colapsável exclusiva do Dev Dashboard; links para dashboard, empresas, usuários e configurações do dev
 - `src/components/admin/AdminSidebar.tsx` — Client — sidebar colapsável exclusiva do Admin Panel; links para `/dashboard-admin/*` (dashboard, empresas, desenvolvedores, usuários, logs, configurações)
+- `src/components/dashboard/DevPermissionsModal.tsx` — Client — modal de permissões do dev impersonado; usa `updateUserPermissions`; módulos Sites/Landing Pages; salva imediatamente ao toggle
 - `src/components/dashboard/Sidebar.tsx` — Client — sidebar colapsável com useState(initialCollapsed) + startTransition; logo 48px→28px; toggle PanelLeftClose/PanelLeftOpen; avatar next/image + fallback UserCircle; estado persistido via updatePreferences em background
 - `src/components/schema-builder/SchemaBuilderEditor.tsx` — Client — workspace 3 painéis: Esquerda (w-72) com Tabs Estrutura/Componentes — Estrutura lista seções com ícone `Layers`, `Trash2` hover-only para excluir via Monaco ref e click para `scrollIntoView` no preview com ring highlight 1s; Componentes tem 8 cards de snippets com ícone/descrição; Centro: Monaco full-width endpoint; IDs únicos por sufixo random ao inserir snippet; Direita: LiveFormPreview reativo
 - `src/components/schema-builder/LiveFormPreview.tsx` — Client — preview read-only; aceita `focusedSectionId?: string | null`; cada seção tem `id="section-{key}"` para `scrollIntoView`; highlight `ring-2 ring-brand-primary/20` quando focada; suporta tipos: text, textarea, image, number, color, boolean, select, url, html, list, video
@@ -130,6 +133,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/components/ui/toast-container.tsx` — Client — toast notifications (success/error) com tokens semânticos
 - `src/components/ui/alert-dialog.tsx` — Client — AlertDialog primitivos (Radix) com overlay, header, footer, action, cancel
 - `src/components/ui/delete-alert-modal.tsx` — Client — modal reutilizável de confirmação de exclusão; props: isOpen, onClose, onConfirm, title, description, isDeleting
+- `src/components/ui/SlugInput.tsx` — Client — input de slug com validação em tempo real (só a-z, 0-9, hífen); sanitiza automaticamente; feedback visual de erro; suporta controlado e não-controlado
 - `src/components/_archived_builder/*` — **ARQUIVADO** — Low-code builder antigo (não importado em nenhuma rota; excluído do tsconfig)
 - `src/components/users/update-avatar-modal.tsx` — Client — modal com Dialog/Tabs para upload de avatar via arquivo ou URL com preview
 - `src/components/ThemeProvider.tsx` — Client — provedor de tema para dashboard com preferências do usuário
@@ -297,6 +301,24 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 | Data       | Arquivo                                       | O que foi feito                                            |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
+| 2026-05-17 | `src/components/ui/SlugInput.tsx` | NOVO: Componente reutilizável de input de slug com validação em tempo real; sanitiza a-z, 0-9, hífen; feedback visual de erro |
+| 2026-05-17 | `CreatePageModal.tsx`, `EditPageModal.tsx`, `CompaniesClient.tsx`, `AdminCompaniesClient.tsx`, `CreateCompanyModal.tsx` | FIX: Substituição de inputs raw slug pelo componente SlugInput com validação live |
+| 2026-05-17 | `src/modules/projects/actions/createPage.ts` + 10 actions | FIX: `session.user.companySlug` undefined para DEVELOPER — adicionado guard `&& session.user.companySlug` antes de comparar |
+| 2026-05-17 | `src/modules/dev/actions/createCompany.ts`, `editCompany.ts`, `deleteCompany.ts` | FIX: Permite ADMIN criar/editar/excluir empresas no painel dev |
+| 2026-05-17 | `src/modules/dev/queries/getCompanies.ts`, `getRecentCompanies.ts`, `getRecentUsers.ts`, `getRecentProjects.ts`, `getUsers.ts` | FIX: Adicionado parâmetro `devId` para usar URL params em vez de session.user.id |
+| 2026-05-17 | `src/app/dev/[devId]/dashboard/settings/page.tsx` | FIX: Usa `devId` da URL em vez de `session.user.id` para buscar configurações do dev |
+| 2026-05-17 | `src/app/dashboard-admin/developers/page.tsx` + `AdminDevelopersClient.tsx` | FIX: Modal de seleção de empresa só mostra empresas criadas pelo dev selecionado |
+| 2026-05-17 | `builder/page.tsx` (sites + landing-pages), `preview/page.tsx` | FIX: Slug vazio/`/` gera endpoint com `home` em vez de `//` |
+| 2026-05-17 | `src/lib/auth/permissions.ts` | FEAT: Adicionado `IMPERSONATED_DEV_ID_COOKIE`, `getImpersonatedDevId()`; `hasPermission()` trata VIEW_MODE_DEV igual a VIEW_MODE_USER |
+| 2026-05-17 | `src/modules/admin/queries/getAdminDevelopers.ts` | FEAT: Adicionado `company: { select: { slug: true } }` ao select |
+| 2026-05-17 | `src/modules/auth/actions/viewAsDeveloper.ts` | NOVO: seta DEV_MODE + IMPERSONATED_DEV_ID_COOKIE, limpa IMPERSONATED_USER_ID_COOKIE, redireciona |
+| 2026-05-17 | `src/modules/auth/actions/toggleViewMode.ts` | FEAT: Adicionado `toggleDevViewMode()` para ADMIN alternar DEV_MODE |
+| 2026-05-17 | `src/modules/auth/queries/getImpersonatedDevPermissions.ts` | NOVO: lê cookie dev impersonado, busca permissions no DB |
+| 2026-05-17 | `src/components/dashboard/DevPermissionsModal.tsx` | NOVO: modal de permissões do dev impersonado (análogo a UserPermissionsModal) |
+| 2026-05-17 | `src/components/dashboard/ImpersonationBanner.tsx` | FEAT: Suporte a DEV_MODE — novas props isSimulatingDev/impersonatedDev*; toggle handleDevToggle; abre DevPermissionsModal |
+| 2026-05-17 | `src/app/[companySlug]/dashboard/layout.tsx` | FEAT: DEV_MODE — busca nome+permissões do dev impersonado; passa props para ImpersonationBanner |
+| 2026-05-17 | `src/app/dashboard-admin/developers/AdminDevelopersClient.tsx` | FEAT: Botão LayoutDashboard chama viewAsDeveloper(dev.id, dev.company.slug) em vez de Link |
+| 2026-05-17 | `sites/page.tsx`, `landing-pages/page.tsx`, `sites/[siteId]/pages/page.tsx`, `landing-pages/[lpId]/pages/page.tsx` | FEAT: Adicionado else-if VIEW_MODE_DEV com getImpersonatedDevPermissions() |
 | 2026-05-12 | `src/modules/admin/queries/getAdminUsers.ts` | Adicionado campo `requiresPasswordReset` ao select |
 | 2026-05-12 | `src/app/dashboard-admin/users/AdminUsersClient.tsx` | Adicionada coluna "Senha" com status Redefinida/Pendente |
 | 2026-05-12 | `src/app/dev/[devId]/dashboard/settings/DevSettingsClient.tsx` | Adicionada seção visual de status de redefinição de senha |

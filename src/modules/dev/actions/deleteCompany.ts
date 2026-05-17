@@ -6,7 +6,9 @@ import { revalidatePath } from 'next/cache'
 
 export async function deleteCompany(companyId: string) {
   const session = await auth()
-  if (session?.user?.role !== 'DEVELOPER') return { ok: false, error: 'Acesso não autorizado.' }
+  if (session?.user?.role !== 'DEVELOPER' && session?.user?.role !== 'ADMIN') {
+    return { ok: false, error: 'Acesso não autorizado.' }
+  }
 
   await db.company.update({
     where: { id: companyId },

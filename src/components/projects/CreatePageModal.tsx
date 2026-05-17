@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Plus, Loader2 } from 'lucide-react'
 import { createPage } from '@/modules/projects/actions/createPage'
+import { SlugInput } from '@/components/ui/SlugInput'
 
 interface CreatePageModalProps {
   projectId: string
@@ -18,7 +19,7 @@ export function CreatePageModal({ projectId, companySlug }: CreatePageModalProps
   const [isPending, startTransition] = useTransition()
 
   function generateSlug(value: string) {
-    return value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+    return value.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-')
   }
 
   function handleNameChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -87,21 +88,15 @@ export function CreatePageModal({ projectId, companySlug }: CreatePageModalProps
                 />
               </div>
 
-              <div className="space-y-2">
-                <label htmlFor="pageSlug" className="block text-sm font-medium text-brand-text mb-1">
-                  Slug (URL)
-                </label>
-                <input
-                  id="pageSlug"
-                  type="text"
-                  value={slug}
-                  onChange={(e) => { setSlug(e.target.value); setError(null) }}
-                  placeholder="Ex: home"
-                  required
-                  disabled={isPending}
-                  className="flex h-10 w-full rounded-md border border-brand-btn-light bg-brand-bg px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
-                />
-              </div>
+              <SlugInput
+                id="pageSlug"
+                value={slug}
+                onChange={(val) => { setSlug(val); setError(null) }}
+                placeholder="Ex: home"
+                required
+                disabled={isPending}
+                label="Slug (URL)"
+              />
 
               <div className="space-y-2">
                 <label htmlFor="pagePreviewUrl" className="block text-sm font-medium text-brand-text mb-1">

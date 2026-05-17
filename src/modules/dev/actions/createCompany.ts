@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { getViewMode, VIEW_MODE_USER, getImpersonatedUserId } from '@/lib/auth/permissions'
 
 const schema = z.object({
   name: z.string().min(2),
@@ -13,8 +14,9 @@ const schema = z.object({
 
 export async function createCompany(_prev: { ok: boolean; error?: string }, formData: FormData) {
   const session = await auth()
+  const viewMode = await getViewMode()
 
-  if (session?.user?.role !== 'DEVELOPER') {
+  if (session?.user?.role !== 'DEVELOPER' && session?.user?.role !== 'ADMIN') {
     return { ok: false, error: 'Acesso não autorizado.' }
   }
 
@@ -33,8 +35,12 @@ export async function createCompany(_prev: { ok: boolean; error?: string }, form
     return { ok: false, error: 'Slug já está em uso.' }
   }
 
-  await db.company.create({ data: { ...parsed.data, createdById: session.user.id } })
+  const createdById = viewMode === VIEW_MODE_USER
+    ? await getImpersonatedUserId()
+    : session?.user?.id
 
-  revalidatePath(`/dev/${session.user.id}/dashboard`)
+  await db.company.create({ data: { ...parsed.data, createdById: createdById! } })
+
+  revalidatePath(`/dev/${session?.user?.id}/dashboard`)
   return { ok: true }
 }

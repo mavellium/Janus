@@ -1,6 +1,7 @@
 import { db } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
+import { unstable_noStore } from 'next/cache'
 
 export const metadata = { title: 'Preview — Janus' }
 
@@ -9,6 +10,7 @@ export default async function PreviewPage({
 }: {
   params: Promise<{ companySlug: string; pageId: string }>
 }) {
+  unstable_noStore()
   const { companySlug, pageId } = await params
   const session = await auth()
 
@@ -39,7 +41,9 @@ export default async function PreviewPage({
     )
   }
 
-  const apiUrl = `/api/v1/content/${companySlug}/${page.slug}`
+  const rawSlug = (page.slug ?? '').trim()
+  const pageSlug = rawSlug === '/' || !rawSlug ? 'home' : rawSlug
+  const apiUrl = `/api/v1/content/${companySlug}/${pageSlug}`
 
   return (
     <div className="min-h-screen bg-brand-bg text-brand-text">

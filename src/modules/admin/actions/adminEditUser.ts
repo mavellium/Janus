@@ -22,12 +22,13 @@ export async function adminEditUser(formData: FormData): Promise<{ ok: boolean; 
   }
 
   const rawPassword = String(formData.get('password') ?? '')
+  const companyId = formData.get('companyId')
   const parsed = schema.safeParse({
     id: formData.get('id'),
     name: formData.get('name'),
     email: formData.get('email'),
     password: rawPassword.length > 0 ? rawPassword : undefined,
-    companyId: formData.get('companyId'),
+    companyId: companyId === null ? undefined : companyId,
   })
 
   if (!parsed.success) {

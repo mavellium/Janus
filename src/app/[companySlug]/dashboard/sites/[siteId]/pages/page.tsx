@@ -8,9 +8,10 @@ import { formatDate } from '@/lib/utils'
 import { EditPageContainer } from '@/components/projects/EditPageContainer'
 import { PublishPageButton } from '@/components/projects/PublishPageButton'
 import { CreatePageModal } from '@/components/projects/CreatePageModal'
-import { hasPermission, getViewMode, VIEW_MODE_USER } from '@/lib/auth/permissions'
+import { hasPermission, getViewMode, VIEW_MODE_USER, VIEW_MODE_DEV } from '@/lib/auth/permissions'
 import { getUserPermissions } from '@/modules/auth/queries/getUserPermissions'
 import { getImpersonatedUserPermissions } from '@/modules/auth/queries/getImpersonatedUserPermissions'
+import { getImpersonatedDevPermissions } from '@/modules/auth/queries/getImpersonatedDevPermissions'
 
 export const metadata = { title: 'Páginas — Janus' }
 
@@ -42,6 +43,11 @@ export default async function SitePagesPage({
   let freshPermissions = await getUserPermissions(session.user.id)
   if (viewMode === VIEW_MODE_USER) {
     const impersonatedPerms = await getImpersonatedUserPermissions()
+    if (impersonatedPerms) {
+      freshPermissions = impersonatedPerms
+    }
+  } else if (viewMode === VIEW_MODE_DEV) {
+    const impersonatedPerms = await getImpersonatedDevPermissions()
     if (impersonatedPerms) {
       freshPermissions = impersonatedPerms
     }

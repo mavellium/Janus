@@ -1,10 +1,8 @@
 import { db } from '@/lib/prisma'
-import { auth } from '@/lib/auth'
 
-export async function getRecentUsers(take = 3) {
-  const session = await auth()
+export async function getRecentUsers(devId: string, take = 3) {
   return db.user.findMany({
-    where: { deletedAt: null, role: 'DEFAULT', createdById: session?.user?.id },
+    where: { deletedAt: null, role: 'DEFAULT', createdById: devId },
     orderBy: { createdAt: 'desc' },
     take,
     select: {

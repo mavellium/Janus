@@ -17,7 +17,7 @@ export async function createPage({ projectId, name, slug, companySlug, previewUr
   if (!session?.user?.id) {
     return { ok: false, error: 'Não autenticado' }
   }
-  if (session.user.role !== 'DEVELOPER') {
+  if (session.user.role !== 'DEVELOPER' && session.user.role !== 'ADMIN') {
     return { ok: false, error: 'Apenas desenvolvedores podem criar páginas estruturais' }
   }
 
@@ -41,7 +41,11 @@ export async function createPage({ projectId, name, slug, companySlug, previewUr
       return { ok: false, error: 'Projeto não encontrado' }
     }
 
-    if (project.company.slug !== session.user.companySlug || project.company.slug !== companySlug) {
+    if (project.company.slug !== companySlug) {
+      return { ok: false, error: 'Acesso negado' }
+    }
+
+    if (session.user.companySlug && project.company.slug !== session.user.companySlug) {
       return { ok: false, error: 'Acesso negado' }
     }
 

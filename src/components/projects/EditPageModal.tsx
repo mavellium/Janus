@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from 'react'
 import { Edit, Loader2 } from 'lucide-react'
 import { updatePage } from '@/modules/projects/actions/updatePage'
+import { SlugInput } from '@/components/ui/SlugInput'
 
 interface EditPageModalProps {
   pageId: string
@@ -92,24 +93,16 @@ export function EditPageModal({
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="slug" className="block text-sm font-medium text-brand-text mb-1">
-              Slug (URL)
-            </label>
-            <input
-              id="slug"
-              name="slug"
-              type="text"
-              defaultValue={initialSlug}
-              placeholder="Ex: home"
-              required
-              disabled={pending}
-              className="flex h-10 w-full rounded-md border border-brand-btn-light bg-brand-bg px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <p className="text-xs text-brand-muted mt-1">
-              Alterar o slug muda a URL da API pública.
-            </p>
-          </div>
+          <SlugInput
+            id="slug"
+            name="slug"
+            defaultValue={initialSlug}
+            placeholder="Ex: home"
+            required
+            disabled={pending}
+            label="Slug (URL)"
+            helperText="Alterar o slug muda a URL da API pública."
+          />
 
           <div className="space-y-2">
             <label htmlFor="previewUrl" className="block text-sm font-medium text-brand-text mb-1">

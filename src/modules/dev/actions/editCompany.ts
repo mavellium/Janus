@@ -14,7 +14,9 @@ const schema = z.object({
 
 export async function editCompany(_prev: { ok: boolean; error?: string }, formData: FormData) {
   const session = await auth()
-  if (session?.user?.role !== 'DEVELOPER') return { ok: false, error: 'Acesso não autorizado.' }
+  if (session?.user?.role !== 'DEVELOPER' && session?.user?.role !== 'ADMIN') {
+    return { ok: false, error: 'Acesso não autorizado.' }
+  }
 
   const parsed = schema.safeParse({
     id: formData.get('id'),

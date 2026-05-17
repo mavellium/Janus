@@ -35,7 +35,7 @@ export async function updatePageSchema({ pageId, schemaJson }: UpdatePageSchemaP
       return { ok: false, error: 'Página não encontrada' }
     }
 
-    if (page.project.company.slug !== session.user.companySlug) {
+    if (session.user.companySlug && page.project.company.slug !== session.user.companySlug) {
       return { ok: false, error: 'Acesso negado' }
     }
 
@@ -44,7 +44,8 @@ export async function updatePageSchema({ pageId, schemaJson }: UpdatePageSchemaP
       data: { schemaData: parsed as object },
     })
 
-    revalidatePath(`/api/v1/content/${page.project.company.slug}/${page.slug}`)
+    const pageSlug = (page.slug ?? '').trim() === '/' || !(page.slug ?? '').trim() ? 'home' : page.slug
+    revalidatePath(`/api/v1/content/${page.project.company.slug}/${pageSlug}`)
 
     return { ok: true }
   } catch (error) {

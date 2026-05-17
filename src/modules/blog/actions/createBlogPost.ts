@@ -53,7 +53,7 @@ export async function createBlogPost(_: unknown, formData: FormData) {
 
     if (!company) return { ok: false as const, error: 'Empresa não encontrada' }
 
-    if (session.user.role !== 'ADMIN' && session.user.companySlug !== companySlug) {
+    if (session.user.role !== 'ADMIN' && session.user.companySlug && session.user.companySlug !== companySlug) {
       return { ok: false as const, error: 'Acesso negado' }
     }
 

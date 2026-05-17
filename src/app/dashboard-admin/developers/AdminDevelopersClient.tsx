@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Code2, Plus, Loader2, UserCircle, CheckCircle2, Clock, LayoutDashboard, Trash2, Pencil, KeyRound } from 'lucide-react'
+import { Code2, Plus, Loader2, UserCircle, CheckCircle2, Clock, LayoutDashboard, Eye, Trash2, Pencil, KeyRound } from 'lucide-react'
 import { createDeveloper } from '@/modules/admin/actions/createDeveloper'
 import { adminEditUser } from '@/modules/admin/actions/adminEditUser'
 import { adminDeleteUser } from '@/modules/admin/actions/adminDeleteUser'
@@ -23,6 +23,12 @@ interface Developer {
   permissions: string | string[] | Record<string, Record<string, string[]>>
   requiresPasswordReset: boolean
   createdAt: Date
+}
+
+interface Company {
+  id: string
+  name: string
+  slug: string
 }
 
 type ModuleType = 'sites' | 'landingPages'
@@ -162,8 +168,10 @@ function EditDeveloperModal({ developer, onClose }: { developer: Developer; onCl
 
 export function AdminDevelopersClient({
   developers,
+  companiesByDev,
 }: {
   developers: Developer[]
+  companiesByDev: Map<string, Company[]>
 }) {
   const router = useRouter()
   const [showCreate, setShowCreate] = useState(false)
@@ -172,6 +180,7 @@ export function AdminDevelopersClient({
   const [permissionsModuleSelector, setPermissionsModuleSelector] = useState<Developer | null>(null)
   const [permissionsModal, setPermissionsModal] = useState<{ user: Developer; module: ModuleType } | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [companySelectorTarget, setCompanySelectorTarget] = useState<Developer | null>(null)
 
   async function handleDelete(id: string) {
     setIsDeleting(true)
@@ -244,11 +253,19 @@ export function AdminDevelopersClient({
                     <div className="flex items-center justify-end gap-1">
                       <Link
                         href={`/dev/${dev.id}/dashboard`}
+                        target="_blank"
                         className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
-                        title="Acessar Painel Dev"
+                        title="Acessar Painel Dev (nova aba)"
                       >
                         <LayoutDashboard className="w-3.5 h-3.5" />
                       </Link>
+                      <button
+                        onClick={() => setCompanySelectorTarget(dev)}
+                        className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
+                        title="Ver site como Dev (nova aba)"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         onClick={() => setEditTarget(dev)}
                         className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
@@ -315,6 +332,49 @@ export function AdminDevelopersClient({
           isDeleting={isDeleting}
           description={`Esta ação excluirá permanentemente o desenvolvedor "${deleteTarget.name || deleteTarget.email}" e todos os dados associados.`}
         />
+      )}
+
+      {companySelectorTarget && (
+        <Dialog open onOpenChange={() => setCompanySelectorTarget(null)}>
+          <DialogContent className="bg-card border-border">
+            <DialogHeader>
+              <DialogTitle className="text-brand-text flex items-center gap-2 pt-4 mb-2">
+                <Eye className="w-4 h-4 text-brand-primary" />
+                Escolher Empresa
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-brand-muted">
+                Selecione a empresa que você deseja visualizar como <strong>{companySelectorTarget.name || companySelectorTarget.email}</strong>:
+              </p>
+              <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                {(companiesByDev.get(companySelectorTarget.id) ?? []).length === 0 && (
+                  <p className="text-sm text-brand-muted">Nenhuma empresa cadastrada por este desenvolvedor.</p>
+                )}
+                {(companiesByDev.get(companySelectorTarget.id) ?? []).map((company: Company) => (
+                  <button
+                    key={company.id}
+                    onClick={async () => {
+                      const result = await fetch('/api/impersonate-dev', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ devId: companySelectorTarget.id, companySlug: company.slug }),
+                      }).then((r) => r.json())
+                      if (result.ok) {
+                        window.open(result.redirectUrl, '_blank')
+                        setCompanySelectorTarget(null)
+                      }
+                    }}
+                    className="p-3 rounded-lg border border-brand-btn-light hover:border-brand-primary hover:bg-brand-btn-light/50 transition text-left"
+                  >
+                    <p className="text-sm font-medium text-brand-text">{company.name}</p>
+                    <code className="text-xs text-brand-muted">{company.slug}</code>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )

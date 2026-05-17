@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Building2, Pencil, Trash2, LayoutDashboard, Plus, Loader2, UsersRound } from 'lucide-react'
+import { SlugInput } from '@/components/ui/SlugInput'
 import { adminCreateCompany } from '@/modules/admin/actions/adminCreateCompany'
 import { adminEditCompany } from '@/modules/admin/actions/adminEditCompany'
 import { adminDeleteCompany } from '@/modules/admin/actions/adminDeleteCompany'
@@ -73,17 +74,13 @@ function CompanyFormModal({
             <Input name="name" required defaultValue={company?.name} placeholder="Acme Corp" />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Slug</Label>
-            <Input
-              name="slug"
-              required
-              defaultValue={company?.slug}
-              placeholder="acme-corp"
-              className="font-mono"
-            />
-            <p className="text-[11px] text-brand-muted">Apenas letras minúsculas, números e hífens</p>
-          </div>
+          <SlugInput
+            name="slug"
+            defaultValue={company?.slug}
+            placeholder="acme-corp"
+            required
+            label="Slug"
+          />
 
           <div className="flex flex-col gap-1.5">
             <Label>Descrição (opcional)</Label>

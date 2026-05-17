@@ -5,9 +5,10 @@ import { ChevronLeft, ArrowRight } from 'lucide-react'
 import { db } from '@/lib/prisma'
 import { getProjects } from '@/modules/projects/queries/getProjects'
 import { formatDate } from '@/lib/utils'
-import { hasPermission, getViewMode, VIEW_MODE_USER } from '@/lib/auth/permissions'
+import { hasPermission, getViewMode, VIEW_MODE_USER, VIEW_MODE_DEV } from '@/lib/auth/permissions'
 import { getUserPermissions } from '@/modules/auth/queries/getUserPermissions'
 import { getImpersonatedUserPermissions } from '@/modules/auth/queries/getImpersonatedUserPermissions'
+import { getImpersonatedDevPermissions } from '@/modules/auth/queries/getImpersonatedDevPermissions'
 import { CreateProjectModal } from '@/components/projects/CreateProjectModal'
 import { EditProjectContainer } from '@/components/projects/EditProjectContainer'
 import { EditProjectButton } from '@/components/projects/EditProjectButton'
@@ -38,6 +39,11 @@ export default async function LandingPagesPage({
   let freshPermissions = await getUserPermissions(session.user.id)
   if (viewMode === VIEW_MODE_USER) {
     const impersonatedPerms = await getImpersonatedUserPermissions()
+    if (impersonatedPerms) {
+      freshPermissions = impersonatedPerms
+    }
+  } else if (viewMode === VIEW_MODE_DEV) {
+    const impersonatedPerms = await getImpersonatedDevPermissions()
     if (impersonatedPerms) {
       freshPermissions = impersonatedPerms
     }

@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react'
 import { Building2, Pencil, Trash2, ExternalLink, X, Loader2, Plus } from 'lucide-react'
+import { SlugInput } from '@/components/ui/SlugInput'
 import { createCompany } from '@/modules/dev/actions/createCompany'
 import { editCompany } from '@/modules/dev/actions/editCompany'
 import { deleteCompany } from '@/modules/dev/actions/deleteCompany'
@@ -52,17 +53,13 @@ function CompanyFormModal({
             <Input name="name" required defaultValue={company?.name} placeholder="Acme Corp" />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label>Slug</Label>
-            <Input
-              name="slug"
-              required
-              defaultValue={company?.slug}
-              placeholder="acme-corp"
-              className="font-mono"
-            />
-            <p className="text-[11px] text-brand-muted">Apenas letras minúsculas, números e hífens</p>
-          </div>
+          <SlugInput
+            name="slug"
+            defaultValue={company?.slug}
+            placeholder="acme-corp"
+            required
+            label="Slug"
+          />
 
           <div className="flex flex-col gap-1.5">
             <Label>Descrição (opcional)</Label>

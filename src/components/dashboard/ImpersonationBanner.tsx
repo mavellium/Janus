@@ -5,8 +5,9 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2, KeyRound } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
-import { toggleViewMode } from '@/modules/auth/actions/toggleViewMode'
+import { toggleViewMode, toggleDevViewMode } from '@/modules/auth/actions/toggleViewMode'
 import { UserPermissionsModal } from './UserPermissionsModal'
+import { DevPermissionsModal } from './DevPermissionsModal'
 import type { ModuleType } from '@/lib/auth/permissions'
 
 interface Props {
@@ -17,6 +18,10 @@ interface Props {
   impersonatedUserId?: string | null
   impersonatedUserEmail?: string | null
   impersonatedUserPermissions?: string | string[] | Record<string, Record<string, string[]>>
+  isSimulatingDev?: boolean
+  impersonatedDevId?: string | null
+  impersonatedDevName?: string | null
+  impersonatedDevPermissions?: string | string[] | Record<string, Record<string, string[]>>
 }
 
 export function ImpersonationBanner({
@@ -27,64 +32,85 @@ export function ImpersonationBanner({
   impersonatedUserId,
   impersonatedUserEmail,
   impersonatedUserPermissions,
+  isSimulatingDev,
+  impersonatedDevId,
+  impersonatedDevName,
+  impersonatedDevPermissions,
 }: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
-  const [showPermissionsModal, setShowPermissionsModal] = useState(false)
+  const [showUserPermissionsModal, setShowUserPermissionsModal] = useState(false)
+  const [showDevPermissionsModal, setShowDevPermissionsModal] = useState(false)
 
-  console.log('[ImpersonationBanner]', {
-    initialSimulating,
-    impersonatedUserId,
-    impersonatedUserEmail,
-    showButton: initialSimulating && impersonatedUserId,
-  })
-
-  // Detect current module from pathname
   const currentModule: ModuleType = pathname.includes('/landing-pages') ? 'landingPages' : 'sites'
   const backHref = role === 'ADMIN' ? '/dashboard-admin' : '/dev'
 
-  function handleToggle(checked: boolean) {
+  function handleUserToggle(checked: boolean) {
     startTransition(async () => {
       const result = await toggleViewMode(checked, companySlug)
       if (result.ok) router.refresh()
     })
   }
 
+  function handleDevToggle(checked: boolean) {
+    startTransition(async () => {
+      const result = await toggleDevViewMode(checked, companySlug)
+      if (result.ok) router.refresh()
+    })
+  }
+
+  const isDevContext = isSimulatingDev || !!impersonatedDevId
+
+  const bannerText = isSimulatingDev && impersonatedDevName
+    ? <>Visualizando desenvolvedor <strong>{impersonatedDevName}</strong></>
+    : initialSimulating && impersonatedUserEmail
+      ? <>Visualizando usuário <strong>{impersonatedUserEmail}</strong></>
+      : <>Visualizando {companyName}</>
+
+  const isActive = isDevContext ? isSimulatingDev : initialSimulating
+  const handleToggle = isDevContext ? handleDevToggle : handleUserToggle
+  const toggleLabel = isDevContext ? 'Simular Visão do Dev' : 'Simular Visão do Usuário'
+
   return (
     <>
       <div className="sticky top-0 z-50 w-full bg-destructive text-destructive-foreground px-4 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm font-medium shadow-md">
         <div className="flex items-center gap-2">
-          {initialSimulating ? (
+          {isActive ? (
             <EyeOff className="w-4 h-4 shrink-0" />
           ) : (
             <Eye className="w-4 h-4 shrink-0" />
           )}
           <span>
             {role === 'ADMIN' ? 'Modo Administrador' : 'Modo Desenvolvedor'}:
-            {initialSimulating && impersonatedUserEmail ? (
-              <> Visualizando usuário <strong>{impersonatedUserEmail}</strong></>
-            ) : (
-              <> Visualizando {companyName}</>
-            )}
+            {bannerText}
           </span>
         </div>
         <div className="flex items-center gap-4">
           <label className="flex items-center gap-2 cursor-pointer select-none">
-            <span className="text-xs">Simular Visão do Usuário</span>
+            <span className="text-xs">{toggleLabel}</span>
             <Switch
-              checked={initialSimulating}
+              checked={isActive}
               onCheckedChange={handleToggle}
               disabled={isPending}
-              aria-label="Simular Visão do Usuário"
+              aria-label={toggleLabel}
             />
             {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
           </label>
-          {initialSimulating && impersonatedUserId && (
+          {initialSimulating && impersonatedUserId && !isSimulatingDev && (
             <button
-              onClick={() => setShowPermissionsModal(true)}
+              onClick={() => setShowUserPermissionsModal(true)}
               className="p-1.5 rounded text-destructive-foreground hover:bg-destructive-foreground/20 transition"
               title="Gerenciar permissões"
+            >
+              <KeyRound className="w-4 h-4" />
+            </button>
+          )}
+          {isSimulatingDev && impersonatedDevId && (
+            <button
+              onClick={() => setShowDevPermissionsModal(true)}
+              className="p-1.5 rounded text-destructive-foreground hover:bg-destructive-foreground/20 transition"
+              title="Gerenciar permissões do dev"
             >
               <KeyRound className="w-4 h-4" />
             </button>
@@ -98,13 +124,23 @@ export function ImpersonationBanner({
         </div>
       </div>
 
-      {showPermissionsModal && impersonatedUserId && (
+      {showUserPermissionsModal && impersonatedUserId && (
         <UserPermissionsModal
           userId={impersonatedUserId}
           userEmail={impersonatedUserEmail || 'Usuário'}
           initialPermissions={impersonatedUserPermissions}
           initialModule={currentModule}
-          onClose={() => setShowPermissionsModal(false)}
+          onClose={() => setShowUserPermissionsModal(false)}
+        />
+      )}
+
+      {showDevPermissionsModal && impersonatedDevId && (
+        <DevPermissionsModal
+          devId={impersonatedDevId}
+          devName={impersonatedDevName || 'Desenvolvedor'}
+          initialPermissions={impersonatedDevPermissions}
+          initialModule={currentModule}
+          onClose={() => setShowDevPermissionsModal(false)}
         />
       )}
     </>

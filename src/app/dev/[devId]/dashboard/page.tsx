@@ -32,9 +32,9 @@ export default async function DevDashboardPage({
 
   const [stats, companies, users, projects] = await Promise.all([
     getDevStats(devId),
-    getRecentCompanies(5),
-    getRecentUsers(5),
-    getRecentProjects(5),
+    getRecentCompanies(devId, 5),
+    getRecentUsers(devId, 5),
+    getRecentProjects(devId, 5),
   ])
 
   const lastActivity = projects[0]?.updatedAt

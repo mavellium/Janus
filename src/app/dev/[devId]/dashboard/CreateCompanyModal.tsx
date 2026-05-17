@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react'
 import { createCompany } from '@/modules/dev/actions/createCompany'
 import { X, Loader2, Building2 } from 'lucide-react'
+import { SlugInput } from '@/components/ui/SlugInput'
 
 export function CreateCompanyModal({ onClose }: { onClose: () => void }) {
   const [state, action, isPending] = useActionState(createCompany, { ok: false })
@@ -39,17 +40,12 @@ export function CreateCompanyModal({ onClose }: { onClose: () => void }) {
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium text-brand-muted">Slug</label>
-            <input
-              name="slug"
-              type="text"
-              required
-              placeholder="acme-corp"
-              className="bg-brand-bg border border-border rounded-lg px-3 py-2 text-sm text-brand-text font-mono focus:outline-none focus:ring-2 focus:ring-brand-primary"
-            />
-            <p className="text-[11px] text-brand-muted">Apenas letras minúsculas, números e hífens</p>
-          </div>
+          <SlugInput
+            name="slug"
+            placeholder="acme-corp"
+            required
+            label="Slug"
+          />
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-brand-muted">Descrição (opcional)</label>

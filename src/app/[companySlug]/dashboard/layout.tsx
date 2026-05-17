@@ -6,7 +6,7 @@ import { MobileNav } from '@/components/dashboard/MobileNav'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ImpersonationBanner } from '@/components/dashboard/ImpersonationBanner'
 import type { UserPreferences } from '@/types/next-auth'
-import { getViewMode, VIEW_MODE_USER, isPrivilegedRole, getImpersonatedUserId } from '@/lib/auth/permissions'
+import { getViewMode, VIEW_MODE_USER, VIEW_MODE_DEV, isPrivilegedRole, getImpersonatedUserId, getImpersonatedDevId } from '@/lib/auth/permissions'
 
 export default async function DashboardLayout({
   children,
@@ -40,11 +40,15 @@ export default async function DashboardLayout({
   const prefs = (user?.preferences ?? {}) as UserPreferences
   const viewMode = await getViewMode()
   const isSimulating = viewMode === VIEW_MODE_USER
+  const isSimulatingDev = viewMode === VIEW_MODE_DEV
   const impersonatedUserId = await getImpersonatedUserId()
+  const impersonatedDevId = await getImpersonatedDevId()
 
   console.log('[dashboard/layout]', {
     isSimulating,
+    isSimulatingDev,
     impersonatedUserId,
+    impersonatedDevId,
     viewMode,
   })
 
@@ -59,6 +63,19 @@ export default async function DashboardLayout({
     impersonatedUserEmail = impersonatedUser?.email ?? null
     impersonatedUserPermissions = impersonatedUser?.permissions
     console.log('[dashboard/layout] Impersonated user:', { impersonatedUserEmail, permissions: impersonatedUserPermissions })
+  }
+
+  let impersonatedDevName: string | null = null
+  let impersonatedDevPermissions: string | string[] | Record<string, Record<string, string[]>> | undefined
+  if (impersonatedDevId && isSimulatingDev) {
+    console.log('[dashboard/layout] Fetching impersonated dev:', impersonatedDevId)
+    const impersonatedDev = await db.user.findUnique({
+      where: { id: impersonatedDevId },
+      select: { name: true, email: true, permissions: true },
+    })
+    impersonatedDevName = impersonatedDev?.name ?? impersonatedDev?.email ?? null
+    impersonatedDevPermissions = impersonatedDev?.permissions
+    console.log('[dashboard/layout] Impersonated dev:', { impersonatedDevName, permissions: impersonatedDevPermissions })
   }
 
   return (
@@ -89,6 +106,10 @@ export default async function DashboardLayout({
               impersonatedUserId={impersonatedUserId}
               impersonatedUserEmail={impersonatedUserEmail}
               impersonatedUserPermissions={impersonatedUserPermissions}
+              isSimulatingDev={isSimulatingDev}
+              impersonatedDevId={impersonatedDevId}
+              impersonatedDevName={impersonatedDevName}
+              impersonatedDevPermissions={impersonatedDevPermissions}
             />
           )}
           {children}

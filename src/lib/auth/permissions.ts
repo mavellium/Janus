@@ -22,6 +22,7 @@ export const VIEW_MODE_COOKIE = 'janus_view_mode'
 export const VIEW_MODE_USER = 'USER_MODE'
 export const VIEW_MODE_DEV = 'DEV_MODE'
 export const IMPERSONATED_USER_ID_COOKIE = 'janus_impersonated_user_id'
+export const IMPERSONATED_DEV_ID_COOKIE = 'janus_impersonated_dev_id'
 
 export type ViewMode = typeof VIEW_MODE_USER | typeof VIEW_MODE_DEV
 
@@ -133,10 +134,10 @@ export function hasPermission(
     isUserMode: viewMode === VIEW_MODE_USER,
   })
 
-  // In USER_MODE, always check permissions strictly (overrides role)
-  if (viewMode === VIEW_MODE_USER) {
+  // In USER_MODE or DEV_MODE, always check permissions strictly (overrides role)
+  if (viewMode === VIEW_MODE_USER || viewMode === VIEW_MODE_DEV) {
     const result = tierPermissions.includes(permission)
-    console.log('[hasPermission] USER_MODE - returning:', result)
+    console.log('[hasPermission] USER_MODE/DEV_MODE - returning:', result)
     return result
   }
 
@@ -181,6 +182,13 @@ export async function getImpersonatedUserId(): Promise<string | null> {
   const cookieStore = await cookies()
   const value = cookieStore.get(IMPERSONATED_USER_ID_COOKIE)?.value ?? null
   console.log('[getImpersonatedUserId]', { IMPERSONATED_USER_ID_COOKIE, value })
+  return value
+}
+
+export async function getImpersonatedDevId(): Promise<string | null> {
+  const cookieStore = await cookies()
+  const value = cookieStore.get(IMPERSONATED_DEV_ID_COOKIE)?.value ?? null
+  console.log('[getImpersonatedDevId]', { IMPERSONATED_DEV_ID_COOKIE, value })
   return value
 }
 

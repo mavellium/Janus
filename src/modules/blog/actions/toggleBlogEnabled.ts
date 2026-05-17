@@ -15,7 +15,7 @@ export async function toggleBlogEnabled(projectId: string, companySlug: string, 
 
     if (!company) return { ok: false, error: 'Empresa não encontrada' }
 
-    if (session.user.role !== 'ADMIN' && session.user.companySlug !== companySlug) {
+    if (session.user.role !== 'ADMIN' && session.user.companySlug && session.user.companySlug !== companySlug) {
       return { ok: false, error: 'Acesso negado' }
     }
 
