@@ -54,6 +54,7 @@ export default async function SitesPage({
   const canCreate = hasPermission(sessionWithFreshPerms, 'PROJECT_CREATE', 'sites', 'project', viewMode)
   const canEdit = hasPermission(sessionWithFreshPerms, 'PROJECT_EDIT', 'sites', 'project', viewMode)
   const canDelete = hasPermission(sessionWithFreshPerms, 'PROJECT_DELETE', 'sites', 'project', viewMode)
+  const canManageBlog = hasPermission(sessionWithFreshPerms, 'BLOG_MANAGE', 'sites', 'page', viewMode)
 
   return (
     <div className="p-8">
@@ -128,6 +129,7 @@ export default async function SitesPage({
                     initialName={project.name}
                     initialPreviewUrl={project.previewUrl}
                     initialBlogEnabled={project.blogEnabled}
+                    canManageBlog={canManageBlog}
                     companySlug={companySlug}
                     trigger={<EditProjectButton />}
                   />

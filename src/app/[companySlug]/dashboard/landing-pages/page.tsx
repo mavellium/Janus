@@ -54,6 +54,7 @@ export default async function LandingPagesPage({
   const canCreate = hasPermission(sessionWithFreshPerms, 'PROJECT_CREATE', 'landingPages', 'project', viewMode)
   const canEdit = hasPermission(sessionWithFreshPerms, 'PROJECT_EDIT', 'landingPages', 'project', viewMode)
   const canDelete = hasPermission(sessionWithFreshPerms, 'PROJECT_DELETE', 'landingPages', 'project', viewMode)
+  const canManageBlog = hasPermission(sessionWithFreshPerms, 'BLOG_MANAGE', 'landingPages', 'page', viewMode)
 
   return (
     <div className="p-8">
@@ -127,6 +128,7 @@ export default async function LandingPagesPage({
                     initialName={project.name}
                     initialPreviewUrl={project.previewUrl}
                     initialBlogEnabled={project.blogEnabled}
+                    canManageBlog={canManageBlog}
                     companySlug={companySlug}
                     trigger={<EditProjectButton />}
                   />

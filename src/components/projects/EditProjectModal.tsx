@@ -10,6 +10,7 @@ interface EditProjectModalProps {
   initialName: string
   initialPreviewUrl?: string | null
   initialBlogEnabled?: boolean
+  canManageBlog?: boolean
   companySlug: string
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -43,6 +44,7 @@ export function EditProjectModal({
   initialName,
   initialPreviewUrl,
   initialBlogEnabled,
+  canManageBlog,
   companySlug,
   open,
   onOpenChange,
@@ -99,13 +101,17 @@ export function EditProjectModal({
               />
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-brand-btn-light/30 rounded-lg">
+            <div className={`flex items-center justify-between p-3 rounded-lg ${
+              canManageBlog ? 'bg-brand-btn-light/30' : 'bg-brand-btn-light/10 opacity-50'
+            }`}>
               <div>
                 <label htmlFor="blogEnabled" className="text-sm font-medium text-brand-text">
                   Ativar Blog
                 </label>
                 <p className="text-xs text-brand-muted mt-0.5">
-                  Permite gerenciar posts e categorias de blog neste projeto
+                  {canManageBlog
+                    ? 'Permite gerenciar posts e categorias de blog neste projeto'
+                    : 'Você não tem permissão para gerenciar o blog'}
                 </p>
               </div>
               <input
@@ -117,7 +123,7 @@ export function EditProjectModal({
                 id="blogEnabled"
                 checked={blogEnabled}
                 onCheckedChange={setBlogEnabled}
-                disabled={pending}
+                disabled={pending || !canManageBlog}
               />
             </div>
 
