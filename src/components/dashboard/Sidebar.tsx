@@ -26,6 +26,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName, embedded 
   const [collapsedState, setCollapsedState] = useState(embedded ? false : initialCollapsed)
   const collapsed = embedded ? false : collapsedState
   const [isDark, setIsDark] = useState(false)
+  const [blogEnabled, setBlogEnabled] = useState(true)
   const [, startTransition] = useTransition()
   const params = useParams()
   const pathname = usePathname()
@@ -69,6 +70,16 @@ export function Sidebar({ email, image, initialCollapsed, companyName, embedded 
   useEffect(() => {
     if (pathname.includes('/blog')) setBlogOpen(true)
   }, [pathname])
+
+  useEffect(() => {
+    const projectId = siteId || lpId
+    if (!projectId) return
+
+    fetch(`/api/projects/${projectId}/blog-enabled`)
+      .then(res => res.json())
+      .then(data => setBlogEnabled(data.blogEnabled ?? true))
+      .catch(() => setBlogEnabled(true))
+  }, [siteId, lpId])
 
   const MAIN_ITEMS = [
     { label: 'Página Inicial', href: `/${companySlug}/dashboard`, icon: Home },
@@ -252,7 +263,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName, embedded 
           </Link>
         ))}
 
-        {isInProjectContext && (
+        {isInProjectContext && blogEnabled && (
           <>
             <button
               onClick={() => setBlogOpen(o => !o)}

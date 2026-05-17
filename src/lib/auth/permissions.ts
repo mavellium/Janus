@@ -67,31 +67,32 @@ export function normalizePermissions(
     }
 
     for (const perm of permissions) {
-      if (perm.startsWith('sites:project:')) {
-        const name = perm.substring(14) as PermissionName
-        if (ALL_PERMISSIONS.includes(name)) result.sites.project.push(name)
-      } else if (perm.startsWith('sites:page:')) {
-        const name = perm.substring(11) as PermissionName
-        if (ALL_PERMISSIONS.includes(name)) result.sites.page.push(name)
-      } else if (perm.startsWith('sites:')) {
+      const cleanPerm = perm.trim()
+      if (cleanPerm.startsWith('sites:project:')) {
+        const name = cleanPerm.substring(14).replace(/^:+|:+$/g, '').trim() as PermissionName
+        if (name && ALL_PERMISSIONS.includes(name)) result.sites.project.push(name)
+      } else if (cleanPerm.startsWith('sites:page:')) {
+        const name = cleanPerm.substring(11).replace(/^:+|:+$/g, '').trim() as PermissionName
+        if (name && ALL_PERMISSIONS.includes(name)) result.sites.page.push(name)
+      } else if (cleanPerm.startsWith('sites:')) {
         // Legacy format: sites:PAGE_CREATE
-        const name = perm.substring(6) as PermissionName
-        if (ALL_PERMISSIONS.includes(name)) result.sites.page.push(name)
-      } else if (perm.startsWith('landingPages:project:')) {
-        const name = perm.substring(20) as PermissionName
-        if (ALL_PERMISSIONS.includes(name)) result.landingPages.project.push(name)
-      } else if (perm.startsWith('landingPages:page:')) {
-        const name = perm.substring(17) as PermissionName
-        if (ALL_PERMISSIONS.includes(name)) result.landingPages.page.push(name)
-      } else if (perm.startsWith('landingPages:')) {
+        const name = cleanPerm.substring(6).replace(/^:+|:+$/g, '').trim() as PermissionName
+        if (name && ALL_PERMISSIONS.includes(name)) result.sites.page.push(name)
+      } else if (cleanPerm.startsWith('landingPages:project:')) {
+        const name = cleanPerm.substring(20).replace(/^:+|:+$/g, '').trim() as PermissionName
+        if (name && ALL_PERMISSIONS.includes(name)) result.landingPages.project.push(name)
+      } else if (cleanPerm.startsWith('landingPages:page:')) {
+        const name = cleanPerm.substring(17).replace(/^:+|:+$/g, '').trim() as PermissionName
+        if (name && ALL_PERMISSIONS.includes(name)) result.landingPages.page.push(name)
+      } else if (cleanPerm.startsWith('landingPages:')) {
         // Legacy format: landingPages:PAGE_CREATE
-        const name = perm.substring(13) as PermissionName
-        if (ALL_PERMISSIONS.includes(name)) result.landingPages.page.push(name)
-      } else {
+        const name = cleanPerm.substring(13).replace(/^:+|:+$/g, '').trim() as PermissionName
+        if (name && ALL_PERMISSIONS.includes(name)) result.landingPages.page.push(name)
+      } else if (cleanPerm) {
         // Legacy: simple permission without prefix applies to both modules, page tier
-        if (ALL_PERMISSIONS.includes(perm as PermissionName)) {
-          result.sites.page.push(perm as PermissionName)
-          result.landingPages.page.push(perm as PermissionName)
+        if (ALL_PERMISSIONS.includes(cleanPerm as PermissionName)) {
+          result.sites.page.push(cleanPerm as PermissionName)
+          result.landingPages.page.push(cleanPerm as PermissionName)
         }
       }
     }

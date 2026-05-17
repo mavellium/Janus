@@ -716,6 +716,14 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-16 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/posts/new/page.tsx` | **REFACTOR:** Removido check `blogEnabled` — valida apenas se projeto existe |
 | 2026-05-16 | `src/app/dev/[devId]/dashboard/companies/CompaniesClient.tsx` | **REFACTOR:** Removido botão "Gerenciar Blog" (ícone BookOpen) e ProjectsBlogModal do painel de desenvolvedor |
 | 2026-05-16 | Blog Module Architecture | **REFACTOR:** Blog agora é sempre ativo para todos os Sites e Landing Pages; removida a configuração granular por projeto — simplifica UX e arquitetura |
+| 2026-05-17 | `src/modules/auth/actions/toggleViewMode.ts` | **FIX:** Removido deletion de `IMPERSONATED_USER_ID_COOKIE` ao exiting USER_MODE — permite toggle back mantendo impersonated user |
+| 2026-05-17 | `src/components/ui/toast-container.tsx` | **FIX:** Aumentado z-index para 99999 (inline style); adicionado prop `inModal` para posicionamento relativo em modais |
+| 2026-05-17 | `src/components/dashboard/UserPermissionsModal.tsx` | **REFACTOR:** ToastContainer renderizado fora do Dialog com `position: fixed` e z-index alto para aparecer acima do modal |
+| 2026-05-17 | `src/app/[companySlug]/dashboard/sites/[siteId]/pages/page.tsx` | **REFACTOR:** Removido `{canBuild &&}` do botão "Editar" (conteúdo) — qualquer usuário logado pode editar; botão "Configurações" agora requer `canBuild` |
+| 2026-05-17 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/page.tsx` | **REFACTOR:** Mesma mudança do pages/page.tsx de sites — "Editar" sempre visível, "Configurações" requer `PAGE_BUILD` |
+| 2026-05-17 | `src/app/[companySlug]/dashboard/sites/[siteId]/pages/[pageId]/edit/page.tsx` | **REFACTOR:** Removida verificação `PAGE_BUILD` — qualquer usuário logado pode editar conteúdo/valores do schema |
+| 2026-05-17 | `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/[pageId]/edit/page.tsx` | **REFACTOR:** Removida verificação `PAGE_BUILD` — qualquer usuário logado pode editar conteúdo/valores do schema |
+| 2026-05-17 | `src/app/dashboard-admin/PermissionsModal.tsx` | **FIX:** Adicionado cleaning de colons extras (`.replace(/^:+|:+$/g, '')`) na função `normalizePermissions()` — corrige parsing de landing pages permissions malformadas |
 
 ---
 

@@ -101,31 +101,29 @@ export function EditProjectModal({
               />
             </div>
 
-            <div className={`flex items-center justify-between p-3 rounded-lg ${
-              canManageBlog ? 'bg-brand-btn-light/30' : 'bg-brand-btn-light/10 opacity-50'
-            }`}>
-              <div>
-                <label htmlFor="blogEnabled" className="text-sm font-medium text-brand-text">
-                  Ativar Blog
-                </label>
-                <p className="text-xs text-brand-muted mt-0.5">
-                  {canManageBlog
-                    ? 'Permite gerenciar posts e categorias de blog neste projeto'
-                    : 'Você não tem permissão para gerenciar o blog'}
-                </p>
+            {canManageBlog && (
+              <div className="flex items-center justify-between p-3 bg-brand-btn-light/30 rounded-lg">
+                <div>
+                  <label htmlFor="blogEnabled" className="text-sm font-medium text-brand-text">
+                    Ativar Blog
+                  </label>
+                  <p className="text-xs text-brand-muted mt-0.5">
+                    Permite gerenciar posts e categorias de blog neste projeto
+                  </p>
+                </div>
+                <input
+                  type="hidden"
+                  name="blogEnabled"
+                  value={blogEnabled ? 'on' : ''}
+                />
+                <Switch
+                  id="blogEnabled"
+                  checked={blogEnabled}
+                  onCheckedChange={setBlogEnabled}
+                  disabled={pending}
+                />
               </div>
-              <input
-                type="hidden"
-                name="blogEnabled"
-                value={blogEnabled ? 'on' : ''}
-              />
-              <Switch
-                id="blogEnabled"
-                checked={blogEnabled}
-                onCheckedChange={setBlogEnabled}
-                disabled={pending || !canManageBlog}
-              />
-            </div>
+            )}
 
             {state.error && (
               <p className="text-sm text-destructive">{state.error}</p>

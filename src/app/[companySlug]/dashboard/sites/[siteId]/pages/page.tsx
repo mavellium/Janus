@@ -89,7 +89,7 @@ export default async function SitePagesPage({
               </div>
               <div className="flex flex-wrap gap-2">
                 {canBuild && <PublishPageButton pageId={page.id} initialPublished={page.isPublished} />}
-                {canDelete && (
+                {canBuild && (
                   <EditPageContainer
                     pageId={page.id}
                     initialName={page.name}
@@ -115,15 +115,13 @@ export default async function SitePagesPage({
                     Construir
                   </Link>
                 )}
-                {canBuild && (
-                  <Link
-                    href={`/${companySlug}/dashboard/sites/${siteId}/pages/${page.id}/edit`}
-                    className="px-3 py-2 rounded-lg text-sm font-semibold text-white transition flex items-center gap-2 bg-brand-primary hover:bg-brand-hover"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    Editar
-                  </Link>
-                )}
+                <Link
+                  href={`/${companySlug}/dashboard/sites/${siteId}/pages/${page.id}/edit`}
+                  className="px-3 py-2 rounded-lg text-sm font-semibold text-white transition flex items-center gap-2 bg-brand-primary hover:bg-brand-hover"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Editar
+                </Link>
               </div>
             </div>
           ))}

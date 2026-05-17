@@ -26,28 +26,38 @@ export async function updateUserPermissions(input: z.infer<typeof schema>) {
   })
   if (!target) return { ok: false, error: 'Usuário não encontrado.' }
 
+  console.log('Processing permissions:', parsed.data.permissions)
+  console.log('ALL_PERMISSIONS:', ALL_PERMISSIONS)
+
   const validPermissions = parsed.data.permissions.filter((permissionStr) => {
     // Format: module:tier:permissionName or module:permissionName (legacy)
     const parts = permissionStr.split(':')
+    console.log(`Checking permission: "${permissionStr}" -> parts:`, parts)
 
     if (parts.length === 3) {
       // New format: module:tier:permissionName
       const [module, tier, permName] = parts
-      if (!['sites', 'landingPages'].includes(module)) return false
-      if (!['project', 'page'].includes(tier)) return false
-      return ALL_PERMISSIONS.includes(permName as PermissionName)
+      const isValid = ['sites', 'landingPages'].includes(module) &&
+                      ['project', 'page'].includes(tier) &&
+                      ALL_PERMISSIONS.includes(permName as PermissionName)
+      console.log(`  3-part format: module="${module}" (valid: ${['sites', 'landingPages'].includes(module)}), tier="${tier}" (valid: ${['project', 'page'].includes(tier)}), permName="${permName}" (valid: ${ALL_PERMISSIONS.includes(permName as PermissionName)}) -> ${isValid}`)
+      return isValid
     } else if (parts.length === 2) {
       // Legacy format: module:permissionName
       const [module, permName] = parts
-      if (!['sites', 'landingPages'].includes(module)) return false
-      return ALL_PERMISSIONS.includes(permName as PermissionName)
+      const isValid = ['sites', 'landingPages'].includes(module) &&
+                      ALL_PERMISSIONS.includes(permName as PermissionName)
+      console.log(`  2-part format: module="${module}", permName="${permName}" -> ${isValid}`)
+      return isValid
     }
 
     // No prefix - legacy
-    return ALL_PERMISSIONS.includes(permissionStr as PermissionName)
+    const isValid = ALL_PERMISSIONS.includes(permissionStr as PermissionName)
+    console.log(`  1-part format: permissionStr="${permissionStr}" -> ${isValid}`)
+    return isValid
   })
 
-  console.log('Saving permissions for user:', parsed.data.userId, 'Valid permissions:', validPermissions)
+  console.log('Saving permissions for user:', parsed.data.userId, 'Input:', parsed.data.permissions, 'Valid:', validPermissions)
 
   const updated = await db.user.update({
     where: { id: parsed.data.userId },

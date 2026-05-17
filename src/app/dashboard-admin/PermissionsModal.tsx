@@ -15,13 +15,12 @@ const PERMISSION_LABELS: Record<string, { label: string; description: string }> 
   PAGE_CREATE: { label: 'Criar Páginas', description: 'Permite criar novas páginas.' },
   PAGE_DELETE: { label: 'Excluir Páginas', description: 'Permite excluir páginas existentes.' },
   PAGE_BUILD: { label: 'Construir Páginas (CMS)', description: 'Acesso ao construtor de schema das páginas.' },
-  BLOG_MANAGE: { label: 'Gerenciar Blog', description: 'Permite criar, editar e excluir posts do blog.' },
-  GUEST_MANAGE: { label: 'Gerenciar Convidados', description: 'Permite gerenciar acessos e postagens de convidados.' },
+  BLOG_MANAGE: { label: 'Gerenciar Blog', description: 'Permite gerenciar o modulo do blog.' },
   TEAM_MANAGE: { label: 'Gerenciar Equipe', description: 'Permite criar e excluir usuários da empresa.' },
 }
 
-const PROJECT_TIER_PERMISSIONS = ['PROJECT_CREATE', 'PROJECT_EDIT', 'PROJECT_DELETE']
-const PAGE_TIER_PERMISSIONS = ['PAGE_CREATE', 'PAGE_DELETE', 'PAGE_BUILD', 'BLOG_MANAGE', 'GUEST_MANAGE', 'TEAM_MANAGE']
+const PROJECT_TIER_PERMISSIONS = ['PROJECT_CREATE', 'PROJECT_EDIT', 'PROJECT_DELETE', 'BLOG_MANAGE']
+const PAGE_TIER_PERMISSIONS = ['PAGE_CREATE', 'PAGE_DELETE', 'PAGE_BUILD', 'TEAM_MANAGE']
 
 const ALL_KEYS = Object.keys(PERMISSION_LABELS)
 type PermissionTier = 'project' | 'page'
@@ -71,24 +70,29 @@ function normalizePermissions(
     }
 
     for (const perm of permissions) {
-      if (perm.startsWith('sites:project:')) {
-        result.sites.project.push(perm.substring(14))
-      } else if (perm.startsWith('sites:page:')) {
-        result.sites.page.push(perm.substring(11))
-      } else if (perm.startsWith('sites:')) {
-        // Legacy format
-        result.sites.page.push(perm.substring(6))
-      } else if (perm.startsWith('landingPages:project:')) {
-        result.landingPages.project.push(perm.substring(20))
-      } else if (perm.startsWith('landingPages:page:')) {
-        result.landingPages.page.push(perm.substring(17))
-      } else if (perm.startsWith('landingPages:')) {
-        // Legacy format
-        result.landingPages.page.push(perm.substring(13))
-      } else {
+      const cleanPerm = perm.trim()
+      if (cleanPerm.startsWith('sites:project:')) {
+        const name = cleanPerm.substring(14).replace(/^:+|:+$/g, '').trim()
+        if (name) result.sites.project.push(name)
+      } else if (cleanPerm.startsWith('sites:page:')) {
+        const name = cleanPerm.substring(11).replace(/^:+|:+$/g, '').trim()
+        if (name) result.sites.page.push(name)
+      } else if (cleanPerm.startsWith('sites:')) {
+        const name = cleanPerm.substring(6).replace(/^:+|:+$/g, '').trim()
+        if (name) result.sites.page.push(name)
+      } else if (cleanPerm.startsWith('landingPages:project:')) {
+        const name = cleanPerm.substring(20).replace(/^:+|:+$/g, '').trim()
+        if (name) result.landingPages.project.push(name)
+      } else if (cleanPerm.startsWith('landingPages:page:')) {
+        const name = cleanPerm.substring(17).replace(/^:+|:+$/g, '').trim()
+        if (name) result.landingPages.page.push(name)
+      } else if (cleanPerm.startsWith('landingPages:')) {
+        const name = cleanPerm.substring(13).replace(/^:+|:+$/g, '').trim()
+        if (name) result.landingPages.page.push(name)
+      } else if (cleanPerm) {
         // Legacy: simple permission applies to both modules, page tier
-        result.sites.page.push(perm)
-        result.landingPages.page.push(perm)
+        result.sites.page.push(cleanPerm)
+        result.landingPages.page.push(cleanPerm)
       }
     }
     return result
@@ -182,7 +186,7 @@ export function PermissionsModal({
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
               <h3 className="text-sm font-semibold text-brand-text">Permissões Gerais</h3>
-              <p className="text-xs text-brand-muted">Criar, editar e deletar {moduleLabel.toLowerCase()}</p>
+              <p className="text-xs text-brand-muted">Criar, editar, deletar e gerenciar blog dos {moduleLabel.toLowerCase()}</p>
             </div>
             <div className="flex flex-col gap-2">
               {PROJECT_TIER_PERMISSIONS.map((key) => {

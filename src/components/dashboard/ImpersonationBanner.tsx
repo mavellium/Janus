@@ -1,12 +1,13 @@
 'use client'
 
 import { useTransition, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2, KeyRound } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { toggleViewMode } from '@/modules/auth/actions/toggleViewMode'
 import { UserPermissionsModal } from './UserPermissionsModal'
+import type { ModuleType } from '@/lib/auth/permissions'
 
 interface Props {
   companyName: string
@@ -28,6 +29,7 @@ export function ImpersonationBanner({
   impersonatedUserPermissions,
 }: Props) {
   const router = useRouter()
+  const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
 
@@ -38,6 +40,8 @@ export function ImpersonationBanner({
     showButton: initialSimulating && impersonatedUserId,
   })
 
+  // Detect current module from pathname
+  const currentModule: ModuleType = pathname.includes('/landing-pages') ? 'landingPages' : 'sites'
   const backHref = role === 'ADMIN' ? '/dashboard-admin' : '/dev'
 
   function handleToggle(checked: boolean) {
@@ -98,8 +102,8 @@ export function ImpersonationBanner({
         <UserPermissionsModal
           userId={impersonatedUserId}
           userEmail={impersonatedUserEmail || 'Usuário'}
-          companySlug={companySlug}
           initialPermissions={impersonatedUserPermissions}
+          initialModule={currentModule}
           onClose={() => setShowPermissionsModal(false)}
         />
       )}

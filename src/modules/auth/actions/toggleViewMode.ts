@@ -14,16 +14,19 @@ export async function toggleViewMode(simulateUser: boolean, companySlug: string)
   }
 
   const cookieStore = await cookies()
-  cookieStore.set(VIEW_MODE_COOKIE, simulateUser ? VIEW_MODE_USER : VIEW_MODE_DEV, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24,
-  })
 
-  if (!simulateUser) {
-    cookieStore.delete(IMPERSONATED_USER_ID_COOKIE)
+  if (simulateUser) {
+    // Entering USER_MODE
+    cookieStore.set(VIEW_MODE_COOKIE, VIEW_MODE_USER, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24,
+    })
+  } else {
+    // Exiting USER_MODE (but keep IMPERSONATED_USER_ID_COOKIE for toggle back)
+    cookieStore.delete(VIEW_MODE_COOKIE)
   }
 
   revalidatePath(`/${companySlug}/dashboard`, 'layout')
@@ -33,6 +36,6 @@ export async function toggleViewMode(simulateUser: boolean, companySlug: string)
 export async function clearViewMode() {
   const cookieStore = await cookies()
   cookieStore.delete(VIEW_MODE_COOKIE)
-  cookieStore.delete(IMPERSONATED_USER_ID_COOKIE)
+  // Note: Keep IMPERSONATED_USER_ID_COOKIE so user can toggle back into USER_MODE
   return { ok: true }
 }

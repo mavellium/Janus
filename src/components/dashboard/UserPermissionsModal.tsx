@@ -2,11 +2,13 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Globe, Zap } from 'lucide-react'
+import { Globe, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ToastContainer } from '@/components/ui/toast-container'
 import { updateUserPermissions } from '@/modules/admin/actions/updateUserPermissions'
+import { useToast } from '@/hooks/use-toast'
 
 const PERMISSION_LABELS: Record<string, { label: string; description: string }> = {
   PROJECT_CREATE: { label: 'Criar Projeto', description: 'Permite criar novos sites/landing pages.' },
@@ -15,13 +17,12 @@ const PERMISSION_LABELS: Record<string, { label: string; description: string }> 
   PAGE_CREATE: { label: 'Criar Páginas', description: 'Permite criar novas páginas.' },
   PAGE_DELETE: { label: 'Excluir Páginas', description: 'Permite excluir páginas existentes.' },
   PAGE_BUILD: { label: 'Construir Páginas (CMS)', description: 'Acesso ao construtor de schema das páginas.' },
-  BLOG_MANAGE: { label: 'Gerenciar Blog', description: 'Permite criar, editar e excluir posts do blog.' },
-  GUEST_MANAGE: { label: 'Gerenciar Convidados', description: 'Permite gerenciar acessos e postagens de convidados.' },
+  BLOG_MANAGE: { label: 'Gerenciar Blog', description: 'Permite gerenciar o modulo do blog.' },
   TEAM_MANAGE: { label: 'Gerenciar Equipe', description: 'Permite criar e excluir usuários da empresa.' },
 }
 
-const PROJECT_TIER_PERMISSIONS = ['PROJECT_CREATE', 'PROJECT_EDIT', 'PROJECT_DELETE']
-const PAGE_TIER_PERMISSIONS = ['PAGE_CREATE', 'PAGE_DELETE', 'PAGE_BUILD', 'BLOG_MANAGE', 'GUEST_MANAGE', 'TEAM_MANAGE']
+const PROJECT_TIER_PERMISSIONS = ['PROJECT_CREATE', 'PROJECT_EDIT', 'PROJECT_DELETE', 'BLOG_MANAGE']
+const PAGE_TIER_PERMISSIONS = ['PAGE_CREATE', 'PAGE_DELETE', 'PAGE_BUILD', 'TEAM_MANAGE']
 
 type ModuleType = 'sites' | 'landingPages'
 type PermissionTier = 'project' | 'page'
@@ -29,8 +30,8 @@ type PermissionTier = 'project' | 'page'
 interface Props {
   userId: string
   userEmail: string
-  companySlug: string
   initialPermissions?: string | string[] | Record<string, Record<string, string[]>>
+  initialModule?: ModuleType
   onClose: () => void
 }
 
@@ -65,21 +66,28 @@ function normalizePermissions(
     }
 
     for (const perm of permissions) {
-      if (perm.startsWith('sites:project:')) {
-        result.sites.project.push(perm.substring(14))
-      } else if (perm.startsWith('sites:page:')) {
-        result.sites.page.push(perm.substring(11))
-      } else if (perm.startsWith('sites:')) {
-        result.sites.page.push(perm.substring(6))
-      } else if (perm.startsWith('landingPages:project:')) {
-        result.landingPages.project.push(perm.substring(20))
-      } else if (perm.startsWith('landingPages:page:')) {
-        result.landingPages.page.push(perm.substring(17))
-      } else if (perm.startsWith('landingPages:')) {
-        result.landingPages.page.push(perm.substring(13))
-      } else {
-        result.sites.page.push(perm)
-        result.landingPages.page.push(perm)
+      const cleanPerm = perm.trim()
+      if (cleanPerm.startsWith('sites:project:')) {
+        const name = cleanPerm.substring(14).replace(/^:+|:+$/g, '').trim()
+        if (name) result.sites.project.push(name)
+      } else if (cleanPerm.startsWith('sites:page:')) {
+        const name = cleanPerm.substring(11).replace(/^:+|:+$/g, '').trim()
+        if (name) result.sites.page.push(name)
+      } else if (cleanPerm.startsWith('sites:')) {
+        const name = cleanPerm.substring(6).replace(/^:+|:+$/g, '').trim()
+        if (name) result.sites.page.push(name)
+      } else if (cleanPerm.startsWith('landingPages:project:')) {
+        const name = cleanPerm.substring(20).replace(/^:+|:+$/g, '').trim()
+        if (name) result.landingPages.project.push(name)
+      } else if (cleanPerm.startsWith('landingPages:page:')) {
+        const name = cleanPerm.substring(17).replace(/^:+|:+$/g, '').trim()
+        if (name) result.landingPages.page.push(name)
+      } else if (cleanPerm.startsWith('landingPages:')) {
+        const name = cleanPerm.substring(13).replace(/^:+|:+$/g, '').trim()
+        if (name) result.landingPages.page.push(name)
+      } else if (cleanPerm) {
+        result.sites.page.push(cleanPerm)
+        result.landingPages.page.push(cleanPerm)
       }
     }
     return result
@@ -95,11 +103,12 @@ function normalizePermissions(
   }
 }
 
-export function UserPermissionsModal({ userId, userEmail, companySlug, initialPermissions, onClose }: Props) {
+export function UserPermissionsModal({ userId, userEmail, initialPermissions, initialModule = 'sites', onClose }: Props) {
   const router = useRouter()
+  const { toast, toasts, removeToast } = useToast()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const [module, setModule] = useState<ModuleType>('sites')
+  const [module, setModule] = useState<ModuleType>(initialModule)
   const [permissions, setPermissions] = useState<Record<ModuleType, Record<PermissionTier, string[]>>>(
     normalizePermissions(initialPermissions)
   )
@@ -128,17 +137,28 @@ export function UserPermissionsModal({ userId, userEmail, companySlug, initialPe
       Object.entries(permsToSave).forEach(([mod, tiers]) => {
         Object.entries(tiers).forEach(([tier, perms]) => {
           perms.forEach((perm) => {
-            permissionsArray.push(`${mod}:${tier}:${perm}`)
+            // Clean permission name (remove leading/trailing colons and whitespace)
+            const cleanPerm = perm.replace(/^:+|:+$/g, '').trim()
+            if (cleanPerm) {
+              permissionsArray.push(`${mod}:${tier}:${cleanPerm}`)
+            }
           })
         })
       })
 
+      console.log('[UserPermissionsModal] Saving permissions for user:', userId)
+      console.log('[UserPermissionsModal] Permissions structure:', permsToSave)
+      console.log('[UserPermissionsModal] Permissions array to send:', permissionsArray)
+
       const result = await updateUserPermissions({ userId, permissions: permissionsArray })
+      console.log('[UserPermissionsModal] Save result:', result)
       if (!result.ok) {
         setError(result.error ?? 'Erro ao salvar permissões.')
       } else {
+        toast({ message: 'Permissões salvas com sucesso!', type: 'success' })
         // Refresh page to update UI with new permissions
         setTimeout(() => {
+          console.log('[UserPermissionsModal] Calling router.refresh()')
           router.refresh()
         }, 500)
       }
@@ -146,14 +166,18 @@ export function UserPermissionsModal({ userId, userEmail, companySlug, initialPe
   }
 
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-brand-text flex items-center gap-2">
-            <Globe className="w-4 h-4 text-brand-primary" />
-            Permissões de {userEmail}
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <ToastContainer toasts={toasts} onRemove={removeToast} inModal={false} />
+      <Dialog open onOpenChange={onClose}>
+        <DialogContent className="bg-card border-border max-w-2xl max-h-[80vh] overflow-y-auto p-0">
+          <div className="relative w-full h-full">
+            <div className="px-4 sm:px-6">
+          <DialogHeader>
+            <DialogTitle className="text-brand-text flex items-center gap-2 pt-4 mb-2">
+              <Globe className="w-4 h-4 text-brand-primary" />
+              Permissões de {userEmail}
+            </DialogTitle>
+          </DialogHeader>
 
         <div className="flex gap-4 flex-col">
           <div className="flex gap-2 border-b border-brand-btn-light pb-3">
@@ -245,7 +269,10 @@ export function UserPermissionsModal({ userId, userEmail, companySlug, initialPe
             </Button>
           </div>
         </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
+    </>
   )
 }

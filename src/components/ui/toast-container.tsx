@@ -11,11 +11,16 @@ interface Toast {
 interface ToastContainerProps {
   toasts: Toast[]
   onRemove: (id: string) => void
+  inModal?: boolean
 }
 
-export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
+export function ToastContainer({ toasts, onRemove, inModal = false }: ToastContainerProps) {
+  const positionClasses = inModal
+    ? 'absolute bottom-4 right-4'
+    : 'fixed bottom-4 right-4'
+
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+    <div className={`${positionClasses} flex flex-col gap-2`} style={{ zIndex: 99999 }}>
       {toasts.map((toast) => (
         <div
           key={toast.id}
