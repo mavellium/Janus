@@ -42,15 +42,23 @@ export default async function DashboardLayout({
   const isSimulating = viewMode === VIEW_MODE_USER
   const impersonatedUserId = await getImpersonatedUserId()
 
+  console.log('[dashboard/layout]', {
+    isSimulating,
+    impersonatedUserId,
+    viewMode,
+  })
+
   let impersonatedUserEmail: string | null = null
   let impersonatedUserPermissions: string | string[] | Record<string, Record<string, string[]>> | undefined
   if (impersonatedUserId && isSimulating) {
+    console.log('[dashboard/layout] Fetching impersonated user:', impersonatedUserId)
     const impersonatedUser = await db.user.findUnique({
       where: { id: impersonatedUserId },
       select: { email: true, permissions: true },
     })
     impersonatedUserEmail = impersonatedUser?.email ?? null
     impersonatedUserPermissions = impersonatedUser?.permissions
+    console.log('[dashboard/layout] Impersonated user:', { impersonatedUserEmail, permissions: impersonatedUserPermissions })
   }
 
   return (

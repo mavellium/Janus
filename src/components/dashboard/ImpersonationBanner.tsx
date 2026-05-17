@@ -31,6 +31,13 @@ export function ImpersonationBanner({
   const [isPending, startTransition] = useTransition()
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
 
+  console.log('[ImpersonationBanner]', {
+    initialSimulating,
+    impersonatedUserId,
+    impersonatedUserEmail,
+    showButton: initialSimulating && impersonatedUserId,
+  })
+
   const backHref = role === 'ADMIN' ? '/dashboard-admin' : '/dev'
 
   function handleToggle(checked: boolean) {
