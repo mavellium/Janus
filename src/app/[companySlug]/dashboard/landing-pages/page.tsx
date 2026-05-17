@@ -5,8 +5,9 @@ import { ChevronLeft, ArrowRight } from 'lucide-react'
 import { db } from '@/lib/prisma'
 import { getProjects } from '@/modules/projects/queries/getProjects'
 import { formatDate } from '@/lib/utils'
-import { hasPermission, getViewMode } from '@/lib/auth/permissions'
+import { hasPermission, getViewMode, VIEW_MODE_USER } from '@/lib/auth/permissions'
 import { getUserPermissions } from '@/modules/auth/queries/getUserPermissions'
+import { getImpersonatedUserPermissions } from '@/modules/auth/queries/getImpersonatedUserPermissions'
 import { CreateProjectModal } from '@/components/projects/CreateProjectModal'
 import { EditProjectContainer } from '@/components/projects/EditProjectContainer'
 import { EditProjectButton } from '@/components/projects/EditProjectButton'
@@ -31,8 +32,16 @@ export default async function LandingPagesPage({
   const projects = await getProjects({ companyId: company.id, type: 'LANDING_PAGE' })
 
   // Fetch permissions fresh from database (not from session cache)
-  const freshPermissions = await getUserPermissions(session.user.id)
   const viewMode = await getViewMode()
+
+  // If in USER_MODE, use impersonated user's permissions; otherwise use logged-in user's permissions
+  let freshPermissions = await getUserPermissions(session.user.id)
+  if (viewMode === VIEW_MODE_USER) {
+    const impersonatedPerms = await getImpersonatedUserPermissions()
+    if (impersonatedPerms) {
+      freshPermissions = impersonatedPerms
+    }
+  }
 
   const sessionWithFreshPerms = {
     ...session,

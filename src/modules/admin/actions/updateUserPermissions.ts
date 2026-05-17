@@ -49,10 +49,12 @@ export async function updateUserPermissions(input: z.infer<typeof schema>) {
 
   console.log('Saving permissions for user:', parsed.data.userId, 'Valid permissions:', validPermissions)
 
-  await db.user.update({
+  const updated = await db.user.update({
     where: { id: parsed.data.userId },
     data: { permissions: validPermissions },
   })
+
+  console.log('User permissions updated:', updated.id, 'New permissions:', updated.permissions)
 
   // Revalidate admin pages
   revalidatePath('/dashboard-admin/users')
@@ -60,6 +62,8 @@ export async function updateUserPermissions(input: z.infer<typeof schema>) {
 
   // Revalidate all dashboard pages (sites, landing pages, etc)
   revalidatePath('/', 'layout')
+
+  console.log('Revalidated paths after permission update')
 
   return { ok: true }
 }

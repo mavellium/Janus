@@ -133,7 +133,10 @@ export function UserPermissionsModal({ userId, userEmail, companySlug, initialPe
       if (!result.ok) {
         setError(result.error ?? 'Erro ao salvar permissões.')
       } else {
-        router.refresh()
+        // Refresh page to update UI with new permissions
+        setTimeout(() => {
+          router.refresh()
+        }, 500)
         onClose()
       }
     })

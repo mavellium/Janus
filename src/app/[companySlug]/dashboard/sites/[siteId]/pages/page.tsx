@@ -8,8 +8,9 @@ import { formatDate } from '@/lib/utils'
 import { EditPageContainer } from '@/components/projects/EditPageContainer'
 import { PublishPageButton } from '@/components/projects/PublishPageButton'
 import { CreatePageModal } from '@/components/projects/CreatePageModal'
-import { hasPermission, getViewMode } from '@/lib/auth/permissions'
+import { hasPermission, getViewMode, VIEW_MODE_USER } from '@/lib/auth/permissions'
 import { getUserPermissions } from '@/modules/auth/queries/getUserPermissions'
+import { getImpersonatedUserPermissions } from '@/modules/auth/queries/getImpersonatedUserPermissions'
 
 export const metadata = { title: 'Páginas — Janus' }
 
@@ -35,8 +36,16 @@ export default async function SitePagesPage({
   const pages = await getPagesByProjectId(siteId)
 
   // Fetch permissions fresh from database (not from session cache)
-  const freshPermissions = await getUserPermissions(session.user.id)
   const viewMode = await getViewMode()
+
+  // If in USER_MODE, use impersonated user's permissions; otherwise use logged-in user's permissions
+  let freshPermissions = await getUserPermissions(session.user.id)
+  if (viewMode === VIEW_MODE_USER) {
+    const impersonatedPerms = await getImpersonatedUserPermissions()
+    if (impersonatedPerms) {
+      freshPermissions = impersonatedPerms
+    }
+  }
 
   const sessionWithFreshPerms = {
     ...session,
