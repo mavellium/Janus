@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Users, Plus, Loader2, UserCircle, CheckCircle2, Clock, Trash2, Pencil, KeyRound } from 'lucide-react'
+import { Users, Plus, Loader2, UserCircle, CheckCircle2, Clock, Trash2, Pencil, KeyRound, Eye } from 'lucide-react'
 import { adminCreateUser } from '@/modules/admin/actions/adminCreateUser'
 import { adminEditUser } from '@/modules/admin/actions/adminEditUser'
 import { adminDeleteUser } from '@/modules/admin/actions/adminDeleteUser'
+import { viewAsUser } from '@/modules/auth/actions/viewAsUser'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -318,6 +319,13 @@ export function AdminUsersClient({ users, companies }: { users: User[]; companie
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => viewAsUser(user.company.slug)}
+                        className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
+                        title="Visualizar como usuário"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         onClick={() => setEditTarget(user)}
                         className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
