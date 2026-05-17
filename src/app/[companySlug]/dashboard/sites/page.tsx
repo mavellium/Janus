@@ -127,6 +127,7 @@ export default async function SitesPage({
                     projectId={project.id}
                     initialName={project.name}
                     initialPreviewUrl={project.previewUrl}
+                    initialBlogEnabled={project.blogEnabled}
                     companySlug={companySlug}
                     trigger={<EditProjectButton />}
                   />

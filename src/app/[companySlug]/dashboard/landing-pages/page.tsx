@@ -126,6 +126,7 @@ export default async function LandingPagesPage({
                     projectId={project.id}
                     initialName={project.name}
                     initialPreviewUrl={project.previewUrl}
+                    initialBlogEnabled={project.blogEnabled}
                     companySlug={companySlug}
                     trigger={<EditProjectButton />}
                   />

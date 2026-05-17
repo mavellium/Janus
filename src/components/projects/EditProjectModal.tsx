@@ -1,13 +1,15 @@
 'use client'
 
-import { useActionState, useEffect, useTransition } from 'react'
+import { useActionState, useEffect, useTransition, useState } from 'react'
 import { Edit, Loader2 } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
 import { updateProject } from '@/modules/projects/actions/updateProject'
 
 interface EditProjectModalProps {
   projectId: string
   initialName: string
   initialPreviewUrl?: string | null
+  initialBlogEnabled?: boolean
   companySlug: string
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -20,6 +22,7 @@ async function formAction(prevState: FormState, formData: FormData): Promise<For
   const name = formData.get('name') as string
   const companySlug = formData.get('companySlug') as string
   const previewUrl = formData.get('previewUrl') as string
+  const blogEnabled = formData.get('blogEnabled') === 'on'
 
   if (!name?.trim()) return { error: 'Nome do projeto é obrigatório' }
 
@@ -28,6 +31,7 @@ async function formAction(prevState: FormState, formData: FormData): Promise<For
     name: name.trim(),
     companySlug,
     previewUrl: previewUrl ? previewUrl.trim() : null,
+    blogEnabled,
   })
 
   if (!result.ok) return { error: result.error || 'Erro ao atualizar projeto' }
@@ -38,12 +42,14 @@ export function EditProjectModal({
   projectId,
   initialName,
   initialPreviewUrl,
+  initialBlogEnabled,
   companySlug,
   open,
   onOpenChange,
 }: EditProjectModalProps) {
   const [state, action, pending] = useActionState(formAction, {})
   const [, startTransition] = useTransition()
+  const [blogEnabled, setBlogEnabled] = useState(initialBlogEnabled || false)
 
   useEffect(() => {
     if (state.success) onOpenChange(false)
@@ -90,6 +96,28 @@ export function EditProjectModal({
                 placeholder="Ex: https://meusite.com/api/preview"
                 disabled={pending}
                 className="flex h-10 w-full rounded-md border border-brand-btn-light bg-brand-bg px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-brand-btn-light/30 rounded-lg">
+              <div>
+                <label htmlFor="blogEnabled" className="text-sm font-medium text-brand-text">
+                  Ativar Blog
+                </label>
+                <p className="text-xs text-brand-muted mt-0.5">
+                  Permite gerenciar posts e categorias de blog neste projeto
+                </p>
+              </div>
+              <input
+                type="hidden"
+                name="blogEnabled"
+                value={blogEnabled ? 'on' : ''}
+              />
+              <Switch
+                id="blogEnabled"
+                checked={blogEnabled}
+                onCheckedChange={setBlogEnabled}
+                disabled={pending}
               />
             </div>
 
