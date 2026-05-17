@@ -57,8 +57,12 @@ export function ImpersonationBanner({
             <Eye className="w-4 h-4 shrink-0" />
           )}
           <span>
-            {role === 'ADMIN' ? 'Modo Administrador' : 'Modo Desenvolvedor'}: Visualizando {companyName}
-            {initialSimulating && ' (Visão do Usuário)'}
+            {role === 'ADMIN' ? 'Modo Administrador' : 'Modo Desenvolvedor'}:
+            {initialSimulating && impersonatedUserEmail ? (
+              <> Visualizando usuário <strong>{impersonatedUserEmail}</strong></>
+            ) : (
+              <> Visualizando {companyName}</>
+            )}
           </span>
         </div>
         <div className="flex items-center gap-4">
