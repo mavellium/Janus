@@ -105,23 +105,27 @@ export function UserPermissionsModal({ userId, userEmail, companySlug, initialPe
   )
 
   const togglePermission = (tier: PermissionTier, permission: string) => {
-    setPermissions((prev) => ({
-      ...prev,
+    const newPermissions = {
+      ...permissions,
       [module]: {
-        ...prev[module],
-        [tier]: prev[module][tier].includes(permission)
-          ? prev[module][tier].filter((p) => p !== permission)
-          : [...prev[module][tier], permission],
+        ...permissions[module],
+        [tier]: permissions[module][tier].includes(permission)
+          ? permissions[module][tier].filter((p) => p !== permission)
+          : [...permissions[module][tier], permission],
       },
-    }))
+    }
+    setPermissions(newPermissions)
+
+    // Save immediately
+    savePermissions(newPermissions)
   }
 
-  const handleSave = () => {
+  const savePermissions = (permsToSave: Record<ModuleType, Record<PermissionTier, string[]>>) => {
     setError(null)
     startTransition(async () => {
       const permissionsArray: string[] = []
 
-      Object.entries(permissions).forEach(([mod, tiers]) => {
+      Object.entries(permsToSave).forEach(([mod, tiers]) => {
         Object.entries(tiers).forEach(([tier, perms]) => {
           perms.forEach((perm) => {
             permissionsArray.push(`${mod}:${tier}:${perm}`)
@@ -137,7 +141,6 @@ export function UserPermissionsModal({ userId, userEmail, companySlug, initialPe
         setTimeout(() => {
           router.refresh()
         }, 500)
-        onClose()
       }
     })
   }
@@ -237,12 +240,8 @@ export function UserPermissionsModal({ userId, userEmail, companySlug, initialPe
           )}
 
           <div className="flex justify-end gap-2 pt-3 border-t border-brand-btn-light">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave} disabled={isPending}>
-              {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
-              Salvar Permissões
+            <Button type="button" variant="outline" onClick={onClose}>
+              Fechar
             </Button>
           </div>
         </div>
