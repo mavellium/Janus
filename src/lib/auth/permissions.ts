@@ -160,20 +160,7 @@ export async function getViewMode(): Promise<ViewMode | null> {
   const cookieStore = await cookies()
   const value = cookieStore.get(VIEW_MODE_COOKIE)?.value
   console.log('[getViewMode] Cookie value:', { VIEW_MODE_COOKIE, value, VIEW_MODE_USER, VIEW_MODE_DEV })
-
-  if (value === VIEW_MODE_USER || value === VIEW_MODE_DEV) {
-    // Renew the cookie to keep it from expiring
-    console.log('[getViewMode] Renewing view mode cookie:', value)
-    cookieStore.set(VIEW_MODE_COOKIE, value, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-    })
-    return value
-  }
-
+  if (value === VIEW_MODE_USER || value === VIEW_MODE_DEV) return value
   console.log('[getViewMode] Returning null - no valid view mode')
   return null
 }
@@ -193,19 +180,6 @@ export async function getImpersonatedUserId(): Promise<string | null> {
   const cookieStore = await cookies()
   const value = cookieStore.get(IMPERSONATED_USER_ID_COOKIE)?.value ?? null
   console.log('[getImpersonatedUserId]', { IMPERSONATED_USER_ID_COOKIE, value })
-
-  // Renew the cookie if it exists to keep it from expiring
-  if (value) {
-    console.log('[getImpersonatedUserId] Renewing cookie for userId:', value)
-    cookieStore.set(IMPERSONATED_USER_ID_COOKIE, value, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-    })
-  }
-
   return value
 }
 
