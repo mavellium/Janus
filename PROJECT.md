@@ -266,9 +266,9 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/components/blog/RichEditor.tsx` — Client — editor Tiptap com toolbar, upload de imagem inline (BunnyCDN)
 - `src/components/blog/BlogTabNav.tsx` — Client — navegação por abas (Publicações/Categorias/Tags) com active state via usePathname
 - `src/components/blog/BlogManagementHeader.tsx` — Server — header "Gerenciar Blog" com ícone + BlogTabNav; recebe basePath
-- `src/components/blog/CategoriesClient.tsx` — Client — layout 2 colunas: lista lateral + painel inline de edição/criação com SEO e categoria pai
-- `src/components/blog/TagsClient.tsx` — Client — layout 2 colunas: lista lateral + painel inline de edição/criação com SEO e tag pai
-- `src/components/blog/PostsListClient.tsx` — Client — exporta `BlogPostsTable` (reutilizável) e `PostsListClient` com busca e botão novo artigo
+- `src/components/blog/CategoriesClient.tsx` — Client — layout 2 colunas: lista lateral + painel inline reativo (onCreated/onUpdated sem reload); quick-create pai inline; useCallback estável
+- `src/components/blog/TagsClient.tsx` — Client — layout 2 colunas: lista lateral + painel inline reativo (onCreated/onUpdated sem reload); quick-create pai inline; useCallback estável
+- `src/components/blog/PostsListClient.tsx` — Client — exporta `BlogPostsTable` e `PostsListClient`; paginação client-side, page size 10/25/50, visibilidade de colunas, multi-select com bulk delete
 - `src/components/blog/PostEditorClient.tsx` — Client — layout 2 colunas: corpo do artigo à esquerda, sidebar (organização + SEO) à direita; botão "Atualizar Post" no header
 
 ## Páginas Blog (Sites)
@@ -313,6 +313,10 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-19 | `src/components/dashboard/Sidebar.tsx` | FEAT: Blog simplificado para link direto (sem sub-itens colapsáveis) |
 | 2026-05-19 | `CategoryModal.tsx`, `TagModal.tsx` | REMOVIDO: Substituídos pelo painel inline nos clientes de categorias e tags |
 | 2026-05-19 | 6 páginas blog (sites + lp): posts, categories, tags | FEAT: Adicionado BlogManagementHeader com tab navigation em todas as páginas |
+| 2026-05-19 | `PostsListClient.tsx` | REESCRITO: data table avançado com paginação, page size 10/25/50, colunas ocultáveis, multi-select, bulk delete e sort |
+| 2026-05-19 | `PostsListClient.tsx` | UX: toolbar unificada com ícones (+/sliders/filter/trash) + page size + contagem + paginação em uma linha; footer removido |
+| 2026-05-19 | `CategoriesClient.tsx`, `TagsClient.tsx` | FEAT: Reactive UI (onCreated/onUpdated sem reload) + quick-create pai inline + useCallback estável |
+| 2026-05-19 | 4 páginas new/edit de posts (sites + lp) | FIX: authorName via `db.user.findUnique` (name real) em vez de `session.user.name` (sempre undefined) |
 | 2026-05-17 | `src/components/ui/SlugInput.tsx` | NOVO: Componente reutilizável de input de slug com validação em tempo real; sanitiza a-z, 0-9, hífen; feedback visual de erro |
 | 2026-05-17 | `CreatePageModal.tsx`, `EditPageModal.tsx`, `CompaniesClient.tsx`, `AdminCompaniesClient.tsx`, `CreateCompanyModal.tsx` | FIX: Substituição de inputs raw slug pelo componente SlugInput com validação live |
 | 2026-05-17 | `src/modules/projects/actions/createPage.ts` + 10 actions | FIX: `session.user.companySlug` undefined para DEVELOPER — adicionado guard `&& session.user.companySlug` antes de comparar |

@@ -1,8 +1,8 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
+import { useActionState, useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
-import { Plus, Loader2, Tag, ImageIcon, X, Globe, Trash2 } from 'lucide-react'
+import { Plus, Loader2, Tag, ImageIcon, X, Globe, Trash2, Check } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -25,6 +25,19 @@ interface BlogTag {
   children: { id: string; name: string }[]
 }
 
+type ActionData = {
+  id: string
+  name: string
+  description: string | null
+  imageUrl: string | null
+  slug: string
+  seoTitle: string | null
+  seoDescription: string | null
+  seoKeywords: string | null
+  parentId: string | null
+  projectId: string
+}
+
 interface TagsClientProps {
   tags: BlogTag[]
   projectId: string
@@ -36,23 +49,42 @@ interface EditPanelProps {
   allTags: BlogTag[]
   onClose: () => void
   onDeleted: (id: string) => void
+  onCreated: (data: ActionData) => void
+  onUpdated: (data: ActionData) => void
+  onParentCreated: (data: ActionData) => void
 }
 
-function EditPanel({ tag, projectId, allTags, onClose, onDeleted }: EditPanelProps) {
+function EditPanel({
+  tag,
+  projectId,
+  allTags,
+  onClose,
+  onDeleted,
+  onCreated,
+  onUpdated,
+  onParentCreated,
+}: EditPanelProps) {
   const isEditing = tag !== null
   const action = isEditing ? updateBlogTag : createBlogTag
-  const [state, formAction, isPending] = useActionState(action, { ok: false, error: '' })
+  const [state, formAction, isPending] = useActionState(action, { ok: false as const, error: '' })
   const [imageUrl, setImageUrl] = useState(tag?.imageUrl ?? '')
   const [uploading, setUploading] = useState(false)
   const [seoTitle, setSeoTitle] = useState(tag?.seoTitle ?? '')
   const [seoDescription, setSeoDescription] = useState(tag?.seoDescription ?? '')
+  const [selectedParentId, setSelectedParentId] = useState(tag?.parentId ?? '')
+  const [showQuickCreate, setShowQuickCreate] = useState(false)
+  const [quickName, setQuickName] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, startDelete] = useTransition()
+  const [creatingParent, startCreateParent] = useTransition()
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (state.ok) onClose()
-  }, [state.ok, onClose])
+    if (!state.ok) return
+    const data = (state as { ok: true; data: ActionData }).data
+    if (isEditing) onUpdated(data)
+    else onCreated(data)
+  }, [state, isEditing, onCreated, onUpdated])
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -69,6 +101,22 @@ function EditPanel({ tag, projectId, allTags, onClose, onDeleted }: EditPanelPro
     startDelete(async () => {
       await deleteBlogTag(tag!.id)
       onDeleted(tag!.id)
+    })
+  }
+
+  function handleCreateParent() {
+    if (!quickName.trim()) return
+    startCreateParent(async () => {
+      const fd = new FormData()
+      fd.set('projectId', projectId)
+      fd.set('name', quickName.trim())
+      const result = await createBlogTag(null, fd)
+      if (result.ok && 'data' in result && result.data) {
+        onParentCreated(result.data as ActionData)
+        setSelectedParentId(result.data.id)
+        setShowQuickCreate(false)
+        setQuickName('')
+      }
     })
   }
 
@@ -90,6 +138,7 @@ function EditPanel({ tag, projectId, allTags, onClose, onDeleted }: EditPanelPro
         {isEditing && <input type="hidden" name="id" value={tag.id} />}
         {!isEditing && <input type="hidden" name="projectId" value={projectId} />}
         <input type="hidden" name="imageUrl" value={imageUrl} />
+        <input type="hidden" name="parentId" value={selectedParentId} />
 
         <div className="grid grid-cols-2 gap-0 divide-x divide-border">
           <div className="px-5 py-5 flex flex-col gap-5">
@@ -143,16 +192,52 @@ function EditPanel({ tag, projectId, allTags, onClose, onDeleted }: EditPanelPro
 
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Tag Pai</Label>
-              <select
-                name="parentId"
-                defaultValue={tag?.parentId ?? ''}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                <option value="">Nenhuma (raiz)</option>
-                {parentOptions.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+              <div className="flex gap-2">
+                <select
+                  value={selectedParentId}
+                  onChange={(e) => setSelectedParentId(e.target.value)}
+                  className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="">Nenhuma (raiz)</option>
+                  {parentOptions.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => { setShowQuickCreate((v) => !v); setQuickName('') }}
+                  className="px-2.5 py-1.5 rounded-md border border-input bg-background text-xs text-brand-muted hover:text-brand-primary hover:border-brand-primary transition whitespace-nowrap"
+                >
+                  + Nova
+                </button>
+              </div>
+              {showQuickCreate && (
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={quickName}
+                    onChange={(e) => setQuickName(e.target.value)}
+                    placeholder="Nome da nova tag pai"
+                    className="text-sm flex-1"
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCreateParent() } }}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCreateParent}
+                    disabled={creatingParent || !quickName.trim()}
+                    className="p-1.5 rounded-md bg-brand-cta text-white disabled:opacity-50 transition"
+                  >
+                    {creatingParent ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowQuickCreate(false); setQuickName('') }}
+                    className="p-1.5 rounded-md border border-input text-brand-muted hover:text-foreground transition"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -241,10 +326,39 @@ export function TagsClient({ tags: initialTags, projectId }: TagsClientProps) {
 
   const filtered = tags.filter((t) => t.name.toLowerCase().includes(search.toLowerCase()))
 
-  function handleDeleted(id: string) {
+  const handleDeleted = useCallback((id: string) => {
     setTags((prev) => prev.filter((t) => t.id !== id))
     setPanel(null)
-  }
+  }, [])
+
+  const handleCreated = useCallback((data: ActionData) => {
+    setTags((prev) => {
+      const parent = data.parentId ? (prev.find((t) => t.id === data.parentId) ?? null) : null
+      const newTag: BlogTag = {
+        ...data,
+        parent: parent ? { id: parent.id, name: parent.name } : null,
+        children: [],
+      }
+      return [...prev, newTag].sort((a, b) => a.name.localeCompare(b.name))
+    })
+    setPanel(null)
+  }, [])
+
+  const handleUpdated = useCallback((data: ActionData) => {
+    setTags((prev) =>
+      prev.map((t) => {
+        if (t.id !== data.id) return t
+        const parent = data.parentId ? (prev.find((p) => p.id === data.parentId) ?? null) : null
+        return { ...t, ...data, parent: parent ? { id: parent.id, name: parent.name } : null }
+      }),
+    )
+    setPanel(null)
+  }, [])
+
+  const handleParentCreated = useCallback((data: ActionData) => {
+    const newTag: BlogTag = { ...data, parent: null, children: [] }
+    setTags((prev) => [...prev, newTag].sort((a, b) => a.name.localeCompare(b.name)))
+  }, [])
 
   return (
     <div className="flex gap-4 h-[calc(100vh-260px)] min-h-[500px]">
@@ -316,6 +430,9 @@ export function TagsClient({ tags: initialTags, projectId }: TagsClientProps) {
             allTags={tags}
             onClose={() => setPanel(null)}
             onDeleted={handleDeleted}
+            onCreated={handleCreated}
+            onUpdated={handleUpdated}
+            onParentCreated={handleParentCreated}
           />
         )}
       </div>

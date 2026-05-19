@@ -26,13 +26,14 @@ export default async function SiteNewPostPage({
   })
   if (!project) redirect(`/${companySlug}/dashboard/sites/${siteId}/pages`)
 
-  const [categories, tags] = await Promise.all([
+  const [categories, tags, dbUser] = await Promise.all([
     getBlogCategories(siteId),
     getBlogTags(siteId),
+    db.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true } }),
   ])
 
   const basePath = `/${companySlug}/dashboard/sites/${siteId}`
-  const authorName = session.user.name ?? session.user.email ?? ''
+  const authorName = dbUser?.name ?? dbUser?.email ?? ''
 
   return (
     <PostEditorClient

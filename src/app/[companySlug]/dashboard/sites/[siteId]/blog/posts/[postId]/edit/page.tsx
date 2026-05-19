@@ -22,10 +22,11 @@ export default async function SiteEditPostPage({
   })
   if (!company) redirect('/login')
 
-  const [post, categories, tags] = await Promise.all([
+  const [post, categories, tags, dbUser] = await Promise.all([
     getBlogPost(postId),
     getBlogCategories(siteId),
     getBlogTags(siteId),
+    db.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true } }),
   ])
 
   if (!post || post.projectId !== siteId) redirect(`/${companySlug}/dashboard/sites/${siteId}/blog/posts`)
@@ -36,7 +37,7 @@ export default async function SiteEditPostPage({
   if (!project) redirect(`/${companySlug}/dashboard/sites`)
 
   const basePath = `/${companySlug}/dashboard/sites/${siteId}`
-  const authorName = session.user.name ?? session.user.email ?? ''
+  const authorName = dbUser?.name ?? dbUser?.email ?? ''
 
   return (
     <PostEditorClient

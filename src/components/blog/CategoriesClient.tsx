@@ -1,8 +1,8 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState, useTransition } from 'react'
+import { useActionState, useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
-import { Plus, Loader2, FolderOpen, ImageIcon, X, Globe, Trash2 } from 'lucide-react'
+import { Plus, Loader2, FolderOpen, ImageIcon, X, Globe, Trash2, Check } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -25,6 +25,19 @@ interface Category {
   children: { id: string; name: string }[]
 }
 
+type ActionData = {
+  id: string
+  name: string
+  description: string | null
+  imageUrl: string | null
+  slug: string
+  seoTitle: string | null
+  seoDescription: string | null
+  seoKeywords: string | null
+  parentId: string | null
+  projectId: string
+}
+
 interface CategoriesClientProps {
   categories: Category[]
   projectId: string
@@ -36,23 +49,42 @@ interface EditPanelProps {
   allCategories: Category[]
   onClose: () => void
   onDeleted: (id: string) => void
+  onCreated: (data: ActionData) => void
+  onUpdated: (data: ActionData) => void
+  onParentCreated: (data: ActionData) => void
 }
 
-function EditPanel({ category, projectId, allCategories, onClose, onDeleted }: EditPanelProps) {
+function EditPanel({
+  category,
+  projectId,
+  allCategories,
+  onClose,
+  onDeleted,
+  onCreated,
+  onUpdated,
+  onParentCreated,
+}: EditPanelProps) {
   const isEditing = category !== null
   const action = isEditing ? updateBlogCategory : createBlogCategory
-  const [state, formAction, isPending] = useActionState(action, { ok: false, error: '' })
+  const [state, formAction, isPending] = useActionState(action, { ok: false as const, error: '' })
   const [imageUrl, setImageUrl] = useState(category?.imageUrl ?? '')
   const [uploading, setUploading] = useState(false)
   const [seoTitle, setSeoTitle] = useState(category?.seoTitle ?? '')
   const [seoDescription, setSeoDescription] = useState(category?.seoDescription ?? '')
+  const [selectedParentId, setSelectedParentId] = useState(category?.parentId ?? '')
+  const [showQuickCreate, setShowQuickCreate] = useState(false)
+  const [quickName, setQuickName] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, startDelete] = useTransition()
+  const [creatingParent, startCreateParent] = useTransition()
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (state.ok) onClose()
-  }, [state.ok, onClose])
+    if (!state.ok) return
+    const data = (state as { ok: true; data: ActionData }).data
+    if (isEditing) onUpdated(data)
+    else onCreated(data)
+  }, [state, isEditing, onCreated, onUpdated])
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -69,6 +101,22 @@ function EditPanel({ category, projectId, allCategories, onClose, onDeleted }: E
     startDelete(async () => {
       await deleteBlogCategory(category!.id)
       onDeleted(category!.id)
+    })
+  }
+
+  function handleCreateParent() {
+    if (!quickName.trim()) return
+    startCreateParent(async () => {
+      const fd = new FormData()
+      fd.set('projectId', projectId)
+      fd.set('name', quickName.trim())
+      const result = await createBlogCategory(null, fd)
+      if (result.ok && 'data' in result && result.data) {
+        onParentCreated(result.data as ActionData)
+        setSelectedParentId(result.data.id)
+        setShowQuickCreate(false)
+        setQuickName('')
+      }
     })
   }
 
@@ -90,6 +138,7 @@ function EditPanel({ category, projectId, allCategories, onClose, onDeleted }: E
         {isEditing && <input type="hidden" name="id" value={category.id} />}
         {!isEditing && <input type="hidden" name="projectId" value={projectId} />}
         <input type="hidden" name="imageUrl" value={imageUrl} />
+        <input type="hidden" name="parentId" value={selectedParentId} />
 
         <div className="grid grid-cols-2 gap-0 divide-x divide-border">
           <div className="px-5 py-5 flex flex-col gap-5">
@@ -143,16 +192,52 @@ function EditPanel({ category, projectId, allCategories, onClose, onDeleted }: E
 
             <div className="flex flex-col gap-1.5">
               <Label className="text-xs">Categoria Pai</Label>
-              <select
-                name="parentId"
-                defaultValue={category?.parentId ?? ''}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                <option value="">Nenhuma (raiz)</option>
-                {parentOptions.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <div className="flex gap-2">
+                <select
+                  value={selectedParentId}
+                  onChange={(e) => setSelectedParentId(e.target.value)}
+                  className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="">Nenhuma (raiz)</option>
+                  {parentOptions.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => { setShowQuickCreate((v) => !v); setQuickName('') }}
+                  className="px-2.5 py-1.5 rounded-md border border-input bg-background text-xs text-brand-muted hover:text-brand-primary hover:border-brand-primary transition whitespace-nowrap"
+                >
+                  + Nova
+                </button>
+              </div>
+              {showQuickCreate && (
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={quickName}
+                    onChange={(e) => setQuickName(e.target.value)}
+                    placeholder="Nome da nova categoria pai"
+                    className="text-sm flex-1"
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCreateParent() } }}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCreateParent}
+                    disabled={creatingParent || !quickName.trim()}
+                    className="p-1.5 rounded-md bg-brand-cta text-white disabled:opacity-50 transition"
+                  >
+                    {creatingParent ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowQuickCreate(false); setQuickName('') }}
+                    className="p-1.5 rounded-md border border-input text-brand-muted hover:text-foreground transition"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -241,10 +326,39 @@ export function CategoriesClient({ categories: initialCategories, projectId }: C
 
   const filtered = categories.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
 
-  function handleDeleted(id: string) {
+  const handleDeleted = useCallback((id: string) => {
     setCategories((prev) => prev.filter((c) => c.id !== id))
     setPanel(null)
-  }
+  }, [])
+
+  const handleCreated = useCallback((data: ActionData) => {
+    setCategories((prev) => {
+      const parent = data.parentId ? (prev.find((c) => c.id === data.parentId) ?? null) : null
+      const newCat: Category = {
+        ...data,
+        parent: parent ? { id: parent.id, name: parent.name } : null,
+        children: [],
+      }
+      return [...prev, newCat].sort((a, b) => a.name.localeCompare(b.name))
+    })
+    setPanel(null)
+  }, [])
+
+  const handleUpdated = useCallback((data: ActionData) => {
+    setCategories((prev) =>
+      prev.map((c) => {
+        if (c.id !== data.id) return c
+        const parent = data.parentId ? (prev.find((p) => p.id === data.parentId) ?? null) : null
+        return { ...c, ...data, parent: parent ? { id: parent.id, name: parent.name } : null }
+      }),
+    )
+    setPanel(null)
+  }, [])
+
+  const handleParentCreated = useCallback((data: ActionData) => {
+    const newCat: Category = { ...data, parent: null, children: [] }
+    setCategories((prev) => [...prev, newCat].sort((a, b) => a.name.localeCompare(b.name)))
+  }, [])
 
   return (
     <div className="flex gap-4 h-[calc(100vh-260px)] min-h-[500px]">
@@ -264,15 +378,13 @@ export function CategoriesClient({ categories: initialCategories, projectId }: C
         </div>
 
         <div className="px-3 py-2 border-b border-border">
-          <div className="relative">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar..."
-              className="w-full bg-background border border-input rounded-md pl-3 pr-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar..."
+            className="w-full bg-background border border-input rounded-md pl-3 pr-3 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -318,6 +430,9 @@ export function CategoriesClient({ categories: initialCategories, projectId }: C
             allCategories={categories}
             onClose={() => setPanel(null)}
             onDeleted={handleDeleted}
+            onCreated={handleCreated}
+            onUpdated={handleUpdated}
+            onParentCreated={handleParentCreated}
           />
         )}
       </div>

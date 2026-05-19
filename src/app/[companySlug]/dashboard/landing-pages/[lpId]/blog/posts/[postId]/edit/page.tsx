@@ -22,10 +22,11 @@ export default async function LpEditPostPage({
   })
   if (!company) redirect('/login')
 
-  const [post, categories, tags] = await Promise.all([
+  const [post, categories, tags, dbUser] = await Promise.all([
     getBlogPost(postId),
     getBlogCategories(lpId),
     getBlogTags(lpId),
+    db.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true } }),
   ])
 
   if (!post || post.projectId !== lpId) redirect(`/${companySlug}/dashboard/landing-pages/${lpId}/blog/posts`)
@@ -36,7 +37,7 @@ export default async function LpEditPostPage({
   if (!project) redirect(`/${companySlug}/dashboard/landing-pages`)
 
   const basePath = `/${companySlug}/dashboard/landing-pages/${lpId}`
-  const authorName = session.user.name ?? session.user.email ?? ''
+  const authorName = dbUser?.name ?? dbUser?.email ?? ''
 
   return (
     <PostEditorClient
