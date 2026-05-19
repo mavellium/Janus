@@ -16,6 +16,51 @@
 
 ---
 
+### [2026-05-19] — Edit page modo avançado salva schema (não conteúdo)
+
+**Arquivos**:
+- `src/components/schema-builder/SiteContentEditClient.tsx`: adicionar schemaDataRef, atualizar handleSave e AdvancedJsonEditor para usar/salvar schema (linhas 1-7, 36, 43-51, 118-121)
+
+**Razão**: Em modo avançado, edit page deve atualizar o SCHEMA (não content legado) tanto para dev quanto cliente
+
+**Impacto**: 
+- Modo avançado (isAdvanced=true): AdvancedJsonEditor edita schemaData com updatePageSchema
+- Modo normal (isAdvanced=false): DynamicForm edita contentData com updatePageContentData
+- Dados não são mais perdidos
+- API retorna schema correto em modo avançado
+
+---
+
+### [2026-05-19] — Corrigir contentDataObj para aceitar arrays
+
+**Arquivos**:
+- `src/components/schema-builder/SiteContentEditClient.tsx`: remover verificação `!Array.isArray()` do contentDataObj (linha 36-41)
+
+**Razão**: initialContentData pode ser array em modo avançado; quando era array, contentDataObj tornava-se `{}`, perdendo dados ao salvar
+
+**Impacto**: 
+- contentDataObj agora preserva arrays do initialContentData
+- AdvancedJsonEditor em edit page funciona corretamente com dados originais
+- Dados salvos refletem o estado atual, não valores vazios
+- API retorna conteúdo atualizado corretamente
+
+---
+
+### [2026-05-19] — Debounce responsivo em página de edit
+
+**Arquivos**:
+- `src/components/schema-builder/SiteContentEditClient.tsx`: reduzir debounce de 400ms para 150ms (linha 55)
+
+**Razão**: Debounce muito grande (400ms) causa atraso perceptível ao editar campos, dando impressão de dados antigos
+
+**Impacto**: 
+- Atualização do preview mais responsiva (150ms)
+- Usuário vê mudanças de forma mais imediata
+- Menos chance de confundir com valores antigos
+- Still debounced para evitar muitos updates simultâneos
+
+---
+
 ### [2026-05-19] — Modo avançado salva schema (não conteúdo)
 
 **Arquivos**:

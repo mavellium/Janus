@@ -1,11 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, RotateCw, Hammer } from 'lucide-react'
 import { IframePreview } from './IframePreview'
 import { AdvancedJsonEditor } from '@/components/cms/AdvancedJsonEditor'
 import { DynamicForm } from './DynamicForm'
+import { updatePageSchema } from '@/modules/projects/actions/updatePageSchema'
+import { updatePageContentData } from '@/modules/projects/actions/updatePageContentData'
 
 interface SiteContentEditClientProps {
   pageId: string
@@ -29,19 +31,27 @@ export function SiteContentEditClient({
   builderHref,
 }: SiteContentEditClientProps) {
   const [reloadKey, setReloadKey] = useState(0)
+  const [isPending, startTransition] = useTransition()
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const pendingContentRef = useRef<Record<string, unknown> | null>(null)
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const schemaDataRef = useRef<Record<string, unknown>>(schemaData as Record<string, unknown>)
 
   const contentDataObj =
-    typeof initialContentData === 'object' &&
-    initialContentData !== null &&
-    !Array.isArray(initialContentData)
+    typeof initialContentData === 'object' && initialContentData !== null
       ? (initialContentData as Record<string, unknown>)
       : {}
 
   const handleSave = () => {
-    setReloadKey((prev) => prev + 1)
+    startTransition(async () => {
+      if (isAdvanced) {
+        const schemaJson = JSON.stringify(schemaDataRef.current)
+        await updatePageSchema({ pageId, schemaJson })
+      } else {
+        await updatePageContentData({ pageId, contentData: pendingContentRef.current || {} })
+      }
+      setReloadKey((prev) => prev + 1)
+    })
   }
 
   const handleReload = () => {
@@ -61,7 +71,7 @@ export function SiteContentEditClient({
             '*',
           )
         }
-      }, 400)
+      }, 150)
     },
     [pageId],
   )
@@ -117,8 +127,8 @@ export function SiteContentEditClient({
           {isAdvanced ? (
             <AdvancedJsonEditor
               pageId={pageId}
-              data={contentDataObj}
-              onReplaceData={handleContentChange}
+              data={(schemaData as Record<string, unknown>) || {}}
+              onReplaceData={(d) => { schemaDataRef.current = d; handleContentChange(d) }}
               onSave={handleSave}
               isDevMode={false}
             />
