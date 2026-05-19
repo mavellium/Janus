@@ -315,7 +315,7 @@ export function DynamicFieldRenderer({
               </button>
             </div>
             {typeof item === 'object' && item !== null && !Array.isArray(item) ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-3">
                 {Object.entries(item as Record<string, unknown>).map(([k, v]) => (
                   <div key={k} className="space-y-1.5">
                     <label className="block text-xs font-medium text-brand-muted capitalize">{k}</label>
@@ -376,7 +376,7 @@ export function DynamicFieldRenderer({
           />
         </button>
         {isOpen && (
-          <div className="p-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="flex flex-col p-3 gap-3">
             {Object.entries(obj).map(([k, v]) => (
               <div key={k} className="space-y-1.5">
                 <label className="block text-xs font-medium text-brand-muted capitalize">{k}</label>
