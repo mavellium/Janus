@@ -760,6 +760,23 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-17 | `src/app/dashboard-admin/PermissionsModal.tsx` | **FIX:** Adicionado cleaning de colons extras (`.replace(/^:+|:+$/g, '')`) na função `normalizePermissions()` — corrige parsing de landing pages permissions malformadas |
 | 2026-05-17 | `src/modules/auth/actions/viewAsUser.ts` | **FIX:** Adicionado parâmetro opcional `redirectUrl` — permite permanecer na página atual ao alternar de DEV_MODE para USER_MODE |
 | 2026-05-17 | `src/components/dashboard/ImpersonationBanner.tsx` | **FIX:** `handleUserToggle` passa `pathname` para `viewAsUser` — mantém contexto de página ao ativar USER_MODE |
+| 2026-05-18 | `src/components/schema-builder/SchemaBuilderEditor.tsx` | **FEAT:** Switch "Modo Avançado (JSON Livre)" que oculta sidebars (Estrutura/Componentes/Preview) e exibe Monaco em fullwidth |
+| 2026-05-18 | `src/components/schema-builder/DynamicForm.tsx` | **FEAT:** `normalizeSchema` aceita formato objeto `{ section: { field: {type,label} } }` além do array legado; novo tipo `group` renderizado como Card colapsável (GroupRenderer); aliases de tipo (string→text, bool→boolean); callback `onChange` para sync externo |
+| 2026-05-18 | `src/components/schema-builder/IframePreview.tsx` | **FEAT:** Convertido para `forwardRef<HTMLIFrameElement>` — permite postMessage do parent |
+| 2026-05-18 | `src/components/schema-builder/SiteContentEditClient.tsx` | **FEAT:** Sincronização live com iframe via `postMessage({ type: 'janus:content-update', pageId, contentData })` com debounce de 400ms |
+| 2026-05-19 | `CLAUDE.md` | **DOCS:** Preferência por `pnpm` em vez de `npm` em todos os comandos; regra de registry skill obrigatória ao final de cada tarefa |
+| 2026-05-19 | `.claude/context/cms/` | **ORG:** Documentação CMS centralizada em `.claude/context/cms/` (movida de `.claude/cms/`); todas as referências atualizadas em README.md, checklist.md, e CLAUDE.md |
+| 2026-05-19 | `.claude/context/cms/changelog.md` | **DOCS:** Adicionadas entries sobre reorganização de CMS e preferência por pnpm |
+| 2026-05-19 | `.claude/skills/module-docs.md` | **NEW:** Skill que documenta módulos automaticamente em `.claude/context/[modulo]/` economizando 50-100KB tokens |
+| 2026-05-19 | `.claude/SKILLS.md` | **NEW:** Índice de skills disponíveis com modo de uso e quando aplicar |
+| 2026-05-19 | `CLAUDE.md` | **DOCS:** Adicionada seção "Skills Obrigatórias e Recomendadas" mencionando module-docs |
+| 2026-05-19 | `.claude/skills/README.md` | **NEW:** Índice centralizado de skills com tabela de referência rápida |
+| 2026-05-19 | `.claude/INDEX.md` | **NEW:** Hub central de documentação apontando para context, skills, quick-ref com economia de tokens |
+| 2026-05-19 | `src/app/.../edit/page.tsx` (sites e landing-pages) | **FEAT:** Adicionado `slug` + `apiEndpoint` gerado e passado para SiteContentEditClient |
+| 2026-05-19 | `SchemaBuilderEditor.tsx` | **FEAT:** Endpoint bar em modo avançado (topo, igual legado); responsividade mobile melhorada em formulários |
+| 2026-05-19 | `AdvancedJsonEditor.tsx` | **FIX:** Removido apiEndpoint (era só no edit, não era necessário) |
+| 2026-05-19 | `SiteContentEditClient.tsx` | **FIX:** Removido apiEndpoint (edit não deve mostrar endpoint) |
+| 2026-05-19 | Edit pages (sites/landing-pages) | **FIX:** Removido apiEndpoint, simplificado select (sem slug) |
 
 ---
 

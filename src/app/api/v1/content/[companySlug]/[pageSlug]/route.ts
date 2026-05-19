@@ -43,6 +43,7 @@ export async function GET(
       name: true,
       schemaData: true,
       contentData: true,
+      isAdvanced: true,
       updatedAt: true,
     },
   })
@@ -54,14 +55,17 @@ export async function GET(
     )
   }
 
-  return NextResponse.json(
-    {
-      slug: page.slug,
-      name: page.name,
-      schema: page.schemaData ?? {},
-      content: page.contentData ?? {},
-      updatedAt: page.updatedAt.toISOString(),
-    },
-    { status: 200, headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=60, s-maxage=60' } },
-  )
+  const response = {
+    slug: page.slug,
+    name: page.name,
+    updatedAt: page.updatedAt.toISOString(),
+    ...(page.isAdvanced
+      ? { schema: page.schemaData ?? {} }
+      : { content: page.contentData ?? {} }),
+  }
+
+  return NextResponse.json(response, {
+    status: 200,
+    headers: { ...CORS_HEADERS, 'Cache-Control': 'public, max-age=60, s-maxage=60' },
+  })
 }

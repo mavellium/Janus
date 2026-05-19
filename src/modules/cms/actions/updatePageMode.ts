@@ -4,16 +4,14 @@ import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
-interface UpdatePageContentDataParams {
+interface UpdatePageModeParams {
   pageId: string
-  contentData: Record<string, unknown>
+  isAdvanced: boolean
 }
 
-export async function updatePageContentData({ pageId, contentData }: UpdatePageContentDataParams) {
+export async function updatePageMode({ pageId, isAdvanced }: UpdatePageModeParams) {
   const session = await auth()
-  if (!session?.user?.id) {
-    return { ok: false, error: 'Não autenticado' }
-  }
+  if (!session?.user?.id) return { ok: false, error: 'Não autenticado' }
 
   try {
     const page = await db.page.findUnique({
@@ -21,9 +19,7 @@ export async function updatePageContentData({ pageId, contentData }: UpdatePageC
       include: { project: { include: { company: true } } },
     })
 
-    if (!page) {
-      return { ok: false, error: 'Página não encontrada' }
-    }
+    if (!page) return { ok: false, error: 'Página não encontrada' }
 
     if (
       session.user.companySlug &&
@@ -33,18 +29,16 @@ export async function updatePageContentData({ pageId, contentData }: UpdatePageC
       return { ok: false, error: 'Acesso negado' }
     }
 
-    const safeData = JSON.parse(JSON.stringify(contentData))
-
     await db.page.update({
       where: { id: pageId },
-      data: { contentData: safeData },
+      data: { isAdvanced },
     })
 
-    revalidatePath(`/${page.project.company.slug}/dashboard`, 'layout')
+    revalidatePath(`/${page.project.company.slug}/dashboard`)
 
     return { ok: true }
   } catch (error) {
-    console.error('[updatePageContentData]', error)
-    return { ok: false, error: 'Erro ao salvar conteúdo' }
+    console.error('[updatePageMode]', error)
+    return { ok: false, error: 'Erro ao atualizar modo' }
   }
 }

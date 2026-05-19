@@ -44,7 +44,7 @@ export default async function LandingPageSchemaBuilderPage({
 
   const page = await db.page.findUnique({
     where: { id: pageId, projectId: lpId, deletedAt: null },
-    select: { id: true, name: true, slug: true, schemaData: true, isPublished: true },
+    select: { id: true, name: true, slug: true, schemaData: true, contentData: true, isPublished: true, isAdvanced: true },
   })
   if (!page) redirect(`/${companySlug}/dashboard/landing-pages/${lpId}/pages`)
 
@@ -61,6 +61,8 @@ export default async function LandingPageSchemaBuilderPage({
       pageName={page.name}
       backHref={`/${companySlug}/dashboard/landing-pages/${lpId}/pages`}
       initialSchema={page.schemaData}
+      initialContentData={page.contentData}
+      initialIsAdvanced={page.isAdvanced}
       initialPublished={page.isPublished}
       previewHref={`/${companySlug}/dashboard/landing-pages/${lpId}/pages/${pageId}/edit`}
       apiUrl={apiUrl}

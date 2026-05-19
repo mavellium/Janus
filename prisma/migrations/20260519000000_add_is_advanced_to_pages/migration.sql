@@ -1,0 +1,1 @@
+ALTER TABLE "pages" ADD COLUMN "is_advanced" BOOLEAN NOT NULL DEFAULT false;

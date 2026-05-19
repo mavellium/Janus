@@ -2,6 +2,8 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/prisma'
 import { SiteContentEditClient } from '@/components/schema-builder/SiteContentEditClient'
+import { unstable_noStore } from 'next/cache'
+import { checkPermission } from '@/lib/auth/permissions'
 
 export const metadata = { title: 'Editar Conteúdo — Janus' }
 
@@ -10,6 +12,7 @@ export default async function SiteContentEditPage({
 }: {
   params: Promise<{ companySlug: string; siteId: string; pageId: string }>
 }) {
+  unstable_noStore()
   const { companySlug, siteId, pageId } = await params
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
@@ -26,9 +29,12 @@ export default async function SiteContentEditPage({
 
   const page = await db.page.findUnique({
     where: { id: pageId, projectId: siteId, deletedAt: null },
-    select: { id: true, name: true, schemaData: true, contentData: true, previewUrl: true },
+    select: { id: true, name: true, schemaData: true, contentData: true, isAdvanced: true, previewUrl: true },
   })
   if (!page) redirect(`/${companySlug}/dashboard/sites/${siteId}/pages`)
+
+  const canBuild = await checkPermission(session, 'PAGE_BUILD', 'sites', 'page')
+  const builderHref = canBuild ? `/${companySlug}/dashboard/sites/${siteId}/pages/${pageId}/builder` : undefined
 
   const backHref = `/${companySlug}/dashboard/sites/${siteId}/pages`
   const previewUrl = page.previewUrl || project.previewUrl || ''
@@ -39,8 +45,10 @@ export default async function SiteContentEditPage({
       pageName={page.name}
       schemaData={page.schemaData}
       initialContentData={page.contentData}
+      isAdvanced={page.isAdvanced}
       previewUrl={previewUrl}
       backHref={backHref}
+      builderHref={builderHref}
     />
   )
 }
