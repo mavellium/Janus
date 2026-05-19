@@ -9,6 +9,7 @@ import {
   Search, Sliders, Library, Monitor,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Switch } from '@/components/ui/switch'
 import { updatePageSchema } from '@/modules/projects/actions/updatePageSchema'
 import { LiveFormPreview } from './LiveFormPreview'
 import { PublishPageButton } from '@/components/projects/PublishPageButton'
@@ -209,6 +210,7 @@ function tryParseSchema(val: string): SchemaSection[] | null {
   try {
     const parsed = JSON.parse(val)
     if (Array.isArray(parsed)) return parsed as SchemaSection[]
+    if (parsed && typeof parsed === 'object') return []
     return null
   } catch {
     return null
@@ -247,6 +249,7 @@ export function SchemaBuilderEditor({
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isPending, startTransition] = useTransition()
   const [focusedSectionId, setFocusedSectionId] = useState<string | null>(null)
+  const [isAdvancedMode, setIsAdvancedMode] = useState<boolean>(false)
 
   useEffect(() => {
     if (typeof document === 'undefined') return
@@ -345,6 +348,14 @@ export function SchemaBuilderEditor({
         </div>
 
         <div className="flex items-center flex-wrap gap-2">
+          <label className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium text-brand-text cursor-pointer select-none">
+            <span>Modo Avançado (JSON Livre)</span>
+            <Switch
+              checked={isAdvancedMode}
+              onCheckedChange={setIsAdvancedMode}
+              aria-label="Alternar modo avançado JSON livre"
+            />
+          </label>
           {feedback && (
             <span
               className={`flex items-center gap-1.5 text-xs shrink-0 ${
@@ -381,6 +392,7 @@ export function SchemaBuilderEditor({
       </header>
 
       <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-y-auto lg:overflow-hidden">
+        {!isAdvancedMode && (
         <aside className="w-full lg:w-72 shrink-0 bg-sidebar-bg border-b lg:border-b-0 lg:border-r border-border flex flex-col overflow-hidden max-h-[40vh] lg:max-h-none">
           <Tabs defaultValue="structure" className="flex flex-col flex-1 min-h-0">
             <TabsList className="w-full rounded-none border-b border-border bg-sidebar-bg h-10 p-0 gap-0">
@@ -458,6 +470,7 @@ export function SchemaBuilderEditor({
             </TabsContent>
           </Tabs>
         </aside>
+        )}
 
         <div className="flex-1 flex flex-col min-w-0 min-h-[400px] lg:min-h-0 overflow-hidden bg-brand-bg">
           <div className="px-4 py-2 border-b border-border bg-card shrink-0 flex items-center gap-3">
@@ -509,6 +522,7 @@ export function SchemaBuilderEditor({
           </div>
         </div>
 
+        {!isAdvancedMode && (
         <aside className="w-full lg:w-[360px] shrink-0 bg-card border-t lg:border-t-0 lg:border-l border-border flex flex-col overflow-hidden min-h-[400px] lg:min-h-0">
           <div className="px-4 py-3 border-b border-border shrink-0 flex items-center gap-2">
             <Eye className="w-3.5 h-3.5 text-brand-muted" />
@@ -518,6 +532,7 @@ export function SchemaBuilderEditor({
           </div>
           <LiveFormPreview sections={validSchema} focusedSectionId={focusedSectionId} />
         </aside>
+        )}
       </div>
     </div>
   )

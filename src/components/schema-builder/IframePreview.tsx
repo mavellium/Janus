@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { forwardRef, useState } from 'react'
 import { Monitor, Smartphone, Tablet, Link2Off } from 'lucide-react'
 
 interface IframePreviewProps {
   url?: string
 }
 
-export function IframePreview({ url }: IframePreviewProps) {
+export const IframePreview = forwardRef<HTMLIFrameElement, IframePreviewProps>(function IframePreview({ url }, ref) {
   const [device, setDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
 
   const hasUrl = Boolean(url && url.trim().length > 0 && url !== 'about:blank')
@@ -79,6 +79,7 @@ export function IframePreview({ url }: IframePreviewProps) {
             }`}
           >
             <iframe
+              ref={ref}
               src={url}
               className="w-full h-full border-none"
               title="Preview"
@@ -89,4 +90,4 @@ export function IframePreview({ url }: IframePreviewProps) {
       </div>
     </div>
   )
-}
+})

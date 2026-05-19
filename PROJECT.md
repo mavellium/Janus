@@ -748,6 +748,10 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-17 | `src/app/dashboard-admin/PermissionsModal.tsx` | **FIX:** Adicionado cleaning de colons extras (`.replace(/^:+|:+$/g, '')`) na função `normalizePermissions()` — corrige parsing de landing pages permissions malformadas |
 | 2026-05-17 | `src/modules/auth/actions/viewAsUser.ts` | **FIX:** Adicionado parâmetro opcional `redirectUrl` — permite permanecer na página atual ao alternar de DEV_MODE para USER_MODE |
 | 2026-05-17 | `src/components/dashboard/ImpersonationBanner.tsx` | **FIX:** `handleUserToggle` passa `pathname` para `viewAsUser` — mantém contexto de página ao ativar USER_MODE |
+| 2026-05-18 | `src/components/schema-builder/SchemaBuilderEditor.tsx` | **FEAT:** Switch "Modo Avançado (JSON Livre)" que oculta sidebars (Estrutura/Componentes/Preview) e exibe Monaco em fullwidth |
+| 2026-05-18 | `src/components/schema-builder/DynamicForm.tsx` | **FEAT:** `normalizeSchema` aceita formato objeto `{ section: { field: {type,label} } }` além do array legado; novo tipo `group` renderizado como Card colapsável (GroupRenderer); aliases de tipo (string→text, bool→boolean); callback `onChange` para sync externo |
+| 2026-05-18 | `src/components/schema-builder/IframePreview.tsx` | **FEAT:** Convertido para `forwardRef<HTMLIFrameElement>` — permite postMessage do parent |
+| 2026-05-18 | `src/components/schema-builder/SiteContentEditClient.tsx` | **FEAT:** Sincronização live com iframe via `postMessage({ type: 'janus:content-update', pageId, contentData })` com debounce de 400ms |
 
 ---
 

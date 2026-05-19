@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, RotateCw } from 'lucide-react'
 import { IframePreview } from './IframePreview'
@@ -24,6 +24,9 @@ export function SiteContentEditClient({
   backHref,
 }: SiteContentEditClientProps) {
   const [reloadKey, setReloadKey] = useState(0)
+  const iframeRef = useRef<HTMLIFrameElement | null>(null)
+  const pendingContentRef = useRef<Record<string, unknown> | null>(null)
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleSave = () => {
     setReloadKey((prev) => prev + 1)
@@ -32,6 +35,27 @@ export function SiteContentEditClient({
   const handleReload = () => {
     setReloadKey((prev) => prev + 1)
   }
+
+  const handleContentChange = useCallback((content: Record<string, unknown>) => {
+    pendingContentRef.current = content
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    debounceTimerRef.current = setTimeout(() => {
+      const iframe = iframeRef.current
+      const data = pendingContentRef.current
+      if (iframe && iframe.contentWindow && data) {
+        iframe.contentWindow.postMessage(
+          { type: 'janus:content-update', pageId, contentData: data },
+          '*',
+        )
+      }
+    }, 400)
+  }, [pageId])
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+    }
+  }, [])
 
   return (
     <div className="flex flex-col lg:flex-row w-full h-full bg-brand-bg overflow-x-hidden lg:overflow-hidden">
@@ -68,12 +92,13 @@ export function SiteContentEditClient({
             schemaData={schemaData}
             initialContentData={initialContentData}
             onSave={handleSave}
+            onChange={handleContentChange}
           />
         </div>
       </div>
 
       <div className="w-full lg:w-2/3 min-h-[60vh] lg:min-h-0 lg:h-full relative">
-        <IframePreview key={reloadKey} url={previewUrl} />
+        <IframePreview key={reloadKey} ref={iframeRef} url={previewUrl} />
       </div>
     </div>
   )
