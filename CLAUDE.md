@@ -31,10 +31,67 @@
 
 # Comandos e Verificações Obrigatórias
 Após finalizar uma implementação complexa, modificado configurações ou antes de encerrar um fluxo, você DEVE rodar e garantir que os comandos abaixo passem:
-1. `npm run format`
-2. `npm run lint`
-3. `npm run typecheck`
+1. `pnpm format`
+2. `pnpm lint`
+3. `pnpm typecheck`
 
-# Gerenciamento de Tarefas
-- Leia o arquivo `PROJECT.md` antes de tomar decisões estruturais para entender o contexto do que já foi feito.
-- Atualize o `PROJECT.md` automaticamente assim que uma nova feature for concluída ou a estrutura for alterada.
+# Skills Obrigatórias e Recomendadas
+
+## Documentação de Módulos (@.claude/skills/module-docs.md)
+Quando implementar um **novo módulo** (domain, actions, queries), execute a skill `module-docs` para criar documentação estruturada em `.claude/context/[modulo]/`. Isso economiza 50-100KB de tokens em futuras sessões ao invés de ler código-fonte inteiro.
+
+**Quando usar:**
+- ✅ Novo módulo criado (ex: `src/modules/payments/`)
+- ✅ Módulo complexo pronto para reutilização
+- ✅ Módulo com muitas actions/queries para facilitar manutenção
+
+---
+
+# Gerenciamento de Tarefas (Registry Obrigatório)
+
+**REGRA ABSOLUTA**: Ao final de QUALQUER tarefa que produza ou altere código, você DEVE executar a skill `@.claude/skills/registry.md` para registrar as mudanças em `PROJECT.md`.
+
+**Por quê**: O PROJECT.md é a memória primária do projeto. Mantê-lo atualizado reduz drasticamente o uso de tokens e evita scans desnecessários de diretórios.
+
+**Quando registrar**:
+- ✅ Criou novo módulo, componente, página ou util
+- ✅ Alterou arquivo de negócio (actions, queries, entidades)
+- ✅ Modificou schema Prisma
+- ✅ Renomeou ou deletou arquivo
+- ❌ NÃO registrar: apenas mudanças de format/lint, testes isolados, ou comentários
+
+# 🔒 Regra de Manutenção do CMS (Skill Obrigatória)
+
+**ESCOPO**: Aplicável a TODA modificação, refatoração, ou debugging de:
+- Rotas de API CMS (`src/modules/projects/actions/*`)
+- Builder e Editor (`src/components/schema-builder/*`, `src/app/.../builder/page.tsx`, `src/app/.../edit/page.tsx`)
+- Componentes do CMS (`src/components/cms/*`)
+
+**WORKFLOW OBRIGATÓRIO**:
+
+1. **Antes de propor código**: Consulte `.claude/context/cms/`
+   - Leia `.claude/context/cms/rules.md` para regras obrigatórias
+   - Entenda o fluxo: `.claude/context/cms/mode-{legacy|advanced}.md`
+   - Verifique padrões em `.claude/quick-ref/patterns.md`
+
+2. **Durante implementação**: Siga rigorosamente as "Obrigações" (seção 8.2)
+   - `structuredClone()` para deep copy
+   - `setDeep()` para mutação aninhada
+   - `unstable_noStore()` em pages que leem `isAdvanced`
+   - Full-replace (não deep-merge) para `contentData`
+
+3. **Após conclusão**: Obrigatoriamente atualize `.claude/context/cms/changelog.md`
+   - Adicione uma entry com data, arquivos modificados, razão, e impacto
+   - **Exemplo**:
+     ```markdown
+     ### [YYYY-MM-DD] — Descrição da Mudança
+     
+     **Arquivos**:
+     - `path/to/file.ts`: mudança (1 linha)
+     
+     **Razão**: Por que foi necessário
+     
+     **Impacto**: Como afeta o fluxo
+     ```
+
+**FALHA EM SEGUIR**: Código será rejeitado por violar contrato arquitetural

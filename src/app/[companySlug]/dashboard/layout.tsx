@@ -102,7 +102,7 @@ export default async function DashboardLayout({
             embedded
           />
         </MobileNav>
-        <main className="flex-1 h-full pt-14 md:pt-0 md:ml-[var(--sidebar-width,220px)] overflow-x-hidden">
+        <main className="flex-1 flex flex-col min-h-0 pt-14 md:pt-0 md:ml-[var(--sidebar-width,220px)] overflow-x-hidden">
           {isPrivileged && (
             <ImpersonationBanner
               companyName={company.name}
@@ -119,7 +119,9 @@ export default async function DashboardLayout({
               developerUsers={developerUsers}
             />
           )}
-          {children}
+          <div className="flex-1 min-h-0">
+            {children}
+          </div>
         </main>
       </div>
     </ThemeProvider>

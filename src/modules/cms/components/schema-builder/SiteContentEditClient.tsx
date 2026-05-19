@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, RotateCw, Hammer } from 'lucide-react'
+import { ChevronLeft, RotateCw } from 'lucide-react'
 import { IframePreview } from './IframePreview'
 import { AdvancedJsonEditor } from '@/components/cms/AdvancedJsonEditor'
 import { DynamicForm } from './DynamicForm'
@@ -15,7 +15,6 @@ interface SiteContentEditClientProps {
   isAdvanced: boolean
   previewUrl: string
   backHref: string
-  builderHref?: string
 }
 
 export function SiteContentEditClient({
@@ -26,7 +25,6 @@ export function SiteContentEditClient({
   isAdvanced,
   previewUrl,
   backHref,
-  builderHref,
 }: SiteContentEditClientProps) {
   const [reloadKey, setReloadKey] = useState(0)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
@@ -90,27 +88,15 @@ export function SiteContentEditClient({
               <h1 className="text-xs font-semibold text-brand-text truncate">{pageName}</h1>
             </div>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              onClick={handleReload}
-              className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-brand-text bg-brand-btn-light hover:bg-brand-btn-light/80 transition shrink-0"
-              title="Recarregar preview"
-            >
-              <RotateCw className="w-3 h-3" />
-              <span className="hidden sm:inline text-[10px]">Reload</span>
-            </button>
-            {builderHref && (
-              <Link
-                href={builderHref}
-                className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-brand-text bg-brand-btn-light hover:bg-brand-btn-light/80 transition shrink-0"
-                title="Ir para construtor"
-              >
-                <Hammer className="w-3 h-3" />
-                <span className="hidden sm:inline text-[10px]">Construtor</span>
-              </Link>
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={handleReload}
+            className="flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-brand-text bg-brand-btn-light hover:bg-brand-btn-light/80 transition shrink-0"
+            title="Recarregar preview"
+          >
+            <RotateCw className="w-3 h-3" />
+            <span className="hidden sm:inline text-[10px]">Reload</span>
+          </button>
         </header>
 
         <div className="flex-1 min-h-0 overflow-hidden">
@@ -135,11 +121,7 @@ export function SiteContentEditClient({
       </div>
 
       <div className="w-full lg:w-2/3 min-h-[60vh] lg:min-h-0 lg:h-full relative">
-        <IframePreview
-          key={reloadKey}
-          ref={iframeRef}
-          url={reloadKey > 0 ? `${previewUrl}?v=${reloadKey}` : previewUrl}
-        />
+        <IframePreview key={reloadKey} ref={iframeRef} url={previewUrl} />
       </div>
     </div>
   )

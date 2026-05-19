@@ -253,7 +253,6 @@ export function SchemaBuilderEditor({
       ? (initialContentData as Record<string, unknown>)
       : {}
   const contentDataRef = useRef<Record<string, unknown>>(contentDataObj)
-  const advancedSchemaRef = useRef<Record<string, unknown>>((initialSchema as Record<string, unknown>) || {})
 
   const [editorValue, setEditorValue] = useState<string>(initialString)
   const [validSchema, setValidSchema] = useState<SchemaSection[]>(
@@ -303,23 +302,12 @@ export function SchemaBuilderEditor({
   function handleSaveContent() {
     setFeedback(null)
     startTransition(async () => {
-      if (isAdvancedMode) {
-        const schemaJson = JSON.stringify(advancedSchemaRef.current)
-        const result = await updatePageSchema({ pageId, schemaJson })
-        if (result.ok) {
-          setFeedback({ type: 'success', message: 'Schema salvo' })
-          setTimeout(() => setFeedback(null), 3000)
-        } else {
-          setFeedback({ type: 'error', message: result.error ?? 'Erro ao salvar' })
-        }
+      const result = await updatePageContentData({ pageId, contentData: contentDataRef.current })
+      if (result.ok) {
+        setFeedback({ type: 'success', message: 'Conteúdo salvo' })
+        setTimeout(() => setFeedback(null), 3000)
       } else {
-        const result = await updatePageContentData({ pageId, contentData: contentDataRef.current })
-        if (result.ok) {
-          setFeedback({ type: 'success', message: 'Conteúdo salvo' })
-          setTimeout(() => setFeedback(null), 3000)
-        } else {
-          setFeedback({ type: 'error', message: result.error ?? 'Erro ao salvar' })
-        }
+        setFeedback({ type: 'error', message: result.error ?? 'Erro ao salvar' })
       }
     })
   }
@@ -364,7 +352,7 @@ export function SchemaBuilderEditor({
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-1.5 px-3 sm:px-3 py-1.5 sm:py-2 border-b border-border bg-card shrink-0 flex-wrap">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 border-b border-border bg-card shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <Link
             href={backHref}
@@ -387,7 +375,7 @@ export function SchemaBuilderEditor({
         </div>
 
         <div className="flex items-center flex-wrap gap-2">
-          <label className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border text-xs font-medium text-brand-text cursor-pointer select-none">
+          <label className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-border text-xs font-medium text-brand-text cursor-pointer select-none">
             <span>Modo Avançado (JSON Livre)</span>
             <Switch
               checked={isAdvancedMode}
@@ -417,7 +405,7 @@ export function SchemaBuilderEditor({
             <button
               onClick={handleSaveContent}
               disabled={isPending}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-primary text-white hover:bg-brand-hover transition disabled:opacity-60 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-brand-primary text-white hover:bg-brand-hover transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {isPending ? 'Salvando...' : 'Salvar'}
@@ -426,7 +414,7 @@ export function SchemaBuilderEditor({
             <button
               onClick={handleSave}
               disabled={isPending || !isJsonValid}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-primary text-white hover:bg-brand-hover transition disabled:opacity-60 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-brand-primary text-white hover:bg-brand-hover transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {isPending ? 'Salvando...' : 'Salvar Schema'}
@@ -434,7 +422,9 @@ export function SchemaBuilderEditor({
           )}
           <Link
             href={previewHref}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-border text-brand-text hover:bg-brand-btn-light/40 transition"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-border text-brand-text hover:bg-brand-btn-light/40 transition"
           >
             <Monitor className="w-4 h-4" />
             Visualizar
@@ -442,9 +432,9 @@ export function SchemaBuilderEditor({
         </div>
       </header>
 
-      <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-y-auto lg:overflow-y-auto">
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-y-auto lg:overflow-hidden">
         {!isAdvancedMode && (
-        <aside className="w-full lg:w-64 shrink-0 bg-sidebar-bg border-b lg:border-b-0 lg:border-r border-border flex flex-col overflow-y-auto">
+        <aside className="w-full lg:w-64 shrink-0 bg-sidebar-bg border-b lg:border-b-0 lg:border-r border-border flex flex-col overflow-hidden">
           <Tabs defaultValue="structure" className="flex flex-col flex-1 min-h-0">
             <TabsList className="w-full rounded-none border-b border-border bg-sidebar-bg h-10 p-0 gap-0">
               <TabsTrigger
@@ -523,34 +513,13 @@ export function SchemaBuilderEditor({
         </aside>
         )}
 
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-brand-bg">
-          {isAdvancedMode && (
-            <div className="px-4 py-2 border-b border-border bg-card shrink-0 flex items-center gap-3">
-              <span className="text-xs font-semibold text-brand-muted whitespace-nowrap">Endpoint:</span>
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <input
-                  type="text"
-                  readOnly
-                  value={apiUrl}
-                  className="flex-1 bg-brand-bg border border-border rounded px-2.5 py-1 text-xs text-brand-text font-mono truncate focus:outline-none"
-                />
-                <button
-                  onClick={handleCopy}
-                  className="p-1.5 hover:bg-brand-btn-light rounded text-brand-muted hover:text-brand-text transition shrink-0"
-                  title="Copiar URL"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          )}
-
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-brand-bg">
           {isAdvancedMode ? (
             <AdvancedJsonEditor
               pageId={pageId}
-              data={(initialSchema as Record<string, unknown>) || {}}
+              data={contentDataObj}
               isDevMode={true}
-              onDataChange={(d) => { advancedSchemaRef.current = d }}
+              onDataChange={(d) => { contentDataRef.current = d }}
             />
           ) : (
             <>
@@ -606,7 +575,7 @@ export function SchemaBuilderEditor({
         </div>
 
         {!isAdvancedMode && (
-        <aside className="w-full lg:w-80 shrink-0 bg-card border-t lg:border-t-0 lg:border-l border-border flex flex-col overflow-y-auto">
+        <aside className="w-full lg:w-80 shrink-0 bg-card border-t lg:border-t-0 lg:border-l border-border flex flex-col overflow-hidden">
           <div className="px-4 py-3 border-b border-border shrink-0 flex items-center gap-2">
             <Eye className="w-3.5 h-3.5 text-brand-muted" />
             <span className="text-xs font-semibold text-brand-muted uppercase tracking-wide">
