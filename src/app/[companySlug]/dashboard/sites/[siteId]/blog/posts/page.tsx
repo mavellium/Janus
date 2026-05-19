@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
 import { getBlogPosts } from '@/modules/blog/queries/getBlogPosts'
 import { PostsListClient } from '@/components/blog/PostsListClient'
+import { BlogManagementHeader } from '@/components/blog/BlogManagementHeader'
 
 export const metadata = { title: 'Artigos — Janus' }
 
@@ -23,5 +24,10 @@ export default async function SiteBlogPostsPage({
   const posts = await getBlogPosts(siteId)
   const basePath = `/${companySlug}/dashboard/sites/${siteId}`
 
-  return <PostsListClient posts={posts} basePath={basePath} projectId={siteId} />
+  return (
+    <div className="p-8 w-full">
+      <BlogManagementHeader basePath={`${basePath}/blog`} />
+      <PostsListClient posts={posts} basePath={basePath} projectId={siteId} />
+    </div>
+  )
 }

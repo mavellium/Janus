@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import {
   Home, FileText, Globe, Zap, FileStack,
   Bell, Settings, LogOut, PanelLeftClose, PanelLeftOpen, UserCircle,
-  ChevronLeft, BarChart3, BookOpen, Newspaper, Tag, FolderOpen, ChevronDown,
+  ChevronLeft, BarChart3, BookOpen,
 } from 'lucide-react'
 import { updatePreferences } from '@/modules/users/actions/updatePreferences'
 import { signOut } from 'next-auth/react'
@@ -65,12 +65,6 @@ export function Sidebar({ email, image, initialCollapsed, companyName, embedded 
     ? `/${companySlug}/dashboard/sites`
     : `/${companySlug}/dashboard/landing-pages`
 
-  const [blogOpen, setBlogOpen] = useState(false)
-
-  useEffect(() => {
-    if (pathname.includes('/blog')) setBlogOpen(true)
-  }, [pathname])
-
   useEffect(() => {
     const projectId = siteId || lpId
     if (!projectId) return
@@ -92,12 +86,6 @@ export function Sidebar({ email, image, initialCollapsed, companyName, embedded 
   const PROJECT_ITEMS = [
     { label: 'Páginas', href: `${basePath}/pages`, icon: FileText },
     { label: 'Resultados', href: `${basePath}/analytics`, icon: BarChart3 },
-  ]
-
-  const BLOG_ITEMS = [
-    { label: 'Artigos', href: `${basePath}/blog/posts`, icon: Newspaper },
-    { label: 'Categorias', href: `${basePath}/blog/categories`, icon: FolderOpen },
-    { label: 'Tags', href: `${basePath}/blog/tags`, icon: Tag },
   ]
 
   const menuItems = isInProjectContext ? PROJECT_ITEMS : MAIN_ITEMS
@@ -264,61 +252,17 @@ export function Sidebar({ email, image, initialCollapsed, companyName, embedded 
         ))}
 
         {isInProjectContext && blogEnabled && (
-          <>
-            <button
-              onClick={() => setBlogOpen(o => !o)}
-              title={collapsed ? 'Blog' : undefined}
-              className={cn(
-                'flex w-full rounded-lg transition-colors',
-                collapsed
-                  ? 'flex-col items-center justify-center px-1 py-2 gap-0.5'
-                  : 'flex-row items-center gap-3 px-3 py-2',
-                pathname.includes('/blog')
-                  ? 'bg-sidebar-hover-bg text-sidebar-hover-text [&>svg]:text-sidebar-hover-text'
-                  : 'text-sidebar-icon [&>svg]:text-sidebar-icon hover:bg-sidebar-hover-bg hover:text-sidebar-hover-text [&>svg]:hover:text-sidebar-hover-text'
-              )}
-            >
-              <BookOpen size={16} className="flex-shrink-0" />
-              {collapsed
-                ? <span className="text-[10px] text-center leading-tight w-full">Blog</span>
-                : (
-                  <span className="flex-1 text-left flex items-center justify-between">
-                    Blog
-                    <ChevronDown size={12} className={cn('transition-transform', blogOpen && 'rotate-180')} />
-                  </span>
-                )
-              }
-            </button>
-            {blogOpen && !collapsed && (
-              <div className="flex flex-col gap-0.5 pl-4">
-                {BLOG_ITEMS.map(({ label, href, icon: Icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={navItemClasses(href)}
-                  >
-                    <Icon size={14} className="flex-shrink-0" />
-                    <span className="text-sm">{label}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-            {blogOpen && collapsed && (
-              <div className="flex flex-col gap-0.5">
-                {BLOG_ITEMS.map(({ label, href, icon: Icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    title={label}
-                    className={navItemClasses(href)}
-                  >
-                    <Icon size={14} className="flex-shrink-0" />
-                    <span className="text-[10px] text-center leading-tight w-full">{label}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </>
+          <Link
+            href={`${basePath}/blog`}
+            title={collapsed ? 'Blog' : undefined}
+            className={navItemClasses(`${basePath}/blog`)}
+          >
+            <BookOpen size={16} className="flex-shrink-0" />
+            {collapsed
+              ? <span className="text-[10px] text-center leading-tight w-full">Blog</span>
+              : <span>Blog</span>
+            }
+          </Link>
         )}
       </nav>
 

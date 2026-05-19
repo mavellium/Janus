@@ -264,12 +264,12 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 ## Componentes Blog
 
 - `src/components/blog/RichEditor.tsx` — Client — editor Tiptap com toolbar, upload de imagem inline (BunnyCDN)
-- `src/components/blog/CategoryModal.tsx` — Client — modal criar/editar categoria com upload de imagem
-- `src/components/blog/TagModal.tsx` — Client — modal criar/editar tag com upload de imagem
-- `src/components/blog/CategoriesClient.tsx` — Client — listagem de categorias com ações
-- `src/components/blog/TagsClient.tsx` — Client — listagem de tags com ações
-- `src/components/blog/PostsListClient.tsx` — Client — tabela de artigos com busca e ações
-- `src/components/blog/PostEditorClient.tsx` — Client — editor de artigo em abas (Principal/Conteúdo/Mídia/SEO)
+- `src/components/blog/BlogTabNav.tsx` — Client — navegação por abas (Publicações/Categorias/Tags) com active state via usePathname
+- `src/components/blog/BlogManagementHeader.tsx` — Server — header "Gerenciar Blog" com ícone + BlogTabNav; recebe basePath
+- `src/components/blog/CategoriesClient.tsx` — Client — layout 2 colunas: lista lateral + painel inline de edição/criação com SEO e categoria pai
+- `src/components/blog/TagsClient.tsx` — Client — layout 2 colunas: lista lateral + painel inline de edição/criação com SEO e tag pai
+- `src/components/blog/PostsListClient.tsx` — Client — exporta `BlogPostsTable` (reutilizável) e `PostsListClient` com busca e botão novo artigo
+- `src/components/blog/PostEditorClient.tsx` — Client — layout 2 colunas: corpo do artigo à esquerda, sidebar (organização + SEO) à direita; botão "Atualizar Post" no header
 
 ## Páginas Blog (Sites)
 
@@ -289,8 +289,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 ## Schema Prisma (Blog)
 
-- **BlogCategory** (`blog_categories`) — name, description, imageUrl, slug, projectId | CASCADE do Project
-- **BlogTag** (`blog_tags`) — name, description, imageUrl, slug, projectId | CASCADE do Project
+- **BlogCategory** (`blog_categories`) — name, description, imageUrl, slug, seoTitle, seoDescription, seoKeywords, projectId, parentId (self-referencial → SubCategories) | CASCADE do Project
+- **BlogTag** (`blog_tags`) — name, description, imageUrl, slug, seoTitle, seoDescription, seoKeywords, projectId, parentId (self-referencial → SubTags) | CASCADE do Project
 - **BlogPost** (`blog_posts`) — title, subtitle, body, publishedAt, coverImageUrl, authorName, SEO fields, projectId, categoryId | CASCADE do Project
 - **BlogPostTag** (`blog_post_tags`) — join M:N BlogPost ↔ BlogTag | CASCADE ambos os lados
 - **Project** — campo `blogEnabled Boolean @default(false)` adicionado
@@ -301,6 +301,18 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 | Data       | Arquivo                                       | O que foi feito                                            |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
+| 2026-05-19 | `prisma/schema.prisma` | FEAT: Adicionado parentId (hierarquia) + seoTitle/seoDescription/seoKeywords em BlogCategory e BlogTag |
+| 2026-05-19 | `getBlogCategories.ts`, `getBlogTags.ts` | FEAT: Queries agora incluem parent e children das entidades blog |
+| 2026-05-19 | `createBlogCategory.ts`, `updateBlogCategory.ts`, `createBlogTag.ts`, `updateBlogTag.ts` | FEAT: Actions atualizadas para persistir parentId e campos SEO |
+| 2026-05-19 | `src/components/blog/BlogTabNav.tsx` | NOVO: Tab navigation (Publicações/Categorias/Tags) com active state |
+| 2026-05-19 | `src/components/blog/BlogManagementHeader.tsx` | NOVO: Header do painel de gerenciamento do blog |
+| 2026-05-19 | `src/components/blog/CategoriesClient.tsx` | REESCRITO: Layout 2 colunas com painel inline de edição, SEO e hierarquia |
+| 2026-05-19 | `src/components/blog/TagsClient.tsx` | REESCRITO: Layout 2 colunas com painel inline de edição, SEO e hierarquia |
+| 2026-05-19 | `src/components/blog/PostsListClient.tsx` | FEAT: Extraído BlogPostsTable como sub-componente reutilizável |
+| 2026-05-19 | `src/components/blog/PostEditorClient.tsx` | REESCRITO: Layout 2 colunas (corpo + sidebar organização/SEO), sem abas |
+| 2026-05-19 | `src/components/dashboard/Sidebar.tsx` | FEAT: Blog simplificado para link direto (sem sub-itens colapsáveis) |
+| 2026-05-19 | `CategoryModal.tsx`, `TagModal.tsx` | REMOVIDO: Substituídos pelo painel inline nos clientes de categorias e tags |
+| 2026-05-19 | 6 páginas blog (sites + lp): posts, categories, tags | FEAT: Adicionado BlogManagementHeader com tab navigation em todas as páginas |
 | 2026-05-17 | `src/components/ui/SlugInput.tsx` | NOVO: Componente reutilizável de input de slug com validação em tempo real; sanitiza a-z, 0-9, hífen; feedback visual de erro |
 | 2026-05-17 | `CreatePageModal.tsx`, `EditPageModal.tsx`, `CompaniesClient.tsx`, `AdminCompaniesClient.tsx`, `CreateCompanyModal.tsx` | FIX: Substituição de inputs raw slug pelo componente SlugInput com validação live |
 | 2026-05-17 | `src/modules/projects/actions/createPage.ts` + 10 actions | FIX: `session.user.companySlug` undefined para DEVELOPER — adicionado guard `&& session.user.companySlug` antes de comparar |

@@ -11,6 +11,10 @@ const schema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   imageUrl: z.string().optional(),
+  parentId: z.string().uuid().optional(),
+  seoTitle: z.string().optional(),
+  seoDescription: z.string().optional(),
+  seoKeywords: z.string().optional(),
 })
 
 export async function createBlogTag(_: unknown, formData: FormData) {
@@ -22,15 +26,19 @@ export async function createBlogTag(_: unknown, formData: FormData) {
     name: formData.get('name'),
     description: formData.get('description') || undefined,
     imageUrl: formData.get('imageUrl') || undefined,
+    parentId: formData.get('parentId') || undefined,
+    seoTitle: formData.get('seoTitle') || undefined,
+    seoDescription: formData.get('seoDescription') || undefined,
+    seoKeywords: formData.get('seoKeywords') || undefined,
   })
   if (!parsed.success) return { ok: false, error: 'Dados inválidos' }
 
-  const { projectId, name, description, imageUrl } = parsed.data
+  const { projectId, name, description, imageUrl, parentId, seoTitle, seoDescription, seoKeywords } = parsed.data
   const slug = generateSlug(name)
 
   try {
     const tag = await db.blogTag.create({
-      data: { projectId, name, description, imageUrl, slug },
+      data: { projectId, name, description, imageUrl, slug, parentId, seoTitle, seoDescription, seoKeywords },
     })
     revalidatePath('/', 'layout')
     return { ok: true, data: tag }

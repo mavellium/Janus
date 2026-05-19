@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
 import { getBlogCategories } from '@/modules/blog/queries/getBlogCategories'
 import { CategoriesClient } from '@/components/blog/CategoriesClient'
+import { BlogManagementHeader } from '@/components/blog/BlogManagementHeader'
 
 export const metadata = { title: 'Categorias — Janus' }
 
@@ -21,6 +22,12 @@ export default async function LpBlogCategoriesPage({
   if (!project) redirect(`/${companySlug}/dashboard/landing-pages/${lpId}/pages`)
 
   const categories = await getBlogCategories(lpId)
+  const basePath = `/${companySlug}/dashboard/landing-pages/${lpId}`
 
-  return <CategoriesClient categories={categories} projectId={lpId} />
+  return (
+    <div className="p-8 w-full">
+      <BlogManagementHeader basePath={`${basePath}/blog`} />
+      <CategoriesClient categories={categories} projectId={lpId} />
+    </div>
+  )
 }
