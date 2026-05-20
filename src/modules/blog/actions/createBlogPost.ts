@@ -9,17 +9,29 @@ const schema = z.object({
   projectId: z.string().uuid(),
   companySlug: z.string(),
   title: z.string().min(1),
+  slug: z.string().optional(),
   subtitle: z.string().optional(),
   publishedAt: z.string(),
   body: z.string().default(''),
   coverImageUrl: z.string().optional(),
   authorName: z.string().min(1),
+  readingTime: z.coerce.number().int().positive().optional(),
   categoryId: z.string().uuid().optional(),
   tagIds: z.array(z.string().uuid()).default([]),
   seoTitle: z.string().optional(),
   seoDescription: z.string().optional(),
   seoKeywords: z.string().optional(),
 })
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+}
 
 export async function createBlogPost(_: unknown, formData: FormData) {
   const session = await auth()
@@ -31,11 +43,13 @@ export async function createBlogPost(_: unknown, formData: FormData) {
     projectId: formData.get('projectId'),
     companySlug: formData.get('companySlug'),
     title: formData.get('title'),
+    slug: formData.get('slug') || undefined,
     subtitle: formData.get('subtitle') || undefined,
     publishedAt: formData.get('publishedAt'),
     body: formData.get('body') || '',
     coverImageUrl: formData.get('coverImageUrl') || undefined,
     authorName: formData.get('authorName'),
+    readingTime: formData.get('readingTime') || undefined,
     categoryId: formData.get('categoryId') || undefined,
     tagIds,
     seoTitle: formData.get('seoTitle') || undefined,
@@ -44,7 +58,8 @@ export async function createBlogPost(_: unknown, formData: FormData) {
   })
   if (!parsed.success) return { ok: false as const, error: 'Dados inválidos' }
 
-  const { tagIds: ids, categoryId, projectId, companySlug, ...rest } = parsed.data
+  const { tagIds: ids, categoryId, projectId, companySlug, slug, ...rest } = parsed.data
+  const resolvedSlug = slug ? slugify(slug) : slugify(rest.title)
 
   try {
     const company = await db.company.findUnique({
@@ -66,6 +81,7 @@ export async function createBlogPost(_: unknown, formData: FormData) {
     const post = await db.blogPost.create({
       data: {
         ...rest,
+        slug: resolvedSlug,
         publishedAt: new Date(rest.publishedAt),
         projectId,
         ...(categoryId && { categoryId }),

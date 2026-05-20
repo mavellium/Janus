@@ -56,11 +56,14 @@ export async function GET(
       take: limit,
       select: {
         id: true,
+        slug: true,
         title: true,
         subtitle: true,
         publishedAt: true,
+        body: true,
         authorName: true,
         coverImageUrl: true,
+        readingTime: true,
         seoTitle: true,
         seoDescription: true,
         seoKeywords: true,
@@ -71,11 +74,13 @@ export async function GET(
     }),
   ])
 
+  const normalizedPosts = posts.map((p) => ({ ...p, slug: p.slug ?? p.id }))
+
   return NextResponse.json(
     {
       success: true,
       company: companySlug,
-      posts,
+      posts: normalizedPosts,
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     },
     {
