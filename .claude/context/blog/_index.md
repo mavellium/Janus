@@ -9,7 +9,7 @@ Módulo de blog por projeto (Site ou Landing Page). Cada projeto tem um blog iso
 | Entidades  | BlogPost, BlogCategory, BlogTag, BlogPostTag     |
 | Actions    | create/update/delete Post, Category, Tag; toggle |
 | Queries    | getBlogPosts, getBlogPost, getCategories, getTags |
-| API Pública | GET /api/[companySlug]/[projectId]/blog         |
+| API Pública | GET /api/[companySlug]/[projectId]/blog{/[postId],/categories,/tags} |
 
 ## Arquivos
 
@@ -31,7 +31,10 @@ src/app/[companySlug]/dashboard/
     categories/page.tsx
     tags/page.tsx
   landing-pages/[lpId]/blog/     — estrutura idêntica
-src/app/api/[companySlug]/[projectId]/blog/route.ts  — endpoint público
+src/app/api/[companySlug]/[projectId]/blog/route.ts          — listagem pública
+src/app/api/[companySlug]/[projectId]/blog/[postId]/route.ts  — post individual
+src/app/api/[companySlug]/[projectId]/blog/categories/route.ts — categorias
+src/app/api/[companySlug]/[projectId]/blog/tags/route.ts       — tags
 src/components/blog/ApiEndpointBanner.tsx            — banner client
 ```
 
