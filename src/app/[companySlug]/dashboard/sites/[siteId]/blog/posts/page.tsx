@@ -1,9 +1,12 @@
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
 import { getBlogPosts } from '@/modules/blog/queries/getBlogPosts'
 import { PostsListClient } from '@/components/blog/PostsListClient'
 import { BlogManagementHeader } from '@/components/blog/BlogManagementHeader'
+import { ApiEndpointBanner } from '@/components/blog/ApiEndpointBanner'
+import { isPrivilegedRole } from '@/lib/auth/permissions'
 
 export const metadata = { title: 'Artigos — Janus' }
 
@@ -24,8 +27,15 @@ export default async function SiteBlogPostsPage({
   const posts = await getBlogPosts(siteId)
   const basePath = `/${companySlug}/dashboard/sites/${siteId}`
 
+  const isDeveloperOrAdmin = isPrivilegedRole(session.user.role)
+  const headersList = await headers()
+  const host = headersList.get('host') ?? 'localhost:3000'
+  const proto = headersList.get('x-forwarded-proto') ?? (host.includes('localhost') ? 'http' : 'https')
+  const apiUrl = `${proto}://${host}/api/${companySlug}/blog`
+
   return (
-    <div className="p-8 w-full">
+    <div className="w-full p-8">
+      {isDeveloperOrAdmin && <ApiEndpointBanner url={apiUrl} />}
       <BlogManagementHeader basePath={`${basePath}/blog`} />
       <PostsListClient posts={posts} basePath={basePath} projectId={siteId} />
     </div>
