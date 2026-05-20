@@ -8,7 +8,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_URL_API=https://janus.187.77.236.241.nip.io/api
+        - NEXT_PUBLIC_URL_API=https://januscms.com.br/api
     environment:
       - HOSTNAME=0.0.0.0
       - PORT=3000
@@ -23,7 +23,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-public"
-      - "traefik.http.routers.janus-prod.rule=Host(`janus.187.77.236.241.nip.io`)"
+      # Rota atualizada para o domínio oficial (com e sem www)
+      - "traefik.http.routers.janus-prod.rule=Host(`januscms.com.br`) || Host(`www.januscms.com.br`)"
       - "traefik.http.routers.janus-prod.entrypoints=websecure"
       - "traefik.http.routers.janus-prod.tls.certresolver=myresolver"
       - "traefik.http.services.janus-prod.loadbalancer.server.port=3000"
@@ -54,7 +55,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_URL_API=https://teste.janus.187.77.236.241.nip.io/api
+        - NEXT_PUBLIC_URL_API=https://teste.januscms.com.br/api
     environment:
       - HOSTNAME=0.0.0.0
       - PORT=3000
@@ -69,7 +70,8 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-public"
-      - "traefik.http.routers.janus-test.rule=Host(`teste.janus.187.77.236.241.nip.io`)"
+      # Rota atualizada para o subdomínio de teste
+      - "traefik.http.routers.janus-test.rule=Host(`teste.januscms.com.br`)"
       - "traefik.http.routers.janus-test.entrypoints=websecure"
       - "traefik.http.routers.janus-test.tls.certresolver=myresolver"
       - "traefik.http.services.janus-test.loadbalancer.server.port=3000"
