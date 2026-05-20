@@ -6,7 +6,7 @@ export async function getBlogTags(projectId: string) {
     orderBy: { name: 'asc' },
     include: {
       parent: { select: { id: true, name: true } },
-      children: { select: { id: true, name: true }, orderBy: { name: 'asc' } },
+      children: { select: { id: true, name: true, isActive: true }, orderBy: { name: 'asc' } },
     },
   })
 }

@@ -266,8 +266,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/components/blog/RichEditor.tsx` — Client — editor Tiptap com toolbar, upload de imagem inline (BunnyCDN)
 - `src/components/blog/BlogTabNav.tsx` — Client — navegação por abas (Publicações/Categorias/Tags) com active state via usePathname
 - `src/components/blog/BlogManagementHeader.tsx` — Server — header "Gerenciar Blog" com ícone + BlogTabNav; recebe basePath
-- `src/components/blog/CategoriesClient.tsx` — Client — layout 2 colunas: lista lateral + painel inline reativo (onCreated/onUpdated sem reload); quick-create pai inline; useCallback estável
-- `src/components/blog/TagsClient.tsx` — Client — layout 2 colunas: lista lateral + painel inline reativo (onCreated/onUpdated sem reload); quick-create pai inline; useCallback estável
+- `src/components/blog/CategoriesClient.tsx` — Client — layout 3 colunas: Categorias (raiz) | Subcategorias | Painel de edição; isActive toggle; imagem ANTES do nome; trash icon com modal de confirmação (sem delete no form)
+- `src/components/blog/TagsClient.tsx` — Client — layout 3 colunas: Tags (raiz) | Sub-tags | Painel de edição; isActive toggle; imagem ANTES do nome; trash icon com modal de confirmação (sem delete no form)
 - `src/components/blog/PostsListClient.tsx` — Client — exporta `BlogPostsTable` e `PostsListClient`; paginação client-side, page size 10/25/50, visibilidade de colunas, multi-select com bulk delete
 - `src/components/blog/PostEditorClient.tsx` — Client — layout 2 colunas: corpo do artigo à esquerda, sidebar (organização + SEO) à direita; botão "Atualizar Post" no header
 
@@ -289,8 +289,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 ## Schema Prisma (Blog)
 
-- **BlogCategory** (`blog_categories`) — name, description, imageUrl, slug, seoTitle, seoDescription, seoKeywords, projectId, parentId (self-referencial → SubCategories) | CASCADE do Project
-- **BlogTag** (`blog_tags`) — name, description, imageUrl, slug, seoTitle, seoDescription, seoKeywords, projectId, parentId (self-referencial → SubTags) | CASCADE do Project
+- **BlogCategory** (`blog_categories`) — name, description, imageUrl, slug, seoTitle, seoDescription, seoKeywords, **isActive (bool, default true)**, projectId, parentId (self-referencial → SubCategories) | CASCADE do Project
+- **BlogTag** (`blog_tags`) — name, description, imageUrl, slug, seoTitle, seoDescription, seoKeywords, **isActive (bool, default true)**, projectId, parentId (self-referencial → SubTags) | CASCADE do Project
 - **BlogPost** (`blog_posts`) — title, subtitle, body, publishedAt, coverImageUrl, authorName, SEO fields, projectId, categoryId | CASCADE do Project
 - **BlogPostTag** (`blog_post_tags`) — join M:N BlogPost ↔ BlogTag | CASCADE ambos os lados
 - **Project** — campo `blogEnabled Boolean @default(false)` adicionado
@@ -317,6 +317,12 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-19 | `PostsListClient.tsx` | UX: toolbar unificada com ícones (+/sliders/filter/trash) + page size + contagem + paginação em uma linha; footer removido |
 | 2026-05-19 | `CategoriesClient.tsx`, `TagsClient.tsx` | FEAT: Reactive UI (onCreated/onUpdated sem reload) + quick-create pai inline + useCallback estável |
 | 2026-05-19 | 4 páginas new/edit de posts (sites + lp) | FIX: authorName via `db.user.findUnique` (name real) em vez de `session.user.name` (sempre undefined) |
+| 2026-05-20 | `prisma/schema.prisma` | FEAT: Adicionado `isActive Boolean @default(true)` em BlogCategory e BlogTag |
+| 2026-05-20 | `createBlogCategory.ts`, `updateBlogCategory.ts`, `createBlogTag.ts`, `updateBlogTag.ts` | FEAT: Zod schema + Prisma upsert agora persistem campo `isActive` |
+| 2026-05-20 | `deleteBlogCategory.ts`, `deleteBlogTag.ts` | FIX: Transaction que orfa subcategorias/sub-tags antes de deletar pai |
+| 2026-05-20 | `getBlogCategories.ts`, `getBlogTags.ts` | FEAT: children select inclui `isActive` |
+| 2026-05-20 | `CategoriesClient.tsx` | REESCRITO: 3 colunas (Categorias / Subcategorias / Painel), imagem-first, isActive toggle, trash+modal, sem parentId selector |
+| 2026-05-20 | `TagsClient.tsx` | REESCRITO: 3 colunas (Tags / Sub-tags / Painel), imagem-first, isActive toggle, trash+modal, sem parentId selector |
 | 2026-05-17 | `src/components/ui/SlugInput.tsx` | NOVO: Componente reutilizável de input de slug com validação em tempo real; sanitiza a-z, 0-9, hífen; feedback visual de erro |
 | 2026-05-17 | `CreatePageModal.tsx`, `EditPageModal.tsx`, `CompaniesClient.tsx`, `AdminCompaniesClient.tsx`, `CreateCompanyModal.tsx` | FIX: Substituição de inputs raw slug pelo componente SlugInput com validação live |
 | 2026-05-17 | `src/modules/projects/actions/createPage.ts` + 10 actions | FIX: `session.user.companySlug` undefined para DEVELOPER — adicionado guard `&& session.user.companySlug` antes de comparar |

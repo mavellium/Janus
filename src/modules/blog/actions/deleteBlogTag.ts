@@ -9,7 +9,10 @@ export async function deleteBlogTag(id: string) {
   if (!session?.user?.id) return { ok: false, error: 'Não autenticado' }
 
   try {
-    await db.blogTag.delete({ where: { id } })
+    await db.$transaction([
+      db.blogTag.updateMany({ where: { parentId: id }, data: { parentId: null } }),
+      db.blogTag.delete({ where: { id } }),
+    ])
     revalidatePath('/', 'layout')
     return { ok: true }
   } catch {

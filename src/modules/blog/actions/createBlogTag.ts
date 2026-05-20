@@ -15,6 +15,7 @@ const schema = z.object({
   seoTitle: z.string().optional(),
   seoDescription: z.string().optional(),
   seoKeywords: z.string().optional(),
+  isActive: z.boolean().default(true),
 })
 
 export async function createBlogTag(_: unknown, formData: FormData) {
@@ -30,15 +31,17 @@ export async function createBlogTag(_: unknown, formData: FormData) {
     seoTitle: formData.get('seoTitle') || undefined,
     seoDescription: formData.get('seoDescription') || undefined,
     seoKeywords: formData.get('seoKeywords') || undefined,
+    isActive: formData.get('isActive') !== 'false',
   })
   if (!parsed.success) return { ok: false, error: 'Dados inválidos' }
 
-  const { projectId, name, description, imageUrl, parentId, seoTitle, seoDescription, seoKeywords } = parsed.data
+  const { projectId, name, description, imageUrl, parentId, seoTitle, seoDescription, seoKeywords, isActive } =
+    parsed.data
   const slug = generateSlug(name)
 
   try {
     const tag = await db.blogTag.create({
-      data: { projectId, name, description, imageUrl, slug, parentId, seoTitle, seoDescription, seoKeywords },
+      data: { projectId, name, description, imageUrl, slug, parentId, seoTitle, seoDescription, seoKeywords, isActive },
     })
     revalidatePath('/', 'layout')
     return { ok: true, data: tag }

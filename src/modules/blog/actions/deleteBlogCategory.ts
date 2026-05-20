@@ -9,7 +9,10 @@ export async function deleteBlogCategory(id: string) {
   if (!session?.user?.id) return { ok: false, error: 'Não autenticado' }
 
   try {
-    await db.blogCategory.delete({ where: { id } })
+    await db.$transaction([
+      db.blogCategory.updateMany({ where: { parentId: id }, data: { parentId: null } }),
+      db.blogCategory.delete({ where: { id } }),
+    ])
     revalidatePath('/', 'layout')
     return { ok: true }
   } catch {
