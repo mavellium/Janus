@@ -31,7 +31,7 @@ export default async function SiteBlogPostsPage({
   const headersList = await headers()
   const host = headersList.get('host') ?? 'localhost:3000'
   const proto = headersList.get('x-forwarded-proto') ?? (host.includes('localhost') ? 'http' : 'https')
-  const apiUrl = `${proto}://${host}/api/${companySlug}/blog`
+  const apiUrl = `${proto}://${host}/api/${companySlug}/${siteId}/blog`
 
   return (
     <div className="w-full p-8">
