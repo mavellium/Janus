@@ -30,6 +30,8 @@ model Company {
   description      String?
   logo             String?
   guestModeEnabled Boolean   @default(false) @map("guest_mode_enabled")
+  webhookUrl       String?   @map("webhook_url")
+  webhookToken     String?   @map("webhook_token")
   createdById      String?   @db.Uuid @map("created_by_id")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
@@ -191,12 +193,14 @@ model BlogTag {
 
 model BlogPost {
   id             String        @id @default(uuid()) @db.Uuid
+  slug           String?       @map("slug")
   title          String
   subtitle       String?
   publishedAt    DateTime      @map("published_at")
   body           String        @db.Text
   coverImageUrl  String?       @map("cover_image_url")
   authorName     String        @map("author_name")
+  readingTime    Int?          @map("reading_time")
   seoTitle       String?       @map("seo_title")
   seoDescription String?       @map("seo_description")
   seoKeywords    String?       @map("seo_keywords")
@@ -208,6 +212,7 @@ model BlogPost {
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
 
+  @@unique([projectId, slug])
   @@index([projectId])
   @@index([categoryId])
   @@map("blog_posts")

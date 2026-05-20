@@ -29,7 +29,19 @@
 - **Termos/Abreviações** → [quick-ref/glossary.md](quick-ref/glossary.md)
 
 ### Registro de Histórico
-- **O que mudou e quando?** → [context/cms/changelog.md](context/cms/changelog.md)
+- **O que mudou e quando (CMS)?** → [context/cms/changelog.md](context/cms/changelog.md)
+- **O que mudou e quando (Blog)?** → [context/blog/changelog.md](context/blog/changelog.md)
+
+---
+
+## 📝 Módulos Documentados
+
+### Blog (`src/modules/blog/`)
+- **[context/blog/_index.md](context/blog/_index.md)** — Sumário executivo (1min)
+- **[context/blog/domain.md](context/blog/domain.md)** — BlogPost, BlogCategory, BlogTag
+- **[context/blog/actions.md](context/blog/actions.md)** — create/update/delete/toggle
+- **[context/blog/queries.md](context/blog/queries.md)** — getBlogPosts, getCategories, getTags
+- **[context/blog/patterns.md](context/blog/patterns.md)** — snippets copy-paste
 
 ---
 

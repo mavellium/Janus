@@ -60,7 +60,17 @@ Quando implementar um **novo módulo** (domain, actions, queries), execute a ski
 - ✅ Renomeou ou deletou arquivo
 - ❌ NÃO registrar: apenas mudanças de format/lint, testes isolados, ou comentários
 
-# 🔒 Regra de Manutenção do CMS (Skill Obrigatória)
+# 🔒 Regra de Manutenção do CMS e Blog (Skill Obrigatória)
+
+Sempre que for instruído a trabalhar no **CMS** ou no **Blog**, consulte os respectivos arquivos de arquitetura antes de propor qualquer código:
+- CMS: `.claude/context/cms/` (rules.md, mode-legacy.md, mode-advanced.md)
+- Blog: `.claude/context/blog/` (_index.md, domain.md, actions.md, queries.md, patterns.md)
+
+Após alterações em qualquer um dos domínios, registre no Changelog do arquivo correspondente.
+
+---
+
+## CMS
 
 **ESCOPO**: Aplicável a TODA modificação, refatoração, ou debugging de:
 - Rotas de API CMS (`src/modules/projects/actions/*`)
@@ -93,5 +103,27 @@ Quando implementar um **novo módulo** (domain, actions, queries), execute a ski
      
      **Impacto**: Como afeta o fluxo
      ```
+
+## Blog
+
+**ESCOPO**: Aplicável a TODA modificação, refatoração, ou debugging de:
+- Actions e queries do blog (`src/modules/blog/actions/*`, `src/modules/blog/queries/*`)
+- Páginas do blog (`src/app/[companySlug]/dashboard/sites/[siteId]/blog/**`, `src/app/[companySlug]/dashboard/landing-pages/[lpId]/blog/**`)
+- Componentes do blog (`src/components/blog/*`)
+- Endpoint público (`src/app/api/[companySlug]/[projectId]/blog/route.ts`)
+
+**WORKFLOW OBRIGATÓRIO**:
+
+1. **Antes de propor código**: Consulte `.claude/context/blog/`
+   - Leia `_index.md` para orientação rápida
+   - Leia `domain.md` — Regras Absolutas são inegociáveis
+   - Valide schema Prisma em `domain.md` antes de assumir campos
+
+2. **Durante implementação**:
+   - `publishedAt <= now()` para filtrar posts publicados em contextos públicos
+   - Sempre escopar queries por `projectId` ou `companyId`
+   - Banner de API visível apenas para ADMIN/DEVELOPER (independe de viewMode)
+
+3. **Após conclusão**: Atualize `.claude/context/blog/changelog.md`
 
 **FALHA EM SEGUIR**: Código será rejeitado por violar contrato arquitetural

@@ -1,98 +1,118 @@
-'use client'
+"use client";
 
-import { useState, useTransition, useEffect } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Separator } from '@/components/ui/separator'
-import { Switch } from '@/components/ui/switch'
-import { updateProfile } from '@/modules/users/actions/updateProfile'
-import { changePassword } from '@/modules/users/actions/changePassword'
-import { updatePreferences } from '@/modules/users/actions/updatePreferences'
-import { useToast } from '@/hooks/use-toast'
-import { ToastContainer } from '@/components/ui/toast-container'
-import { UpdateAvatarModal } from '@/components/users/update-avatar-modal'
-import type { UserPreferences } from '@/types/next-auth'
+import { useState, useTransition, useEffect, useActionState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { updateProfile } from "@/modules/users/actions/updateProfile";
+import { changePassword } from "@/modules/users/actions/changePassword";
+import { updatePreferences } from "@/modules/users/actions/updatePreferences";
+import { updateCompanyWebhook } from "@/modules/companies/actions/updateCompanyWebhook";
+import { useToast } from "@/hooks/use-toast";
+import { ToastContainer } from "@/components/ui/toast-container";
+import { UpdateAvatarModal } from "@/components/users/update-avatar-modal";
+import type { UserPreferences } from "@/types/next-auth";
 
 interface SettingsClientProps {
   user: {
-    id: string
-    email: string
-    name: string
-    phone?: string
-    image: string | null
-    preferences: UserPreferences
-  }
+    id: string;
+    email: string;
+    name: string;
+    phone?: string;
+    image: string | null;
+    preferences: UserPreferences;
+  };
   company: {
-    id: string
-    name: string
-    slug: string
-    description: string | null
-  }
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    webhookUrl: string | null;
+    webhookToken: string | null;
+  };
 }
 
 export function SettingsClient({ user, company }: SettingsClientProps) {
-  const [name, setName] = useState(user.name || '')
-  const [email, setEmail] = useState(user.email)
-  const [phone, setPhone] = useState(user.phone || '')
-  const [userImage, setUserImage] = useState(user.image)
-  const [isProfilePending, startProfileTransition] = useTransition()
-  const [isPasswordPending, startPasswordTransition] = useTransition()
-  const { toasts, toast, removeToast } = useToast()
+  const [name, setName] = useState(user.name || "");
+  const [email, setEmail] = useState(user.email);
+  const [phone, setPhone] = useState(user.phone || "");
+  const [userImage, setUserImage] = useState(user.image);
+  const [isProfilePending, startProfileTransition] = useTransition();
+  const [isPasswordPending, startPasswordTransition] = useTransition();
+  const { toasts, toast, removeToast } = useToast();
 
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const [webhookState, webhookAction, isWebhookPending] = useActionState(
+    updateCompanyWebhook,
+    null,
+  );
+
+  useEffect(() => {
+    if (!webhookState) return;
+    if (webhookState.ok) {
+      toast({ message: "Webhook salvo com sucesso!", type: "success" });
+    } else {
+      toast({
+        message: webhookState.error || "Erro ao salvar webhook",
+        type: "error",
+      });
+    }
+  }, [webhookState]);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   // Inicializar darkMode com valor do banco
-  const initialDarkMode = user.preferences?.darkMode || false
-  const [darkModeEnabled, setDarkModeEnabled] = useState(initialDarkMode)
-  const [, startPreferencesTransition] = useTransition()
+  const initialDarkMode = user.preferences?.darkMode || false;
+  const [darkModeEnabled, setDarkModeEnabled] = useState(initialDarkMode);
+  const [, startPreferencesTransition] = useTransition();
 
   // Aplicar tema ao carregar a página usando variáveis CSS
   useEffect(() => {
     if (initialDarkMode) {
-      document.documentElement.classList.add('dark')
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove('dark')
+      document.documentElement.classList.remove("dark");
     }
-  }, [initialDarkMode])
+  }, [initialDarkMode]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, '')
-    
+    let value = e.target.value.replace(/\D/g, "");
+
     if (value.length <= 11) {
       if (value.length <= 2) {
-        value = value
+        value = value;
       } else if (value.length <= 6) {
-        value = `(${value.slice(0, 2)}) ${value.slice(2)}`
+        value = `(${value.slice(0, 2)}) ${value.slice(2)}`;
       } else if (value.length <= 10) {
-        value = `(${value.slice(0, 2)}) ${value.slice(2, 6)}-${value.slice(6)}`
+        value = `(${value.slice(0, 2)}) ${value.slice(2, 6)}-${value.slice(6)}`;
       } else {
-        value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`
+        value = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7)}`;
       }
     }
-    
-    setPhone(value)
-  }
+
+    setPhone(value);
+  };
 
   const handleProfileSave = () => {
     if (!name.trim()) {
-      toast({ message: 'Nome é obrigatório', type: 'error' })
-      return
+      toast({ message: "Nome é obrigatório", type: "error" });
+      return;
     }
 
     if (!email.trim()) {
-      toast({ message: 'E-mail é obrigatório', type: 'error' })
-      return
+      toast({ message: "E-mail é obrigatório", type: "error" });
+      return;
     }
 
-    if (!email.includes('@')) {
-      toast({ message: 'E-mail inválido', type: 'error' })
-      return
+    if (!email.includes("@")) {
+      toast({ message: "E-mail inválido", type: "error" });
+      return;
     }
 
     startProfileTransition(async () => {
@@ -101,81 +121,86 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim() || undefined,
-      })
+      });
 
       if (result.ok) {
-        toast({ message: 'Perfil atualizado com sucesso!', type: 'success' })
+        toast({ message: "Perfil atualizado com sucesso!", type: "success" });
       } else {
-        toast({ message: result.error || 'Erro ao atualizar perfil', type: 'error' })
+        toast({
+          message: result.error || "Erro ao atualizar perfil",
+          type: "error",
+        });
       }
-    })
-  }
+    });
+  };
 
-  const getPasswordStrengthMessage = (password: string): { isValid: boolean; message: string } => {
-  if (!password) return { isValid: false, message: '' }
-  
-  const messages = []
-  
-  if (password.length < 8) {
-    messages.push('• Mínimo 8 caracteres')
-  }
-  
-  if (!/[A-Z]/.test(password)) {
-    messages.push('• 1 letra maiúscula')
-  }
-  
-  if (!/[a-z]/.test(password)) {
-    messages.push('• 1 letra minúscula')
-  }
-  
-  if (!/\d/.test(password)) {
-    messages.push('• 1 número')
-  }
-  
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-    messages.push('• 1 caractere especial (!@#$%^&*)')
-  }
-  
-  return {
-    isValid: messages.length === 0,
-    message: messages.join('\n')
-  }
-}
+  const getPasswordStrengthMessage = (
+    password: string,
+  ): { isValid: boolean; message: string } => {
+    if (!password) return { isValid: false, message: "" };
+
+    const messages = [];
+
+    if (password.length < 8) {
+      messages.push("• Mínimo 8 caracteres");
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      messages.push("• 1 letra maiúscula");
+    }
+
+    if (!/[a-z]/.test(password)) {
+      messages.push("• 1 letra minúscula");
+    }
+
+    if (!/\d/.test(password)) {
+      messages.push("• 1 número");
+    }
+
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      messages.push("• 1 caractere especial (!@#$%^&*)");
+    }
+
+    return {
+      isValid: messages.length === 0,
+      message: messages.join("\n"),
+    };
+  };
 
   const handleDarkModeToggle = (checked: boolean) => {
-    setDarkModeEnabled(checked)
-    
+    setDarkModeEnabled(checked);
+
     startPreferencesTransition(async () => {
       const result = await updatePreferences({
-        darkMode: checked
-      })
+        darkMode: checked,
+      });
 
       if (result.ok) {
         // Aplicar tema escuro globalmente e salvar no localStorage
         if (checked) {
-          document.documentElement.classList.add('dark')
-          localStorage.setItem('theme', 'dark')
+          document.documentElement.classList.add("dark");
+          localStorage.setItem("theme", "dark");
         } else {
-          document.documentElement.classList.remove('dark')
-          localStorage.setItem('theme', 'light')
+          document.documentElement.classList.remove("dark");
+          localStorage.setItem("theme", "light");
         }
-        
-        toast({ 
-          message: `Tema ${checked ? 'escuro' : 'claro'} ativado com sucesso!`, 
-          type: 'success' 
-        })
+
+        toast({
+          message: `Tema ${checked ? "escuro" : "claro"} ativado com sucesso!`,
+          type: "success",
+        });
       } else {
-        toast({ message: 'Erro ao salvar preferências', type: 'error' })
+        toast({ message: "Erro ao salvar preferências", type: "error" });
         // Reverter estado se falhou
-        setDarkModeEnabled(!checked)
+        setDarkModeEnabled(!checked);
       }
-    })
-  }
+    });
+  };
 
   const handlePasswordUpdate = () => {
     if (newPassword !== confirmPassword) {
-      toast({ message: 'As senhas não coincidem', type: 'error' })
-      return
+      toast({ message: "As senhas não coincidem", type: "error" });
+      return;
     }
 
     startPasswordTransition(async () => {
@@ -183,18 +208,21 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
         userId: user.id,
         currentPassword,
         newPassword,
-      })
+      });
 
       if (result.ok) {
-        toast({ message: 'Senha atualizada com sucesso!', type: 'success' })
-        setCurrentPassword('')
-        setNewPassword('')
-        setConfirmPassword('')
+        toast({ message: "Senha atualizada com sucesso!", type: "success" });
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
       } else {
-        toast({ message: result.error || 'Erro ao atualizar senha', type: 'error' })
+        toast({
+          message: result.error || "Erro ao atualizar senha",
+          type: "error",
+        });
       }
-    })
-  }
+    });
+  };
 
   return (
     <div className="p-8">
@@ -214,15 +242,20 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
           <Card className="bg-card">
             <CardContent className="p-6">
               <div className="mb-6">
-                <h2 className="text-xl font-semibold text-brand-text">Informações Pessoais</h2>
-                <p className="text-sm text-brand-muted">Atualize sua foto e detalhes de contato</p>
+                <h2 className="text-xl font-semibold text-brand-text">
+                  Informações Pessoais
+                </h2>
+                <p className="text-sm text-brand-muted">
+                  Atualize sua foto e detalhes de contato
+                </p>
               </div>
 
               <div className="flex items-center gap-4 mb-6">
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={userImage || undefined} />
                   <AvatarFallback className="text-2xl bg-brand-btn-light text-brand-primary">
-                    {name.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+                    {name.charAt(0).toUpperCase() ||
+                      user.email.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div>
@@ -247,7 +280,9 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                 <div className="space-y-2">
                   <Label htmlFor="email">
                     E-mail
-                    <span className="text-xs ml-2 text-brand-muted">(altera o login)</span>
+                    <span className="text-xs ml-2 text-brand-muted">
+                      (altera o login)
+                    </span>
                   </Label>
                   <Input
                     id="email"
@@ -281,7 +316,7 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                       Salvando...
                     </>
                   ) : (
-                    'Salvar Alterações'
+                    "Salvar Alterações"
                   )}
                 </Button>
               </div>
@@ -293,8 +328,12 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
           <Card className="bg-card">
             <CardContent className="p-6">
               <div className="mb-6">
-                <h2 className="text-xl font-semibold text-brand-text">Segurança</h2>
-                <p className="text-sm text-brand-muted">Gerencie sua senha e autenticação</p>
+                <h2 className="text-xl font-semibold text-brand-text">
+                  Segurança
+                </h2>
+                <p className="text-sm text-brand-muted">
+                  Gerencie sua senha e autenticação
+                </p>
               </div>
 
               <div className="space-y-4 max-w-md">
@@ -318,13 +357,17 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                     placeholder="••••••••"
                   />
                   {newPassword && (
-                    <div className={`text-xs p-2 rounded ${
-                      getPasswordStrengthMessage(newPassword).isValid 
-                        ? 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400' 
-                        : 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400'
-                    }`}>
+                    <div
+                      className={`text-xs p-2 rounded ${
+                        getPasswordStrengthMessage(newPassword).isValid
+                          ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400"
+                          : "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-400"
+                      }`}
+                    >
                       <div className="font-medium mb-1">
-                        {getPasswordStrengthMessage(newPassword).isValid ? '✓ Senha forte' : 'Requisitos não atendidos:'}
+                        {getPasswordStrengthMessage(newPassword).isValid
+                          ? "✓ Senha forte"
+                          : "Requisitos não atendidos:"}
                       </div>
                       {!getPasswordStrengthMessage(newPassword).isValid && (
                         <div className="whitespace-pre-line">
@@ -358,7 +401,7 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                       Atualizando...
                     </>
                   ) : (
-                    'Atualizar Senha'
+                    "Atualizar Senha"
                   )}
                 </Button>
               </div>
@@ -370,15 +413,23 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
           <Card className="bg-card">
             <CardContent className="p-6">
               <div className="mb-6">
-                <h2 className="text-xl font-semibold text-brand-text">Preferências</h2>
-                <p className="text-sm text-brand-muted">Gerencie sua experiência na plataforma</p>
+                <h2 className="text-xl font-semibold text-brand-text">
+                  Preferências
+                </h2>
+                <p className="text-sm text-brand-muted">
+                  Gerencie sua experiência na plataforma
+                </p>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="darkMode" className="font-medium">Tema Escuro</Label>
-                    <p className="text-xs text-brand-muted">Ative o modo escuro da interface</p>
+                    <Label htmlFor="darkMode" className="font-medium">
+                      Tema Escuro
+                    </Label>
+                    <p className="text-xs text-brand-muted">
+                      Ative o modo escuro da interface
+                    </p>
                   </div>
                   <Switch
                     id="darkMode"
@@ -391,12 +442,16 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="company">
+        <TabsContent value="company" className="space-y-6">
           <Card className="bg-card">
             <CardContent className="p-6">
               <div className="mb-6">
-                <h2 className="text-xl font-semibold text-brand-text">Dados da Empresa</h2>
-                <p className="text-sm text-brand-muted">Informações da sua organização</p>
+                <h2 className="text-xl font-semibold text-brand-text">
+                  Dados da Empresa
+                </h2>
+                <p className="text-sm text-brand-muted">
+                  Informações da sua organização
+                </p>
               </div>
 
               <div className="space-y-4 max-w-md">
@@ -413,7 +468,7 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                   <Label htmlFor="company-description">Descrição</Label>
                   <Input
                     id="company-description"
-                    value={company.description || ''}
+                    value={company.description || ""}
                     disabled
                     readOnly
                   />
@@ -421,10 +476,75 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
               </div>
             </CardContent>
           </Card>
+
+          <Separator className="bg-border" />
+
+          <Card className="bg-card">
+            <CardContent className="p-6">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-brand-text">
+                  Webhook de Revalidação
+                </h2>
+                <p className="text-sm text-brand-muted">
+                  Quando um artigo do blog for publicado, atualizado ou
+                  excluído, o Janus chamará esta URL para revalidar o cache do
+                  seu site.
+                </p>
+              </div>
+
+              <form action={webhookAction} className="space-y-4 max-w-md">
+                <input type="hidden" name="companySlug" value={company.slug} />
+
+                <div className="space-y-2">
+                  <Label htmlFor="webhookUrl">URL do Webhook</Label>
+                  <Input
+                    id="webhookUrl"
+                    name="webhookUrl"
+                    type="url"
+                    defaultValue={company.webhookUrl || ""}
+                    placeholder="https://seu-site.com/api/revalidate"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="webhookToken">Token Secreto</Label>
+                  <Input
+                    id="webhookToken"
+                    name="webhookToken"
+                    type="password"
+                    defaultValue={company.webhookToken || ""}
+                    placeholder="Token enviado no header x-revalidate-token"
+                  />
+                  <p className="text-xs text-brand-muted">
+                    Enviado como{" "}
+                    <code className="bg-muted px-1 rounded text-xs">
+                      x-revalidate-token
+                    </code>{" "}
+                    no header da requisição POST.
+                  </p>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isWebhookPending}
+                  className="transition-all duration-200 disabled:opacity-80 disabled:cursor-not-allowed"
+                >
+                  {isWebhookPending ? (
+                    <>
+                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                      Salvando...
+                    </>
+                  ) : (
+                    "Salvar Webhook"
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
-      
+
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
-  )
+  );
 }
