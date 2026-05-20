@@ -23,7 +23,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-public"
-      # Rota atualizada para o domínio oficial (com e sem www)
       - "traefik.http.routers.janus-prod.rule=Host(`januscms.com.br`) || Host(`www.januscms.com.br`)"
       - "traefik.http.routers.janus-prod.entrypoints=websecure"
       - "traefik.http.routers.janus-prod.tls.certresolver=myresolver"
@@ -70,7 +69,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-public"
-      # Rota atualizada para o subdomínio de teste
       - "traefik.http.routers.janus-test.rule=Host(`teste.januscms.com.br`)"
       - "traefik.http.routers.janus-test.entrypoints=websecure"
       - "traefik.http.routers.janus-test.tls.certresolver=myresolver"
