@@ -240,7 +240,7 @@ export function AdvancedJsonEditor({
           <span>Nenhum campo. Adicione um template ou edite o JSON.</span>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-2 sm:gap-3">
+        <div className="flex flex-col gap-2 sm:gap-3">
           {entries.map(([key, val]) => (
             <div
               key={key}
