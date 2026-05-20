@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { revalidateSites } from '@/lib/revalidateSites'
 
 const schema = z.object({
   id: z.string().uuid(),
@@ -97,6 +98,7 @@ export async function updateBlogPost(_: unknown, formData: FormData) {
       },
     })
     revalidatePath(`/${companySlug}/dashboard`)
+    revalidateSites()
     return { ok: true as const, data: updated }
   } catch {
     return { ok: false as const, error: 'Erro ao atualizar artigo' }

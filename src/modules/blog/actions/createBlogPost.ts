@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { revalidateSites } from '@/lib/revalidateSites'
 
 const schema = z.object({
   projectId: z.string().uuid(),
@@ -91,6 +92,7 @@ export async function createBlogPost(_: unknown, formData: FormData) {
       },
     })
     revalidatePath(`/${companySlug}/dashboard`)
+    revalidateSites()
     return { ok: true as const, data: post }
   } catch {
     return { ok: false as const, error: 'Erro ao criar artigo' }

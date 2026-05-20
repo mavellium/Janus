@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { revalidateSites } from '@/lib/revalidateSites'
 
 export async function deleteBlogPost(id: string) {
   const session = await auth()
@@ -11,6 +12,7 @@ export async function deleteBlogPost(id: string) {
   try {
     await db.blogPost.delete({ where: { id } })
     revalidatePath('/', 'layout')
+    revalidateSites()
     return { ok: true }
   } catch {
     return { ok: false, error: 'Erro ao excluir artigo' }
