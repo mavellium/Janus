@@ -92,7 +92,7 @@ export async function createBlogPost(_: unknown, formData: FormData) {
       },
     })
     revalidatePath(`/${companySlug}/dashboard`)
-    revalidateSites()
+    revalidateSites(companySlug)
     return { ok: true as const, data: post }
   } catch {
     return { ok: false as const, error: 'Erro ao criar artigo' }

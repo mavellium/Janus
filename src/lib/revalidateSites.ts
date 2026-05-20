@@ -1,13 +1,18 @@
-export async function revalidateSites() {
-  const siteUrl = process.env.MAVELLIUM_SITE_URL
-  const token = process.env.MAVELLIUM_REVALIDATE_TOKEN
-  if (!siteUrl || !token) return
+import { db } from "@/lib/prisma";
+
+export async function revalidateSites(companySlug: string) {
+  const company = await db.company.findUnique({
+    where: { slug: companySlug, deletedAt: null },
+    select: { webhookUrl: true, webhookToken: true },
+  });
+
+  if (!company?.webhookUrl || !company?.webhookToken) return;
 
   try {
-    await fetch(`${siteUrl}/api/revalidate`, {
-      method: 'POST',
-      headers: { 'x-revalidate-token': token },
-    })
+    await fetch(company.webhookUrl, {
+      method: "POST",
+      headers: { "x-revalidate-token": company.webhookToken },
+    });
   } catch {
     // Falha silenciosa — não bloqueia a action
   }

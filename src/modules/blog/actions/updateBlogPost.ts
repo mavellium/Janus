@@ -98,7 +98,7 @@ export async function updateBlogPost(_: unknown, formData: FormData) {
       },
     })
     revalidatePath(`/${companySlug}/dashboard`)
-    revalidateSites()
+    revalidateSites(companySlug)
     return { ok: true as const, data: updated }
   } catch {
     return { ok: false as const, error: 'Erro ao atualizar artigo' }

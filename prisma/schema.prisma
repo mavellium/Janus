@@ -30,6 +30,8 @@ model Company {
   description      String?
   logo             String?
   guestModeEnabled Boolean   @default(false) @map("guest_mode_enabled")
+  webhookUrl       String?   @map("webhook_url")
+  webhookToken     String?   @map("webhook_token")
   createdById      String?   @db.Uuid @map("created_by_id")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
