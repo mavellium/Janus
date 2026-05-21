@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
 import { getBlogCategories } from '@/modules/blog/queries/getBlogCategories'
 import { getBlogTags } from '@/modules/blog/queries/getBlogTags'
+import { getCompanyUsers } from '@/modules/blog/queries/getCompanyUsers'
 import { PostEditorClient } from '@/components/blog/PostEditorClient'
 
 export const metadata = { title: 'Novo Artigo — Janus' }
@@ -26,23 +27,22 @@ export default async function LpNewPostPage({
   })
   if (!project) redirect(`/${companySlug}/dashboard/landing-pages/${lpId}/pages`)
 
-  const [categories, tags, dbUser] = await Promise.all([
+  const [categories, tags, companyUsers] = await Promise.all([
     getBlogCategories(lpId),
     getBlogTags(lpId),
-    db.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true } }),
+    getCompanyUsers(company.id),
   ])
 
   const basePath = `/${companySlug}/dashboard/landing-pages/${lpId}`
-  const authorName = dbUser?.name ?? dbUser?.email ?? ''
 
   return (
     <PostEditorClient
       projectId={lpId}
       companySlug={companySlug}
       basePath={basePath}
-      authorName={authorName}
       categories={categories}
       tags={tags}
+      companyUsers={companyUsers}
     />
   )
 }

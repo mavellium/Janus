@@ -13,46 +13,68 @@ import { Loader2, ImageIcon, X, ArrowLeft } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
-interface Category {
+interface CategoryItem {
+  id: string
+  name: string
+  parentId: string | null
+}
+
+interface TagItem {
   id: string
   name: string
 }
 
-interface Tag {
+interface CompanyUser {
   id: string
-  name: string
+  name: string | null
+  email: string
+  image: string | null
+}
+
+interface PostCategory {
+  category: {
+    id: string
+    name: string
+    parentId: string | null
+  }
+}
+
+interface PostTag {
+  tag: { id: string; name: string }
 }
 
 interface PostEditorClientProps {
   projectId: string
   companySlug: string
   basePath: string
-  authorName: string
-  categories: Category[]
-  tags: Tag[]
+  categories: CategoryItem[]
+  tags: TagItem[]
+  companyUsers: CompanyUser[]
   post?: {
     id: string
     title: string
     subtitle: string | null
-    publishedAt: Date
+    status: 'DRAFT' | 'PUBLISHED'
+    publishedAt: Date | null
     body: string
     coverImageUrl: string | null
+    authorId: string | null
     authorName: string
-    categoryId: string | null
-    tags: { tag: { id: string; name: string } }[]
+    categories: PostCategory[]
+    tags: PostTag[]
     seoTitle: string | null
     seoDescription: string | null
     seoKeywords: string | null
-  }
+  } | null
 }
 
 export function PostEditorClient({
   projectId,
   companySlug,
   basePath,
-  authorName,
   categories,
   tags,
+  companyUsers,
   post,
 }: PostEditorClientProps) {
   const router = useRouter()
@@ -60,14 +82,28 @@ export function PostEditorClient({
   const [state, formAction, isPending] = useActionState(action, { ok: false as const, error: '' })
 
   const [body, setBody] = useState(post?.body ?? '')
-  const [coverImageUrl, setCoverImageUrl] = useState(post?.coverImageUrl ?? '')
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(post?.coverImageUrl ?? null)
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(post?.tags.map((t) => t.tag.id) ?? [])
   const [uploadingCover, setUploadingCover] = useState(false)
   const coverRef = useRef<HTMLInputElement>(null)
 
-  const defaultDate = post
-    ? new Date(post.publishedAt).toISOString().split('T')[0]
-    : new Date().toISOString().split('T')[0]
+  const [status, setStatus] = useState<'DRAFT' | 'PUBLISHED'>(post?.status ?? 'DRAFT')
+  const [selectedAuthorId, setSelectedAuthorId] = useState(post?.authorId ?? '')
+
+  const initRootCatIds =
+    post?.categories.filter((pc) => pc.category.parentId === null).map((pc) => pc.category.id) ?? []
+  const initSubCatIds =
+    post?.categories.filter((pc) => pc.category.parentId !== null).map((pc) => pc.category.id) ?? []
+
+  const [selectedRootCategoryIds, setSelectedRootCategoryIds] = useState<string[]>(initRootCatIds)
+  const [selectedSubCategoryIds, setSelectedSubCategoryIds] = useState<string[]>(initSubCatIds)
+
+  const rootCategories = categories.filter((c) => c.parentId === null)
+  const availableSubCategories = categories.filter(
+    (c) => c.parentId !== null && selectedRootCategoryIds.includes(c.parentId),
+  )
+
+  const selectedUser = companyUsers.find((u) => u.id === selectedAuthorId) ?? null
 
   useEffect(() => {
     if (state.ok && 'data' in state && state.data) {
@@ -82,13 +118,37 @@ export function PostEditorClient({
     if (!file) return
     setUploadingCover(true)
     const result = await uploadImage({ file, folder: 'blog-covers' })
-    if (result.ok && result.url) setCoverImageUrl(result.url)
+    if (result.ok && result.url) setCoverImageUrl(result.url ?? null)
     setUploadingCover(false)
     e.target.value = ''
   }
 
   function toggleTag(id: string) {
     setSelectedTagIds((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]))
+  }
+
+  function toggleRootCategory(id: string) {
+    setSelectedRootCategoryIds((prev) => {
+      if (prev.includes(id)) {
+        const removedChildren = categories.filter((c) => c.parentId === id).map((c) => c.id)
+        setSelectedSubCategoryIds((subs) => subs.filter((s) => !removedChildren.includes(s)))
+        return prev.filter((r) => r !== id)
+      }
+      return [...prev, id]
+    })
+  }
+
+  function toggleSubCategory(id: string) {
+    setSelectedSubCategoryIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]))
+  }
+
+  function getUserInitials(user: CompanyUser) {
+    const display = user.name ?? user.email
+    return display
+      .split(' ')
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() ?? '')
+      .join('')
   }
 
   return (
@@ -118,9 +178,14 @@ export function PostEditorClient({
         <input type="hidden" name="projectId" value={projectId} />
         <input type="hidden" name="companySlug" value={companySlug} />
         <input type="hidden" name="body" value={body} />
-        <input type="hidden" name="coverImageUrl" value={coverImageUrl} />
+        <input type="hidden" name="coverImageUrl" value={coverImageUrl ?? ''} />
+        <input type="hidden" name="status" value={status} />
+        <input type="hidden" name="authorId" value={selectedAuthorId} />
         {selectedTagIds.map((id) => (
           <input key={id} type="hidden" name="tagIds" value={id} />
+        ))}
+        {[...selectedRootCategoryIds, ...selectedSubCategoryIds].map((id) => (
+          <input key={id} type="hidden" name="categoryIds" value={id} />
         ))}
 
         <div className="grid grid-cols-[1fr_320px] h-full overflow-hidden">
@@ -132,7 +197,9 @@ export function PostEditorClient({
             )}
 
             <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-semibold">Título <span className="text-destructive">*</span></Label>
+              <Label className="text-xs font-semibold">
+                Título <span className="text-destructive">*</span>
+              </Label>
               <Input
                 name="title"
                 required
@@ -170,14 +237,18 @@ export function PostEditorClient({
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-xs">Imagem de Capa</Label>
                   {coverImageUrl ? (
-                    <div className="relative w-full h-36 rounded-lg overflow-hidden border border-border">
-                      <Image src={coverImageUrl} alt="Capa" fill className="object-cover" />
+                    <div className="flex flex-col gap-1.5">
+                      <div className="relative w-full h-36 rounded-lg overflow-hidden border border-border bg-muted">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={coverImageUrl} alt="Capa" className="w-full h-full object-cover" />
+                      </div>
                       <button
                         type="button"
-                        onClick={() => setCoverImageUrl('')}
-                        className="absolute top-2 right-2 p-1 rounded bg-card/80 text-brand-text hover:bg-card transition"
+                        onClick={() => setCoverImageUrl(null)}
+                        className="flex items-center gap-1 text-xs text-brand-muted hover:text-destructive transition w-fit"
                       >
-                        <X size={14} />
+                        <X size={12} />
+                        Remover capa
                       </button>
                     </div>
                   ) : (
@@ -199,36 +270,103 @@ export function PostEditorClient({
                 </div>
 
                 <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs">Status</Label>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={status === 'PUBLISHED'}
+                    onClick={() => setStatus((s) => (s === 'DRAFT' ? 'PUBLISHED' : 'DRAFT'))}
+                    className={`relative flex items-center w-full h-9 rounded-lg border px-3 gap-2.5 text-xs font-medium transition-colors ${
+                      status === 'PUBLISHED'
+                        ? 'bg-green-500/10 border-green-500/30 text-green-600'
+                        : 'bg-muted/50 border-border text-brand-muted'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block w-2 h-2 rounded-full flex-shrink-0 transition-colors ${
+                        status === 'PUBLISHED' ? 'bg-green-500' : 'bg-brand-muted/50'
+                      }`}
+                    />
+                    {status === 'PUBLISHED' ? 'Publicado' : 'Rascunho'}
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
                   <Label className="text-xs">Autor</Label>
-                  <Input
-                    name="authorName"
-                    required
-                    defaultValue={post?.authorName ?? authorName}
-                    placeholder="(Opcional)"
-                    className="text-sm"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Data de publicação</Label>
-                  <Input name="publishedAt" type="date" required defaultValue={defaultDate} className="text-sm" />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <Label className="text-xs">Categoria</Label>
+                  {selectedUser && (
+                    <div className="flex items-center gap-2 mb-1">
+                      {selectedUser.image ? (
+                        <Image
+                          src={selectedUser.image}
+                          alt={selectedUser.name ?? selectedUser.email}
+                          width={24}
+                          height={24}
+                          className="rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center text-[10px] font-semibold flex-shrink-0">
+                          {getUserInitials(selectedUser)}
+                        </div>
+                      )}
+                      <span className="text-xs text-brand-text truncate">
+                        {selectedUser.name ?? selectedUser.email}
+                      </span>
+                    </div>
+                  )}
                   <select
-                    name="categoryId"
-                    defaultValue={post?.categoryId ?? ''}
+                    value={selectedAuthorId}
+                    onChange={(e) => setSelectedAuthorId(e.target.value)}
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                   >
-                    <option value="">(Opcional)</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
+                    <option value="">(Sem autor)</option>
+                    {companyUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name ?? u.email}
                       </option>
                     ))}
                   </select>
                 </div>
+
+                {rootCategories.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <Label className="text-xs">Categorias</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {rootCategories.map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => toggleRootCategory(cat.id)}
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium border transition ${
+                            selectedRootCategoryIds.includes(cat.id)
+                              ? 'bg-brand-primary text-white border-brand-primary'
+                              : 'bg-background text-brand-muted border-border hover:border-brand-primary hover:text-brand-primary'
+                          }`}
+                        >
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {availableSubCategories.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pl-2 border-l-2 border-border">
+                        {availableSubCategories.map((cat) => (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => toggleSubCategory(cat.id)}
+                            className={`px-2.5 py-1 rounded-full text-xs font-medium border transition ${
+                              selectedSubCategoryIds.includes(cat.id)
+                                ? 'bg-brand-primary text-white border-brand-primary'
+                                : 'bg-background text-brand-muted border-border hover:border-brand-primary hover:text-brand-primary'
+                            }`}
+                          >
+                            {cat.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {tags.length > 0 && (
                   <div className="flex flex-col gap-1.5">

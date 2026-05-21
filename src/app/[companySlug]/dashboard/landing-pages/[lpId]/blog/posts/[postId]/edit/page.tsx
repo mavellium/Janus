@@ -5,6 +5,7 @@ import { db } from '@/lib/prisma'
 import { getBlogPost } from '@/modules/blog/queries/getBlogPost'
 import { getBlogCategories } from '@/modules/blog/queries/getBlogCategories'
 import { getBlogTags } from '@/modules/blog/queries/getBlogTags'
+import { getCompanyUsers } from '@/modules/blog/queries/getCompanyUsers'
 import { PostEditorClient } from '@/components/blog/PostEditorClient'
 import { ApiEndpointBanner } from '@/components/blog/ApiEndpointBanner'
 import { isPrivilegedRole } from '@/lib/auth/permissions'
@@ -25,11 +26,11 @@ export default async function LpEditPostPage({
   })
   if (!company) redirect('/login')
 
-  const [post, categories, tags, dbUser] = await Promise.all([
+  const [post, categories, tags, companyUsers] = await Promise.all([
     getBlogPost(postId),
     getBlogCategories(lpId),
     getBlogTags(lpId),
-    db.user.findUnique({ where: { id: session.user.id }, select: { name: true, email: true } }),
+    getCompanyUsers(company.id),
   ])
 
   if (!post || post.projectId !== lpId) redirect(`/${companySlug}/dashboard/landing-pages/${lpId}/blog/posts`)
@@ -40,7 +41,6 @@ export default async function LpEditPostPage({
   if (!project) redirect(`/${companySlug}/dashboard/landing-pages`)
 
   const basePath = `/${companySlug}/dashboard/landing-pages/${lpId}`
-  const authorName = dbUser?.name ?? dbUser?.email ?? ''
 
   const isDeveloperOrAdmin = isPrivilegedRole(session.user.role)
   const headersList = await headers()
@@ -59,9 +59,9 @@ export default async function LpEditPostPage({
         projectId={lpId}
         companySlug={companySlug}
         basePath={basePath}
-        authorName={authorName}
         categories={categories}
         tags={tags}
+        companyUsers={companyUsers}
         post={post}
       />
     </>

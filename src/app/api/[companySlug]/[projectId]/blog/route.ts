@@ -38,7 +38,8 @@ export async function GET(
 
   const where = {
     projectId,
-    publishedAt: { lte: new Date() },
+    status: 'PUBLISHED' as const,
+    publishedAt: { not: null, lte: new Date() },
     project: { companyId: company.id, blogEnabled: true, isActive: true, deletedAt: null },
     ...(search && {
       OR: [
@@ -65,7 +66,7 @@ export async function GET(
         seoTitle: true,
         seoDescription: true,
         seoKeywords: true,
-        category: true,
+        categories: { select: { category: true } },
         tags: { select: { tag: true } },
         project: { select: { id: true, name: true } },
       },

@@ -12,12 +12,12 @@ const schema = z.object({
   title: z.string().min(1),
   slug: z.string().optional(),
   subtitle: z.string().optional(),
-  publishedAt: z.string(),
+  status: z.enum(['DRAFT', 'PUBLISHED']).default('DRAFT'),
   body: z.string().default(''),
   coverImageUrl: z.string().optional(),
-  authorName: z.string().min(1),
+  authorId: z.string().uuid().optional(),
   readingTime: z.coerce.number().int().positive().optional(),
-  categoryId: z.string().uuid().optional(),
+  categoryIds: z.array(z.string().uuid()).default([]),
   tagIds: z.array(z.string().uuid()).default([]),
   seoTitle: z.string().optional(),
   seoDescription: z.string().optional(),
@@ -39,6 +39,7 @@ export async function createBlogPost(_: unknown, formData: FormData) {
   if (!session?.user?.id) return { ok: false as const, error: 'Não autenticado' }
 
   const tagIds = formData.getAll('tagIds').map(String).filter(Boolean)
+  const categoryIds = formData.getAll('categoryIds').map(String).filter(Boolean)
 
   const parsed = schema.safeParse({
     projectId: formData.get('projectId'),
@@ -46,12 +47,12 @@ export async function createBlogPost(_: unknown, formData: FormData) {
     title: formData.get('title'),
     slug: formData.get('slug') || undefined,
     subtitle: formData.get('subtitle') || undefined,
-    publishedAt: formData.get('publishedAt'),
+    status: formData.get('status') || 'DRAFT',
     body: formData.get('body') || '',
     coverImageUrl: formData.get('coverImageUrl') || undefined,
-    authorName: formData.get('authorName'),
+    authorId: formData.get('authorId') || undefined,
     readingTime: formData.get('readingTime') || undefined,
-    categoryId: formData.get('categoryId') || undefined,
+    categoryIds,
     tagIds,
     seoTitle: formData.get('seoTitle') || undefined,
     seoDescription: formData.get('seoDescription') || undefined,
@@ -59,14 +60,14 @@ export async function createBlogPost(_: unknown, formData: FormData) {
   })
   if (!parsed.success) return { ok: false as const, error: 'Dados inválidos' }
 
-  const { tagIds: ids, categoryId, projectId, companySlug, slug, ...rest } = parsed.data
+  const { tagIds: ids, categoryIds: catIds, projectId, companySlug, slug, authorId, status, ...rest } = parsed.data
   const resolvedSlug = slug ? slugify(slug) : slugify(rest.title)
+  const publishedAt = status === 'PUBLISHED' ? new Date() : null
 
   try {
     const company = await db.company.findUnique({
       where: { slug: companySlug, deletedAt: null },
     })
-
     if (!company) return { ok: false as const, error: 'Empresa não encontrada' }
 
     if (session.user.role !== 'ADMIN' && session.user.companySlug && session.user.companySlug !== companySlug) {
@@ -76,19 +77,25 @@ export async function createBlogPost(_: unknown, formData: FormData) {
     const project = await db.project.findUnique({
       where: { id: projectId, companyId: company.id, deletedAt: null },
     })
-
     if (!project) return { ok: false as const, error: 'Projeto não encontrado' }
+
+    let authorName = ''
+    if (authorId) {
+      const user = await db.user.findUnique({ where: { id: authorId }, select: { name: true, email: true } })
+      authorName = user?.name ?? user?.email ?? ''
+    }
 
     const post = await db.blogPost.create({
       data: {
         ...rest,
         slug: resolvedSlug,
-        publishedAt: new Date(rest.publishedAt),
+        status,
+        publishedAt,
+        authorName,
+        ...(authorId && { authorId }),
         projectId,
-        ...(categoryId && { categoryId }),
-        tags: ids.length > 0
-          ? { create: ids.map(tagId => ({ tagId })) }
-          : undefined,
+        categories: catIds.length > 0 ? { create: catIds.map((categoryId) => ({ categoryId })) } : undefined,
+        tags: ids.length > 0 ? { create: ids.map((tagId) => ({ tagId })) } : undefined,
       },
     })
     revalidatePath(`/${companySlug}/dashboard`)

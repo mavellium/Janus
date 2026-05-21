@@ -352,9 +352,9 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 ### blog
 - **Actions:** `createBlogCategory.ts`, `updateBlogCategory.ts`, `deleteBlogCategory.ts` — CRUD categorias
 - **Actions:** `createBlogTag.ts`, `updateBlogTag.ts`, `deleteBlogTag.ts` — CRUD tags
-- **Actions:** `createBlogPost.ts`, `updateBlogPost.ts`, `deleteBlogPost.ts` — CRUD artigos com tags M:N
+- **Actions:** `createBlogPost.ts`, `updateBlogPost.ts`, `deleteBlogPost.ts` — CRUD artigos; status DRAFT/PUBLISHED com publishedAt auto; authorId FK; categories M:N
 - **Actions:** `toggleBlogEnabled.ts` — ativa/desativa blog por projeto
-- **Queries:** `getBlogCategories.ts`, `getBlogTags.ts`, `getBlogPosts.ts`, `getBlogPost.ts`
+- **Queries:** `getBlogCategories.ts`, `getBlogTags.ts`, `getBlogPosts.ts`, `getBlogPost.ts`, `getCompanyUsers.ts` — lista usuários da empresa para select de autor
 
 ## Componentes Blog
 
@@ -363,8 +363,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/components/blog/BlogManagementHeader.tsx` — Server — header "Gerenciar Blog" com ícone + BlogTabNav; recebe basePath
 - `src/components/blog/CategoriesClient.tsx` — Client — layout 3 colunas: Categorias (raiz) | Subcategorias | Painel de edição; isActive toggle; imagem ANTES do nome; trash icon com modal de confirmação (sem delete no form)
 - `src/components/blog/TagsClient.tsx` — Client — layout 3 colunas: Tags (raiz) | Sub-tags | Painel de edição; isActive toggle; imagem ANTES do nome; trash icon com modal de confirmação (sem delete no form)
-- `src/components/blog/PostsListClient.tsx` — Client — exporta `BlogPostsTable` e `PostsListClient`; paginação client-side, page size 10/25/50, visibilidade de colunas, multi-select com bulk delete
-- `src/components/blog/PostEditorClient.tsx` — Client — layout 2 colunas: corpo do artigo à esquerda, sidebar (organização + SEO) à direita; botão "Atualizar Post" no header
+- `src/components/blog/PostsListClient.tsx` — Client — exporta `BlogPostsTable` e `PostsListClient`; filtros rápidos (Status/Autor/Categoria), D&D na ordenação de colunas, bulk delete via modal (autoFocus no Cancelar), lápis icon para editar
+- `src/components/blog/PostEditorClient.tsx` — Client — layout 2 colunas: corpo à esquerda; sidebar direita com status toggle (Rascunho/Publicado), select de autor com avatar, cascade multi-select de categorias, tags, SEO
 
 ## Páginas Blog (Sites)
 
@@ -386,7 +386,9 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 - **BlogCategory** (`blog_categories`) — name, description, imageUrl, slug, seoTitle, seoDescription, seoKeywords, **isActive (bool, default true)**, projectId, parentId (self-referencial → SubCategories) | CASCADE do Project
 - **BlogTag** (`blog_tags`) — name, description, imageUrl, slug, seoTitle, seoDescription, seoKeywords, **isActive (bool, default true)**, projectId, parentId (self-referencial → SubTags) | CASCADE do Project
-- **BlogPost** (`blog_posts`) — title, subtitle, body, publishedAt, coverImageUrl, authorName, SEO fields, projectId, categoryId | CASCADE do Project
+- **BlogPostStatus** (enum) — DRAFT | PUBLISHED (default PUBLISHED para backward compat)
+- **BlogPost** (`blog_posts`) — title, subtitle, body, **status (BlogPostStatus)**, **publishedAt (DateTime?)**, coverImageUrl, authorName, **authorId (UUID?, FK→User SetNull)**, SEO fields, projectId | CASCADE do Project
+- **BlogPostCategory** (`blog_post_categories`) — join M:N BlogPost ↔ BlogCategory; PK composta [postId, categoryId] | CASCADE ambos
 - **BlogPostTag** (`blog_post_tags`) — join M:N BlogPost ↔ BlogTag | CASCADE ambos os lados
 - **Project** — campo `blogEnabled Boolean @default(false)` adicionado
 
@@ -426,6 +428,16 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-20 | `TagsClient.tsx` | REESCRITO: 3 colunas (Tags / Sub-tags / Painel), imagem-first, isActive toggle, trash+modal, sem parentId selector |
 | 2026-05-20 | `SiteContentEditClient.tsx` | FEAT: Modo avançado refatorado para 3 colunas (Menu Seções → Iframe → Editor Contextual); seção title adicionado; scroll em column 3 corrigido; selected button com background sólido |
 | 2026-05-20 | `updatePageAdvancedContent.ts` | NOVO: Action para modo avançado salvar em `contentData` (não toca `schemaData`); segurança contra sobrescita ao alternar modos |
+| 2026-05-21 | `prisma/schema.prisma` | FEAT: BlogPostStatus enum; BlogPost.status + publishedAt (nullable) + authorId FK; BlogPostCategory M:N substituindo categoryId |
+| 2026-05-21 | `getCompanyUsers.ts` | NOVO: Query lista usuários da empresa para select de autor nos artigos |
+| 2026-05-21 | `getBlogPosts.ts`, `getBlogPost.ts` | FEAT: Includes atualizados para categories M:N, author, tags; orderBy publishedAt asc nulls last |
+| 2026-05-21 | `createBlogPost.ts`, `updateBlogPost.ts` | FEAT: status/authorId/categoryIds[]; publishedAt auto; re-publish sem zerar data; categories full-replace |
+| 2026-05-21 | 4 páginas new/edit posts (sites + lp) | FEAT: Adicionado getCompanyUsers ao Promise.all; companyUsers prop passado ao PostEditorClient |
+| 2026-05-21 | `PostEditorClient.tsx` | REESCRITO: status toggle, select autor com avatar, cascade multi-select categorias, sem authorName prop |
+| 2026-05-21 | `PostsListClient.tsx` | REESCRITO: filtros rápidos Status/Autor/Categoria, D&D colunas, modal bulk delete (autoFocus Cancel), lápis edit |
+| 2026-05-21 | `api/[companySlug]/[projectId]/blog/route.ts` | FIX: categories[] em vez de category; filtro status PUBLISHED + publishedAt not null |
+| 2026-05-21 | `api/[companySlug]/[projectId]/blog/[postId]/route.ts` | FIX: categories[] em vez de category; filtro status PUBLISHED |
+| 2026-05-21 | `api/[companySlug]/blog/route.ts` | FIX: categories[] em vez de category; filtro status PUBLISHED + publishedAt not null |
 | 2026-05-17 | `src/components/ui/SlugInput.tsx` | NOVO: Componente reutilizável de input de slug com validação em tempo real; sanitiza a-z, 0-9, hífen; feedback visual de erro |
 | 2026-05-17 | `CreatePageModal.tsx`, `EditPageModal.tsx`, `CompaniesClient.tsx`, `AdminCompaniesClient.tsx`, `CreateCompanyModal.tsx` | FIX: Substituição de inputs raw slug pelo componente SlugInput com validação live |
 | 2026-05-17 | `src/modules/projects/actions/createPage.ts` + 10 actions | FIX: `session.user.companySlug` undefined para DEVELOPER — adicionado guard `&& session.user.companySlug` antes de comparar |
