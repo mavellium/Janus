@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 import { SettingsClient } from "./settings.client";
 import type { UserPreferences } from "@/types/next-auth";
+import { getImpersonatedUserId } from "@/lib/auth/permissions";
 
 export const metadata = { title: "Configurações — Janus" };
 
@@ -28,8 +29,11 @@ export default async function SettingsPage({
   });
   if (!company) redirect("/login");
 
+  const impersonatedId = await getImpersonatedUserId()
+  const userId = impersonatedId ?? session.user.id
+
   const user = await db.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: userId },
     select: {
       id: true,
       email: true,

@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Users, Plus, Loader2, UserCircle, KeyRound, Eye, Trash2 } from 'lucide-react'
+import { startImpersonation } from '@/modules/auth/actions/startImpersonation'
 import Link from 'next/link'
 import { createUser } from '@/modules/dev/actions/createUser'
 import { deleteUser } from '@/modules/dev/actions/deleteUser'
@@ -131,14 +132,9 @@ export function UsersClient({ users, companies }: { users: User[]; companies: Co
   }
 
   async function handleViewAsUser(user: User) {
-    const response = await fetch('/api/impersonate-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id, companySlug: user.company.slug }),
-    }).then((r) => r.json())
-
-    if (response.ok) {
-      window.open(response.redirectUrl, '_blank')
+    const result = await startImpersonation(user.id, user.company.slug, window.location.href)
+    if (result.ok) {
+      window.open(`/${user.company.slug}/dashboard`, '_self')
     }
   }
 

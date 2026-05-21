@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Building2, Pencil, Trash2, LayoutDashboard, Plus, Loader2, UsersRound } from 'lucide-react'
+import { Building2, Pencil, Trash2, Eye, Plus, Loader2, UsersRound, Search, UserCircle, X } from 'lucide-react'
+import { startImpersonation } from '@/modules/auth/actions/startImpersonation'
 import { SlugInput } from '@/components/ui/SlugInput'
 import { adminCreateCompany } from '@/modules/admin/actions/adminCreateCompany'
 import { adminEditCompany } from '@/modules/admin/actions/adminEditCompany'
@@ -23,7 +24,7 @@ interface Company {
   description: string | null
   guestModeEnabled: boolean
   createdAt: Date
-  users: { id: string }[]
+  users: { id: string; name: string | null; email: string }[]
   projects: { id: string }[]
 }
 
@@ -127,7 +128,9 @@ function GuestModeSwitch({ company }: { company: Company }) {
 
 export function AdminCompaniesClient({ companies }: { companies: Company[] }) {
   const router = useRouter()
-  const [modal, setModal] = useState<null | 'create' | { mode: 'edit'; company: Company } | { mode: 'delete'; company: Company }>(null)
+  const [modal, setModal] = useState<null | 'create' | { mode: 'edit'; company: Company } | { mode: 'delete'; company: Company } | { mode: 'impersonate'; company: Company }>(null)
+  const [impersonateSearch, setImpersonateSearch] = useState('')
+  const [isImpersonating, setIsImpersonating] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
   async function handleDelete(id: string) {
@@ -209,13 +212,13 @@ export function AdminCompaniesClient({ companies }: { companies: Company[] }) {
                           <UsersRound className="w-3.5 h-3.5" />
                         </Link>
                       )}
-                      <Link
-                        href={`/${company.slug}/dashboard`}
+                      <button
+                        onClick={() => setModal({ mode: 'impersonate', company })}
                         className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
                         title="Acessar Painel"
                       >
-                        <LayoutDashboard className="w-3.5 h-3.5" />
-                      </Link>
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         onClick={() => setModal({ mode: 'edit', company })}
                         className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
@@ -254,6 +257,85 @@ export function AdminCompaniesClient({ companies }: { companies: Company[] }) {
           isDeleting={isDeleting}
           description={`Esta ação excluirá permanentemente "${modal.company.name}" e todos os projetos, páginas e usuários associados.`}
         />
+      )}
+
+      {modal !== null && typeof modal === 'object' && modal.mode === 'impersonate' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md mx-4 bg-card border border-border rounded-xl shadow-xl flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">
+                Acessar como usuário — {modal.company.name}
+              </h2>
+              <button
+                onClick={() => setModal(null)}
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="px-5 py-3 border-b border-border">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={impersonateSearch}
+                  onChange={(e) => setImpersonateSearch(e.target.value)}
+                  placeholder="Buscar por nome ou e-mail..."
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto divide-y divide-border">
+              {(() => {
+                const term = impersonateSearch.toLowerCase()
+                const filtered = modal.company.users.filter((u) =>
+                  (u.name?.toLowerCase().includes(term) ?? false) ||
+                  u.email.toLowerCase().includes(term)
+                )
+                if (filtered.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-10 gap-2">
+                      <UserCircle className="w-8 h-8 text-muted-foreground opacity-40" />
+                      <p className="text-sm text-muted-foreground">Nenhum usuário encontrado</p>
+                    </div>
+                  )
+                }
+                return filtered.map((user) => (
+                  <button
+                    key={user.id}
+                    onClick={async () => {
+                      setIsImpersonating(true)
+                      const result = await startImpersonation(user.id, modal.company.slug, window.location.href)
+                      if (result.ok) {
+                        window.open(`/${modal.company.slug}/dashboard`, '_self')
+                      } else {
+                        setIsImpersonating(false)
+                      }
+                    }}
+                    disabled={isImpersonating}
+                    className="w-full px-5 py-3 flex items-center gap-3 text-left hover:bg-accent transition disabled:opacity-50"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                      <UserCircle className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {user.name || user.email}
+                      </p>
+                      {user.name && (
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                      )}
+                    </div>
+                    {isImpersonating && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />}
+                  </button>
+                ))
+              })()}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

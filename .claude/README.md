@@ -36,6 +36,13 @@
 
 ## 📝 Módulos Documentados
 
+### Auth/Permissions (`src/modules/auth/`)
+- **[context/auth/_index.md](context/auth/_index.md)** — Sumário executivo (1min)
+- **[context/auth/domain.md](context/auth/domain.md)** — Roles, cookies, permission constants
+- **[context/auth/actions.md](context/auth/actions.md)** — start/stopImpersonation, checkIpStatus
+- **[context/auth/queries.md](context/auth/queries.md)** — getCompanyUsers, effective permissions
+- **[context/auth/patterns.md](context/auth/patterns.md)** — Sidebar impersonated, Shield/Voltar ao Painel
+
 ### Blog (`src/modules/blog/`)
 - **[context/blog/_index.md](context/blog/_index.md)** — Sumário executivo (1min)
 - **[context/blog/domain.md](context/blog/domain.md)** — BlogPost, BlogCategory, BlogTag

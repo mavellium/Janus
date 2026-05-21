@@ -1,12 +1,12 @@
 'use client'
 
-import Link from 'next/link'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Code2, Plus, Loader2, UserCircle, CheckCircle2, Clock, LayoutDashboard, Eye, Trash2, Pencil, KeyRound } from 'lucide-react'
+import { Code2, Plus, Loader2, UserCircle, CheckCircle2, Clock, Eye, Trash2, Pencil, KeyRound, ArrowLeft, Search, X } from 'lucide-react'
 import { createDeveloper } from '@/modules/admin/actions/createDeveloper'
 import { adminEditUser } from '@/modules/admin/actions/adminEditUser'
 import { adminDeleteUser } from '@/modules/admin/actions/adminDeleteUser'
+import { startImpersonation } from '@/modules/auth/actions/startImpersonation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -31,8 +31,14 @@ interface Company {
   slug: string
 }
 
+interface User {
+  id: string
+  name: string | null
+  email: string
+  role: string
+}
+
 type ModuleType = 'sites' | 'landingPages'
-type PermissionTier = 'project' | 'page'
 
 function CreateDeveloperModal({ onClose }: { onClose: () => void }) {
   const router = useRouter()
@@ -166,12 +172,20 @@ function EditDeveloperModal({ developer, onClose }: { developer: Developer; onCl
   )
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  DEFAULT: 'Usuário',
+  ADMIN: 'Admin',
+  DEVELOPER: 'Desenvolvedor',
+}
+
 export function AdminDevelopersClient({
   developers,
   companiesByDev,
+  usersByCompany,
 }: {
   developers: Developer[]
   companiesByDev: Map<string, Company[]>
+  usersByCompany: Map<string, User[]>
 }) {
   const router = useRouter()
   const [showCreate, setShowCreate] = useState(false)
@@ -180,7 +194,10 @@ export function AdminDevelopersClient({
   const [permissionsModuleSelector, setPermissionsModuleSelector] = useState<Developer | null>(null)
   const [permissionsModal, setPermissionsModal] = useState<{ user: Developer; module: ModuleType } | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [companySelectorTarget, setCompanySelectorTarget] = useState<Developer | null>(null)
+  const [viewTarget, setViewTarget] = useState<Developer | null>(null)
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
+  const [search, setSearch] = useState('')
+  const [isImpersonating, setIsImpersonating] = useState(false)
 
   async function handleDelete(id: string) {
     setIsDeleting(true)
@@ -251,18 +268,14 @@ export function AdminDevelopersClient({
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center justify-end gap-1">
-                      <Link
-                        href={`/dev/${dev.id}/dashboard`}
-                        target="_blank"
-                        className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
-                        title="Acessar Painel Dev (nova aba)"
-                      >
-                        <LayoutDashboard className="w-3.5 h-3.5" />
-                      </Link>
                       <button
-                        onClick={() => setCompanySelectorTarget(dev)}
+                        onClick={() => {
+                          setViewTarget(dev)
+                          setSelectedCompany(null)
+                          setSearch('')
+                        }}
                         className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
-                        title="Ver site como Dev (nova aba)"
+                        title="Visualizar como usuário"
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </button>
@@ -334,47 +347,128 @@ export function AdminDevelopersClient({
         />
       )}
 
-      {companySelectorTarget && (
-        <Dialog open onOpenChange={() => setCompanySelectorTarget(null)}>
-          <DialogContent className="bg-card border-border">
-            <DialogHeader>
-              <DialogTitle className="text-brand-text flex items-center gap-2 pt-4 mb-2">
-                <Eye className="w-4 h-4 text-brand-primary" />
-                Escolher Empresa
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex flex-col gap-3">
-              <p className="text-sm text-brand-muted">
-                Selecione a empresa que você deseja visualizar como <strong>{companySelectorTarget.name || companySelectorTarget.email}</strong>:
-              </p>
-              <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
-                {(companiesByDev.get(companySelectorTarget.id) ?? []).length === 0 && (
-                  <p className="text-sm text-brand-muted">Nenhuma empresa cadastrada por este desenvolvedor.</p>
-                )}
-                {(companiesByDev.get(companySelectorTarget.id) ?? []).map((company: Company) => (
-                  <button
-                    key={company.id}
-                    onClick={async () => {
-                      const result = await fetch('/api/impersonate-dev', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ devId: companySelectorTarget.id, companySlug: company.slug }),
-                      }).then((r) => r.json())
-                      if (result.ok) {
-                        window.open(result.redirectUrl, '_blank')
-                        setCompanySelectorTarget(null)
-                      }
-                    }}
-                    className="p-3 rounded-lg border border-brand-btn-light hover:border-brand-primary hover:bg-brand-btn-light/50 transition text-left"
-                  >
-                    <p className="text-sm font-medium text-brand-text">{company.name}</p>
-                    <code className="text-xs text-brand-muted">{company.slug}</code>
-                  </button>
-                ))}
+      {viewTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md mx-4 bg-card border border-border rounded-xl shadow-xl flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">
+                {!selectedCompany
+                  ? `Escolher empresa — ${viewTarget.name || viewTarget.email}`
+                  : `Escolher usuário — ${selectedCompany.name}`}
+              </h2>
+              <button
+                onClick={() => {
+                  if (selectedCompany) {
+                    setSelectedCompany(null)
+                    setSearch('')
+                  } else {
+                    setViewTarget(null)
+                    setSearch('')
+                  }
+                }}
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition"
+              >
+                {selectedCompany ? <ArrowLeft className="w-4 h-4" /> : <X className="w-4 h-4" />}
+              </button>
+            </div>
+
+            <div className="px-5 py-3 border-b border-border">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={!selectedCompany ? 'Buscar empresa...' : 'Buscar usuário...'}
+                  className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  autoFocus
+                />
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+
+            <div className="flex-1 overflow-y-auto divide-y divide-border">
+              {!selectedCompany && (() => {
+                const companies = companiesByDev.get(viewTarget.id) ?? []
+                const term = search.toLowerCase()
+                const filtered = companies.filter((c) =>
+                  c.name.toLowerCase().includes(term) || c.slug.toLowerCase().includes(term)
+                )
+                if (filtered.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-10 gap-2">
+                      <Code2 className="w-8 h-8 text-muted-foreground opacity-40" />
+                      <p className="text-sm text-muted-foreground">Nenhuma empresa encontrada</p>
+                    </div>
+                  )
+                }
+                return filtered.map((company) => (
+                  <button
+                    key={company.id}
+                    onClick={() => {
+                      setSelectedCompany(company)
+                      setSearch('')
+                    }}
+                    className="w-full px-5 py-3 flex items-center gap-3 text-left hover:bg-accent transition"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                      <Code2 className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{company.name}</p>
+                      <code className="text-xs text-muted-foreground">{company.slug}</code>
+                    </div>
+                  </button>
+                ))
+              })()}
+
+              {selectedCompany && (() => {
+                const users = usersByCompany.get(selectedCompany.id) ?? []
+                const term = search.toLowerCase()
+                const filtered = users.filter((u) =>
+                  (u.name?.toLowerCase().includes(term) ?? false) ||
+                  u.email.toLowerCase().includes(term) ||
+                  (ROLE_LABELS[u.role] ?? u.role).toLowerCase().includes(term)
+                )
+                if (filtered.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-10 gap-2">
+                      <UserCircle className="w-8 h-8 text-muted-foreground opacity-40" />
+                      <p className="text-sm text-muted-foreground">Nenhum usuário encontrado</p>
+                    </div>
+                  )
+                }
+                return filtered.map((user) => (
+                  <button
+                    key={user.id}
+                    onClick={async () => {
+                      setIsImpersonating(true)
+                      const result = await startImpersonation(user.id, selectedCompany.slug, window.location.href)
+                      if (result.ok) {
+                        window.open(`/${selectedCompany.slug}/dashboard`, '_self')
+                      } else {
+                        setIsImpersonating(false)
+                      }
+                    }}
+                    disabled={isImpersonating}
+                    className="w-full px-5 py-3 flex items-center gap-3 text-left hover:bg-accent transition disabled:opacity-50"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                      <UserCircle className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{user.name || user.email}</p>
+                      {user.name && <p className="text-xs text-muted-foreground truncate">{user.email}</p>}
+                    </div>
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded shrink-0">
+                      {ROLE_LABELS[user.role] ?? user.role}
+                    </span>
+                    {isImpersonating && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />}
+                  </button>
+                ))
+              })()}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

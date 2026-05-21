@@ -5,9 +5,9 @@ import { Sidebar } from '@/components/dashboard/Sidebar'
 import { MobileNav } from '@/components/dashboard/MobileNav'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { ImpersonationBanner } from '@/components/dashboard/ImpersonationBanner'
-import { getDeveloperUsers } from '@/modules/auth/queries/getDeveloperUsers'
 import type { UserPreferences } from '@/types/next-auth'
-import { getViewMode, VIEW_MODE_USER, VIEW_MODE_DEV, isPrivilegedRole, getImpersonatedUserId, getImpersonatedDevId } from '@/lib/auth/permissions'
+import { isPrivilegedRole, getImpersonatedUserId, getImpersonatedUserName, getImpersonationReturnUrl } from '@/lib/auth/permissions'
+import { getCompanyUsers } from '@/modules/auth/queries/getCompanyUsers'
 
 export default async function DashboardLayout({
   children,
@@ -39,63 +39,44 @@ export default async function DashboardLayout({
   })
 
   const prefs = (user?.preferences ?? {}) as UserPreferences
-  const viewMode = await getViewMode()
-  const isSimulating = viewMode === VIEW_MODE_USER
-  const isSimulatingDev = viewMode === VIEW_MODE_DEV
   const impersonatedUserId = await getImpersonatedUserId()
-  const impersonatedDevId = await getImpersonatedDevId()
-
-  console.log('[dashboard/layout]', {
-    isSimulating,
-    isSimulatingDev,
-    impersonatedUserId,
-    impersonatedDevId,
-    viewMode,
-  })
+  const impersonatedUserName = await getImpersonatedUserName()
+  const returnUrl = await getImpersonationReturnUrl()
 
   let impersonatedUserEmail: string | null = null
+  let impersonatedUserNameForSidebar: string | null = null
   let impersonatedUserPermissions: string | string[] | Record<string, Record<string, string[]>> | undefined
-  if (impersonatedUserId && isSimulating) {
-    console.log('[dashboard/layout] Fetching impersonated user:', impersonatedUserId)
-    const impersonatedUser = await db.user.findUnique({
-      where: { id: impersonatedUserId },
-      select: { email: true, permissions: true },
+  if (impersonatedUserId) {
+    const target = await db.user.findUnique({
+      where: { id: impersonatedUserId, deletedAt: null },
+      select: { email: true, name: true, permissions: true },
     })
-    impersonatedUserEmail = impersonatedUser?.email ?? null
-    impersonatedUserPermissions = impersonatedUser?.permissions
-    console.log('[dashboard/layout] Impersonated user:', { impersonatedUserEmail, permissions: impersonatedUserPermissions })
+    impersonatedUserEmail = target?.email ?? null
+    impersonatedUserNameForSidebar = target?.name ?? null
+    impersonatedUserPermissions = target?.permissions
   }
 
-  let impersonatedDevName: string | null = null
-  let impersonatedDevPermissions: string | string[] | Record<string, Record<string, string[]>> | undefined
-  if (impersonatedDevId && isSimulatingDev) {
-    console.log('[dashboard/layout] Fetching impersonated dev:', impersonatedDevId)
-    const impersonatedDev = await db.user.findUnique({
-      where: { id: impersonatedDevId },
-      select: { name: true, email: true, permissions: true },
-    })
-    impersonatedDevName = impersonatedDev?.name ?? impersonatedDev?.email ?? null
-    impersonatedDevPermissions = impersonatedDev?.permissions
-    console.log('[dashboard/layout] Impersonated dev:', { impersonatedDevName, permissions: impersonatedDevPermissions })
-  }
+  const realUserName = session.user.name ?? null
 
-  let developerUsers: Array<{ id: string; name: string | null; email: string; role: string }> = []
-  if (role === 'DEVELOPER') {
-    developerUsers = await getDeveloperUsers(session.user.id, company.id)
+  let companyUsers: Array<{ id: string; name: string | null; email: string; role: string }> = []
+  if (isPrivileged) {
+    companyUsers = await getCompanyUsers(company.id)
   }
 
   return (
     <ThemeProvider darkMode={prefs.darkMode}>
       <div className="h-screen flex bg-brand-bg">
         <Sidebar
-          email={session.user.email ?? ''}
+          email={impersonatedUserId && impersonatedUserEmail ? impersonatedUserEmail : session.user.email ?? ''}
+          name={impersonatedUserId && impersonatedUserNameForSidebar ? impersonatedUserNameForSidebar : realUserName}
           image={user?.image ?? null}
           initialCollapsed={prefs.sidebar_collapsed ?? false}
           companyName={company.name}
         />
         <MobileNav logoHref={`/${companySlug}/dashboard`}>
           <Sidebar
-            email={session.user.email ?? ''}
+            email={impersonatedUserId && impersonatedUserEmail ? impersonatedUserEmail : session.user.email ?? ''}
+            name={impersonatedUserId && impersonatedUserNameForSidebar ? impersonatedUserNameForSidebar : realUserName}
             image={user?.image ?? null}
             initialCollapsed={false}
             companyName={company.name}
@@ -105,18 +86,15 @@ export default async function DashboardLayout({
         <main className="flex-1 flex flex-col min-h-0 pt-14 md:pt-0 md:ml-[var(--sidebar-width,220px)] overflow-x-hidden">
           {isPrivileged && (
             <ImpersonationBanner
-              companyName={company.name}
               companySlug={companySlug}
-              role={role as 'ADMIN' | 'DEVELOPER'}
-              initialSimulating={isSimulating}
+              impersonatedUserName={impersonatedUserName}
+              isImpersonating={!!impersonatedUserId}
+              companyUsers={companyUsers}
+              realUserRole={role as 'ADMIN' | 'DEVELOPER'}
               impersonatedUserId={impersonatedUserId}
               impersonatedUserEmail={impersonatedUserEmail}
               impersonatedUserPermissions={impersonatedUserPermissions}
-              isSimulatingDev={isSimulatingDev}
-              impersonatedDevId={impersonatedDevId}
-              impersonatedDevName={impersonatedDevName}
-              impersonatedDevPermissions={impersonatedDevPermissions}
-              developerUsers={developerUsers}
+              returnUrl={returnUrl}
             />
           )}
           <div className="flex-1 min-h-0">

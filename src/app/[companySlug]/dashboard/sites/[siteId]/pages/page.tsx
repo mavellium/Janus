@@ -8,10 +8,7 @@ import { formatDate } from '@/lib/utils'
 import { EditPageContainer } from '@/components/projects/EditPageContainer'
 import { PublishPageButton } from '@/components/projects/PublishPageButton'
 import { CreatePageModal } from '@/components/projects/CreatePageModal'
-import { hasPermission, getViewMode, VIEW_MODE_USER, VIEW_MODE_DEV } from '@/lib/auth/permissions'
-import { getUserPermissions } from '@/modules/auth/queries/getUserPermissions'
-import { getImpersonatedUserPermissions } from '@/modules/auth/queries/getImpersonatedUserPermissions'
-import { getImpersonatedDevPermissions } from '@/modules/auth/queries/getImpersonatedDevPermissions'
+import { hasPermission, isImpersonating, getEffectivePermissions } from '@/lib/auth/permissions'
 
 export const metadata = { title: 'Páginas — Janus' }
 
@@ -36,34 +33,20 @@ export default async function SitePagesPage({
 
   const pages = await getPagesByProjectId(siteId)
 
-  // Fetch permissions fresh from database (not from session cache)
-  const viewMode = await getViewMode()
-
-  // If in USER_MODE, use impersonated user's permissions; otherwise use logged-in user's permissions
-  let freshPermissions = await getUserPermissions(session.user.id)
-  if (viewMode === VIEW_MODE_USER) {
-    const impersonatedPerms = await getImpersonatedUserPermissions()
-    if (impersonatedPerms) {
-      freshPermissions = impersonatedPerms
-    }
-  } else if (viewMode === VIEW_MODE_DEV) {
-    const impersonatedPerms = await getImpersonatedDevPermissions()
-    if (impersonatedPerms) {
-      freshPermissions = impersonatedPerms
-    }
-  }
+  const impersonating = await isImpersonating()
+  const freshPermissions = await getEffectivePermissions(session.user.id)
 
   const sessionWithFreshPerms = {
     ...session,
     user: {
       ...session.user,
-      permissions: freshPermissions,
+      permissions: freshPermissions ?? undefined,
     },
   }
 
-  const canCreate = hasPermission(sessionWithFreshPerms, 'PAGE_CREATE', 'sites', 'page', viewMode)
-  const canBuild = hasPermission(sessionWithFreshPerms, 'PAGE_BUILD', 'sites', 'page', viewMode)
-  const canDelete = hasPermission(sessionWithFreshPerms, 'PAGE_DELETE', 'sites', 'page', viewMode)
+  const canCreate = hasPermission(sessionWithFreshPerms, 'PAGE_CREATE', 'sites', 'page', impersonating)
+  const canBuild = hasPermission(sessionWithFreshPerms, 'PAGE_BUILD', 'sites', 'page', impersonating)
+  const canDelete = hasPermission(sessionWithFreshPerms, 'PAGE_DELETE', 'sites', 'page', impersonating)
 
   return (
     <div className="p-8 w-full">

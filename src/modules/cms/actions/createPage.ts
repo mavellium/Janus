@@ -3,7 +3,6 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
-import { getViewMode, VIEW_MODE_DEV } from '@/lib/auth/permissions'
 
 interface CreatePageParams {
   projectId: string
@@ -33,7 +32,6 @@ export async function createPage({ projectId, name, slug, companySlug, previewUr
   }
 
   try {
-    const viewMode = await getViewMode()
     const project = await db.project.findUnique({
       where: { id: projectId },
       include: { company: true },
@@ -47,9 +45,7 @@ export async function createPage({ projectId, name, slug, companySlug, previewUr
       return { ok: false, error: 'Acesso negado' }
     }
 
-    // Only validate companySlug for DEVELOPERs (not for ADMIN)
-    // In DEV_MODE, skip companySlug validation since admin is viewing dev's company
-    if (session.user.role === 'DEVELOPER' && viewMode !== VIEW_MODE_DEV && session.user.companySlug && project.company.slug !== session.user.companySlug) {
+    if (session.user.role === 'DEVELOPER' && session.user.companySlug && project.company.slug !== session.user.companySlug) {
       return { ok: false, error: 'Acesso negado' }
     }
 

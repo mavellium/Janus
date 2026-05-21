@@ -29,7 +29,7 @@ export default async function LandingPageContentEditPage({
 
   const page = await db.page.findUnique({
     where: { id: pageId, projectId: lpId, deletedAt: null },
-    select: { id: true, name: true, schemaData: true, contentData: true, isAdvanced: true, previewUrl: true },
+    select: { id: true, name: true, schemaData: true, contentData: true, uiSchema: true, isAdvanced: true, previewUrl: true },
   })
   if (!page) redirect(`/${companySlug}/dashboard/landing-pages/${lpId}/pages`)
 
@@ -45,6 +45,7 @@ export default async function LandingPageContentEditPage({
       pageName={page.name}
       schemaData={page.schemaData}
       initialContentData={page.contentData}
+      initialUiSchema={page.uiSchema}
       isAdvanced={page.isAdvanced}
       previewUrl={previewUrl}
       backHref={backHref}

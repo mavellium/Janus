@@ -29,7 +29,7 @@ export default async function SiteContentEditPage({
 
   const page = await db.page.findUnique({
     where: { id: pageId, projectId: siteId, deletedAt: null },
-    select: { id: true, name: true, schemaData: true, contentData: true, isAdvanced: true, previewUrl: true },
+    select: { id: true, name: true, schemaData: true, contentData: true, uiSchema: true, isAdvanced: true, previewUrl: true },
   })
   if (!page) redirect(`/${companySlug}/dashboard/sites/${siteId}/pages`)
 
@@ -45,6 +45,7 @@ export default async function SiteContentEditPage({
       pageName={page.name}
       schemaData={page.schemaData}
       initialContentData={page.contentData}
+      initialUiSchema={page.uiSchema}
       isAdvanced={page.isAdvanced}
       previewUrl={previewUrl}
       backHref={backHref}

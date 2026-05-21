@@ -3,6 +3,30 @@
 import { useState } from 'react'
 import { Switch } from '@/components/ui/switch'
 import { ChevronDown, Plus, Trash2, Upload, Video } from 'lucide-react'
+import { IconPicker } from './IconPicker'
+
+interface UiConfig {
+  'ui:label'?: string
+  'ui:description'?: string
+  'ui:widget'?: 'textarea' | 'image' | 'video' | 'color' | 'url' | 'boolean' | 'number' | 'icon' | 'hidden' | 'text'
+  'ui:group'?: string
+}
+
+function resolveUiConfig(uiSchema: Record<string, unknown>, path: string[]): UiConfig {
+  const dotPath = path.join('.')
+
+  const wildcardPath = dotPath.replace(/\.\d+\./g, '.*.')
+
+  const startsWithIndex = /^\d+\./.test(dotPath)
+  const rootArrayPath = startsWithIndex ? '*.' + path.slice(1).join('.') : null
+
+  const config =
+    uiSchema[dotPath] ??
+    (wildcardPath !== dotPath ? uiSchema[wildcardPath] : undefined) ??
+    (rootArrayPath ? uiSchema[rootArrayPath] : undefined)
+
+  return (typeof config === 'object' && config !== null ? config : {}) as UiConfig
+}
 
 interface DynamicFieldRendererProps {
   dataKey: string
@@ -12,6 +36,7 @@ interface DynamicFieldRendererProps {
   onOpenMediaModal: (path: string[], mediaType: 'image' | 'video') => void
   uploadingPaths?: Set<string>
   depth?: number
+  uiSchema?: Record<string, unknown>
 }
 
 function inferType(key: string, value: unknown): string {
@@ -58,10 +83,15 @@ export function DynamicFieldRenderer({
   onOpenMediaModal,
   uploadingPaths,
   depth = 0,
+  uiSchema = {},
 }: DynamicFieldRendererProps) {
   const [isOpen, setIsOpen] = useState(true)
-  const type = inferType(dataKey, value)
+  const uiConfig = resolveUiConfig(uiSchema, path)
   const isUploading = uploadingPaths?.has(path.join('.')) ?? false
+
+  if (uiConfig['ui:widget'] === 'hidden') return null
+
+  const type = uiConfig['ui:widget'] ?? inferType(dataKey, value)
 
   if (type === 'boolean') {
     return (
@@ -195,12 +225,9 @@ export function DynamicFieldRenderer({
 
   if (type === 'icon') {
     return (
-      <input
-        type="text"
+      <IconPicker
         value={typeof value === 'string' ? value : ''}
-        onChange={(e) => onChange(path, e.target.value)}
-        className="w-full bg-brand-bg border border-border rounded-lg px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary"
-        placeholder="Nome do ícone..."
+        onChange={(v) => onChange(path, v)}
       />
     )
   }
@@ -211,7 +238,7 @@ export function DynamicFieldRenderer({
         value={typeof value === 'string' ? value : ''}
         onChange={(e) => onChange(path, e.target.value)}
         className="w-full min-h-[80px] bg-brand-bg border border-border rounded-lg px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary resize-y"
-        placeholder={`${dataKey}...`}
+        placeholder={`${uiConfig['ui:label'] ?? dataKey}...`}
       />
     )
   }
@@ -260,20 +287,28 @@ export function DynamicFieldRenderer({
         : {}
     return (
       <div className="border border-border rounded-lg p-3 space-y-3 bg-brand-bg/40">
-        {(['text', 'href', 'icon'] as const).map((k) => (
-          <div key={k} className="space-y-1">
-            <label className="block text-xs font-medium text-brand-muted capitalize">{k}</label>
-            <input
-              type="text"
-              value={typeof obj[k] === 'string' ? (obj[k] as string) : ''}
-              onChange={(e) => onChange([...path, k], e.target.value)}
-              className={`w-full bg-brand-bg border border-border rounded-lg px-3 py-2 text-sm placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary ${
-                k === 'href' ? 'text-cyan-400 font-mono' : 'text-brand-text'
-              }`}
-              placeholder={k === 'href' ? 'https://...' : `${k}...`}
-            />
-          </div>
-        ))}
+        {(['text', 'href', 'icon'] as const).map((k) => {
+          const fieldUiConfig = resolveUiConfig(uiSchema, [...path, k])
+          return (
+            <div key={k} className="space-y-1">
+              <label className="block text-xs font-medium text-brand-muted capitalize">
+                {fieldUiConfig['ui:label'] ?? k}
+              </label>
+              {fieldUiConfig['ui:description'] && (
+                <p className="text-[10px] text-brand-muted">{fieldUiConfig['ui:description']}</p>
+              )}
+              <input
+                type="text"
+                value={typeof obj[k] === 'string' ? (obj[k] as string) : ''}
+                onChange={(e) => onChange([...path, k], e.target.value)}
+                className={`w-full bg-brand-bg border border-border rounded-lg px-3 py-2 text-sm placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary ${
+                  k === 'href' ? 'text-cyan-400 font-mono' : 'text-brand-text'
+                }`}
+                placeholder={k === 'href' ? 'https://...' : `${k}...`}
+              />
+            </div>
+          )
+        })}
       </div>
     )
   }
@@ -304,7 +339,7 @@ export function DynamicFieldRenderer({
           <div key={idx} className="border border-border rounded-lg p-3 bg-brand-bg/40">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-brand-muted">
-                {dataKey} {idx + 1}
+                {uiConfig['ui:label'] ?? dataKey} {idx + 1}
               </span>
               <button
                 type="button"
@@ -316,20 +351,31 @@ export function DynamicFieldRenderer({
             </div>
             {typeof item === 'object' && item !== null && !Array.isArray(item) ? (
               <div className="flex flex-col gap-3">
-                {Object.entries(item as Record<string, unknown>).map(([k, v]) => (
-                  <div key={k} className="space-y-1.5">
-                    <label className="block text-xs font-medium text-brand-muted capitalize">{k}</label>
-                    <DynamicFieldRenderer
-                      dataKey={k}
-                      value={v}
-                      path={[...path, String(idx), k]}
-                      onChange={onChange}
-                      onOpenMediaModal={onOpenMediaModal}
-                      uploadingPaths={uploadingPaths}
-                      depth={depth + 1}
-                    />
-                  </div>
-                ))}
+                {Object.entries(item as Record<string, unknown>).map(([k, v]) => {
+                  const fieldPath = [...path, String(idx), k]
+                  const fieldUiConfig = resolveUiConfig(uiSchema, fieldPath)
+                  if (fieldUiConfig['ui:widget'] === 'hidden') return null
+                  return (
+                    <div key={k} className="space-y-1.5">
+                      <label className="block text-xs font-medium text-brand-muted capitalize">
+                        {fieldUiConfig['ui:label'] ?? k}
+                      </label>
+                      {fieldUiConfig['ui:description'] && (
+                        <p className="text-[10px] text-brand-muted">{fieldUiConfig['ui:description']}</p>
+                      )}
+                      <DynamicFieldRenderer
+                        dataKey={k}
+                        value={v}
+                        path={fieldPath}
+                        onChange={onChange}
+                        onOpenMediaModal={onOpenMediaModal}
+                        uploadingPaths={uploadingPaths}
+                        depth={depth + 1}
+                        uiSchema={uiSchema}
+                      />
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <DynamicFieldRenderer
@@ -340,6 +386,7 @@ export function DynamicFieldRenderer({
                 onOpenMediaModal={onOpenMediaModal}
                 uploadingPaths={uploadingPaths}
                 depth={depth + 1}
+                uiSchema={uiSchema}
               />
             )}
           </div>
@@ -350,7 +397,7 @@ export function DynamicFieldRenderer({
           className="flex items-center gap-1.5 text-xs text-brand-muted hover:text-brand-text transition"
         >
           <Plus className="w-3.5 h-3.5" />
-          Adicionar {dataKey}
+          Adicionar {uiConfig['ui:label'] ?? dataKey}
         </button>
       </div>
     )
@@ -361,6 +408,7 @@ export function DynamicFieldRenderer({
       typeof value === 'object' && value !== null && !Array.isArray(value)
         ? (value as Record<string, unknown>)
         : {}
+    const groupLabel = uiConfig['ui:group'] ?? dataKey
     return (
       <div className="border border-border rounded-lg overflow-hidden bg-brand-bg/40">
         <button
@@ -369,7 +417,7 @@ export function DynamicFieldRenderer({
           className="w-full flex items-center justify-between px-3 py-2 bg-brand-btn-light/20 hover:bg-brand-btn-light/40 transition text-left"
         >
           <span className="text-xs font-semibold text-brand-text uppercase tracking-wide">
-            {dataKey}
+            {groupLabel}
           </span>
           <ChevronDown
             className={`w-4 h-4 text-brand-muted transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -377,20 +425,31 @@ export function DynamicFieldRenderer({
         </button>
         {isOpen && (
           <div className="flex flex-col p-3 gap-3">
-            {Object.entries(obj).map(([k, v]) => (
-              <div key={k} className="space-y-1.5">
-                <label className="block text-xs font-medium text-brand-muted capitalize">{k}</label>
-                <DynamicFieldRenderer
-                  dataKey={k}
-                  value={v}
-                  path={[...path, k]}
-                  onChange={onChange}
-                  onOpenMediaModal={onOpenMediaModal}
-                  uploadingPaths={uploadingPaths}
-                  depth={depth + 1}
-                />
-              </div>
-            ))}
+            {Object.entries(obj).map(([k, v]) => {
+              const fieldPath = [...path, k]
+              const fieldUiConfig = resolveUiConfig(uiSchema, fieldPath)
+              if (fieldUiConfig['ui:widget'] === 'hidden') return null
+              return (
+                <div key={k} className="space-y-1.5">
+                  <label className="block text-xs font-medium text-brand-muted capitalize">
+                    {fieldUiConfig['ui:label'] ?? k}
+                  </label>
+                  {fieldUiConfig['ui:description'] && (
+                    <p className="text-[10px] text-brand-muted">{fieldUiConfig['ui:description']}</p>
+                  )}
+                  <DynamicFieldRenderer
+                    dataKey={k}
+                    value={v}
+                    path={fieldPath}
+                    onChange={onChange}
+                    onOpenMediaModal={onOpenMediaModal}
+                    uploadingPaths={uploadingPaths}
+                    depth={depth + 1}
+                    uiSchema={uiSchema}
+                  />
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
@@ -403,7 +462,7 @@ export function DynamicFieldRenderer({
       value={typeof value === 'string' ? value : ''}
       onChange={(e) => onChange(path, e.target.value)}
       className="w-full bg-brand-bg border border-border rounded-lg px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary"
-      placeholder={`${dataKey}...`}
+      placeholder={`${uiConfig['ui:label'] ?? dataKey}...`}
     />
   )
 }

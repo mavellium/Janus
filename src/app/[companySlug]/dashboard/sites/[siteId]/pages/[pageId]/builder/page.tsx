@@ -3,8 +3,7 @@ import { redirect } from 'next/navigation'
 import { db } from '@/lib/prisma'
 import { SchemaBuilderEditor } from '@/components/schema-builder/SchemaBuilderEditor'
 import { headers } from 'next/headers'
-import { hasPermission } from '@/lib/auth/permissions'
-import { getUserPermissions } from '@/modules/auth/queries/getUserPermissions'
+import { checkPermission } from '@/lib/auth/permissions'
 import { unstable_noStore } from 'next/cache'
 
 export const metadata = { title: 'Construir — Janus' }
@@ -19,16 +18,7 @@ export default async function SiteSchemaBuilderPage({
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
 
-  const freshPermissions = await getUserPermissions(session.user.id)
-  const sessionWithFreshPerms = {
-    ...session,
-    user: {
-      ...session.user,
-      permissions: freshPermissions,
-    },
-  }
-
-  const canBuild = hasPermission(sessionWithFreshPerms, 'PAGE_BUILD', 'sites', 'page')
+  const canBuild = await checkPermission(session, 'PAGE_BUILD', 'sites', 'page')
   if (!canBuild) redirect(`/${companySlug}/dashboard/sites/${siteId}/pages`)
 
   const company = await db.company.findUnique({
@@ -44,7 +34,7 @@ export default async function SiteSchemaBuilderPage({
 
   const page = await db.page.findUnique({
     where: { id: pageId, projectId: siteId, deletedAt: null },
-    select: { id: true, name: true, slug: true, schemaData: true, contentData: true, isPublished: true, isAdvanced: true },
+    select: { id: true, name: true, slug: true, schemaData: true, contentData: true, uiSchema: true, isPublished: true, isAdvanced: true },
   })
   if (!page) redirect(`/${companySlug}/dashboard/sites/${siteId}/pages`)
 
@@ -63,6 +53,7 @@ export default async function SiteSchemaBuilderPage({
       initialSchema={page.schemaData}
       initialContentData={page.contentData}
       initialIsAdvanced={page.isAdvanced}
+      initialUiSchema={page.uiSchema}
       initialPublished={page.isPublished}
       previewHref={`/${companySlug}/dashboard/sites/${siteId}/pages/${pageId}/edit`}
       apiUrl={apiUrl}

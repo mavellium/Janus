@@ -16,13 +16,14 @@ import { signOut } from 'next-auth/react'
 
 interface SidebarProps {
   email: string
+  name?: string | null
   image?: string | null
   initialCollapsed: boolean
   companyName?: string
   embedded?: boolean
 }
 
-export function Sidebar({ email, image, initialCollapsed, companyName, embedded = false }: SidebarProps) {
+export function Sidebar({ email, name, image, initialCollapsed, companyName, embedded = false }: SidebarProps) {
   const [collapsedState, setCollapsedState] = useState(embedded ? false : initialCollapsed)
   const collapsed = embedded ? false : collapsedState
   const [isDark, setIsDark] = useState(false)
@@ -349,7 +350,7 @@ export function Sidebar({ email, image, initialCollapsed, companyName, embedded 
               >
                 {email}
               </p>
-              <p style={{ fontSize: '11px', opacity: 0.6, margin: 0 }}>{companyName || 'Empresa'}</p>
+              <p style={{ fontSize: '11px', opacity: 0.6, margin: 0 }}>{name || companyName || 'Empresa'}</p>
             </div>
           )}
         </Link>

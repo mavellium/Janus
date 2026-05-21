@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers'
+import { db } from '@/lib/prisma'
 
 export const PERMISSIONS = {
   PROJECT_CREATE: 'PROJECT_CREATE',
@@ -18,13 +19,9 @@ export type PermissionTier = 'project' | 'page'
 
 export const ALL_PERMISSIONS: PermissionName[] = Object.keys(PERMISSIONS) as PermissionName[]
 
-export const VIEW_MODE_COOKIE = 'janus_view_mode'
-export const VIEW_MODE_USER = 'USER_MODE'
-export const VIEW_MODE_DEV = 'DEV_MODE'
 export const IMPERSONATED_USER_ID_COOKIE = 'janus_impersonated_user_id'
-export const IMPERSONATED_DEV_ID_COOKIE = 'janus_impersonated_dev_id'
-
-export type ViewMode = typeof VIEW_MODE_USER | typeof VIEW_MODE_DEV
+export const IMPERSONATED_USER_NAME_COOKIE = 'janus_impersonated_user_name'
+export const IMPERSONATION_RETURN_URL_COOKIE = 'janus_impersonation_return_url'
 
 interface SessionLike {
   user?: {
@@ -43,7 +40,6 @@ export function normalizePermissions(
     }
   }
 
-  // Handle JSON string
   if (typeof permissions === 'string' && permissions.startsWith('{')) {
     try {
       const parsed = JSON.parse(permissions)
@@ -56,11 +52,9 @@ export function normalizePermissions(
         return parsed as Record<ModuleType, Record<PermissionTier, PermissionName[]>>
       }
     } catch {
-      // Fall through to array handling
     }
   }
 
-  // Handle array with module:tier:permission or module:permission format
   if (Array.isArray(permissions)) {
     const result: Record<ModuleType, Record<PermissionTier, PermissionName[]>> = {
       sites: { project: [], page: [] },
@@ -76,7 +70,6 @@ export function normalizePermissions(
         const name = cleanPerm.substring(11).replace(/^:+|:+$/g, '').trim() as PermissionName
         if (name && ALL_PERMISSIONS.includes(name)) result.sites.page.push(name)
       } else if (cleanPerm.startsWith('sites:')) {
-        // Legacy format: sites:PAGE_CREATE
         const name = cleanPerm.substring(6).replace(/^:+|:+$/g, '').trim() as PermissionName
         if (name && ALL_PERMISSIONS.includes(name)) result.sites.page.push(name)
       } else if (cleanPerm.startsWith('landingPages:project:')) {
@@ -86,11 +79,9 @@ export function normalizePermissions(
         const name = cleanPerm.substring(17).replace(/^:+|:+$/g, '').trim() as PermissionName
         if (name && ALL_PERMISSIONS.includes(name)) result.landingPages.page.push(name)
       } else if (cleanPerm.startsWith('landingPages:')) {
-        // Legacy format: landingPages:PAGE_CREATE
         const name = cleanPerm.substring(13).replace(/^:+|:+$/g, '').trim() as PermissionName
         if (name && ALL_PERMISSIONS.includes(name)) result.landingPages.page.push(name)
       } else if (cleanPerm) {
-        // Legacy: simple permission without prefix applies to both modules, page tier
         if (ALL_PERMISSIONS.includes(cleanPerm as PermissionName)) {
           result.sites.page.push(cleanPerm as PermissionName)
           result.landingPages.page.push(cleanPerm as PermissionName)
@@ -100,7 +91,6 @@ export function normalizePermissions(
     return result
   }
 
-  // Handle object
   if (typeof permissions === 'object') {
     return permissions as Record<ModuleType, Record<PermissionTier, PermissionName[]>>
   }
@@ -111,12 +101,52 @@ export function normalizePermissions(
   }
 }
 
+export async function isImpersonating(): Promise<boolean> {
+  const cookieStore = await cookies()
+  return !!cookieStore.get(IMPERSONATED_USER_ID_COOKIE)?.value
+}
+
+export async function getImpersonatedUserId(): Promise<string | null> {
+  const cookieStore = await cookies()
+  return cookieStore.get(IMPERSONATED_USER_ID_COOKIE)?.value ?? null
+}
+
+export async function getImpersonatedUserName(): Promise<string | null> {
+  const cookieStore = await cookies()
+  return cookieStore.get(IMPERSONATED_USER_NAME_COOKIE)?.value ?? null
+}
+
+export async function getImpersonationReturnUrl(): Promise<string | null> {
+  const cookieStore = await cookies()
+  return cookieStore.get(IMPERSONATION_RETURN_URL_COOKIE)?.value ?? null
+}
+
+export async function getEffectivePermissions(
+  realUserId: string
+): Promise<string | string[] | Record<string, Record<string, string[]>> | null> {
+  const impersonatedId = await getImpersonatedUserId()
+
+  if (impersonatedId) {
+    const target = await db.user.findUnique({
+      where: { id: impersonatedId, deletedAt: null },
+      select: { permissions: true },
+    })
+    return target?.permissions ?? null
+  }
+
+  const user = await db.user.findUnique({
+    where: { id: realUserId, deletedAt: null },
+    select: { permissions: true },
+  })
+  return user?.permissions ?? null
+}
+
 export function hasPermission(
   session: SessionLike | null | undefined,
   permission: PermissionName,
   module: ModuleType = 'sites',
   tier: PermissionTier = 'page',
-  viewMode?: ViewMode | null
+  impersonating = false
 ): boolean {
   if (!session?.user) return false
 
@@ -124,47 +154,15 @@ export function hasPermission(
   const normalizedPerms = normalizePermissions(session.user.permissions)
   const tierPermissions = normalizedPerms[module]?.[tier] ?? []
 
-  console.log('[hasPermission] Checking:', {
-    permission,
-    module,
-    tier,
-    viewMode,
-    role,
-    tierPermissions,
-    isUserMode: viewMode === VIEW_MODE_USER,
-  })
-
-  // In USER_MODE or DEV_MODE, always check permissions strictly (overrides role)
-  if (viewMode === VIEW_MODE_USER || viewMode === VIEW_MODE_DEV) {
-    const result = tierPermissions.includes(permission)
-    console.log('[hasPermission] USER_MODE/DEV_MODE - returning:', result)
-    return result
+  if (impersonating) {
+    return tierPermissions.includes(permission)
   }
 
-  // Admins always have access (when not in USER_MODE)
-  if (role === 'ADMIN') {
-    console.log('[hasPermission] ADMIN - returning true')
+  if (role === 'ADMIN' || role === 'DEVELOPER') {
     return true
   }
 
-  // Developers in their own mode have full access
-  if (role === 'DEVELOPER') {
-    console.log('[hasPermission] DEVELOPER - returning true')
-    return true
-  }
-
-  // Regular users must have explicit permission
-  console.log('[hasPermission] Regular user - returning:', tierPermissions.includes(permission))
   return tierPermissions.includes(permission)
-}
-
-export async function getViewMode(): Promise<ViewMode | null> {
-  const cookieStore = await cookies()
-  const value = cookieStore.get(VIEW_MODE_COOKIE)?.value
-  console.log('[getViewMode] Cookie value:', { VIEW_MODE_COOKIE, value, VIEW_MODE_USER, VIEW_MODE_DEV })
-  if (value === VIEW_MODE_USER || value === VIEW_MODE_DEV) return value
-  console.log('[getViewMode] Returning null - no valid view mode')
-  return null
 }
 
 export async function checkPermission(
@@ -173,23 +171,19 @@ export async function checkPermission(
   module: ModuleType = 'sites',
   tier: PermissionTier = 'page'
 ): Promise<boolean> {
-  const viewMode = await getViewMode()
-  console.log('[checkPermission] viewMode from getViewMode():', viewMode)
-  return hasPermission(session, permission, module, tier, viewMode)
-}
+  if (!session?.user) return false
 
-export async function getImpersonatedUserId(): Promise<string | null> {
-  const cookieStore = await cookies()
-  const value = cookieStore.get(IMPERSONATED_USER_ID_COOKIE)?.value ?? null
-  console.log('[getImpersonatedUserId]', { IMPERSONATED_USER_ID_COOKIE, value })
-  return value
-}
+  const impersonating = await isImpersonating()
 
-export async function getImpersonatedDevId(): Promise<string | null> {
-  const cookieStore = await cookies()
-  const value = cookieStore.get(IMPERSONATED_DEV_ID_COOKIE)?.value ?? null
-  console.log('[getImpersonatedDevId]', { IMPERSONATED_DEV_ID_COOKIE, value })
-  return value
+  if (impersonating) {
+    const impersonatedPerms = await getEffectivePermissions('')
+    const impersonatedSession: SessionLike = {
+      user: { role: 'DEFAULT', permissions: impersonatedPerms ?? undefined },
+    }
+    return hasPermission(impersonatedSession, permission, module, tier, true)
+  }
+
+  return hasPermission(session, permission, module, tier, false)
 }
 
 export function isPrivilegedRole(role?: string | null): boolean {

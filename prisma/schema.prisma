@@ -240,6 +240,7 @@ model Page {
   previewUrl   String?   @map("preview_url")
   isPublished  Boolean   @default(false) @map("is_published")
   isAdvanced   Boolean   @default(false) @map("is_advanced")
+  uiSchema     Json?     @default("{}") @map("ui_schema")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
   deletedAt    DateTime? @map("deleted_at")

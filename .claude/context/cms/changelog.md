@@ -16,6 +16,211 @@
 
 ---
 
+### [2026-05-21] — Feat: UI Padrão Automática Quando Sem UI Schema
+
+**Arquivos**:
+- `src/components/schema-builder/SchemaBuilderEditor.tsx`: `sections` agora faz fallback para `Object.keys(localData)` quando `uiSchemaState` está vazio
+
+**Razão**: Quando o desenvolvedor tinha dados no JSON mas sem UI Schema configurado, a terceira coluna ficava vazia — nenhuma seção aparecia no menu
+
+**Impacto**:
+- ✅ Sem UI Schema → seções derivadas das chaves de `localData`
+- ✅ Campos renderizados com inferência automática de tipo (`inferType`): image, textarea, color, boolean, url, icon, etc
+- ✅ Com UI Schema → comportamento anterior preservado (seções do UI Schema têm prioridade)
+
+---
+
+### [2026-05-21] — Feat: IconPicker — Seletor Visual de Ícones Lucide
+
+**Arquivos**:
+- `src/components/cms/IconPicker.tsx`: **NOVO** — Dialog com busca + grid de 3897 ícones lucide-react; filtra por nome em tempo real; MAX_VISIBLE=300; exibe ícone atual com nome; botão X limpa seleção
+- `src/components/cms/DynamicFieldRenderer.tsx`: `type === 'icon'` agora usa `<IconPicker />` em vez de input de texto
+
+**Razão**: Campo de texto livre não dava feedback visual — usuário não sabia quais ícones existem
+
+**Impacto**:
+- ✅ Campo icon em qualquer formulário CMS agora é seletor visual
+- ✅ Busca filtra em tempo real por nome
+- ✅ Valor salvo como string (ex: `"ArrowRight"`) — compatível com dados existentes, sem breaking change
+
+---
+
+### [2026-05-21] — UX/DX Builder: 3 Colunas Modo Avançado + Preview Tempo Real + Unsaved Changes
+
+**Arquivos**:
+- `src/components/schema-builder/SchemaBuilderEditor.tsx`: Estado `uiSchemaState` (rastreia UI Schema em tempo real); remover modal de preview; banner "Alterações não salvas" no topo-centro; aviso do navegador ao sair sem salvar; `sections = Object.keys(uiSchemaState).filter(key => !key.includes('.'))` para renderizar seções dinamicamente; integrar `localData` com AdvancedJsonEditor para preview em tempo real
+- `src/components/cms/AdvancedJsonEditor.tsx`: remover icon `Code2` (não usado); adicionar `useEffect` para sincronizar `uiSchemaLocal` quando `initialUiSchema` prop muda; adicionar seção "5. Prompt para gerar UI Schema com IA" na documentação; adicionar botão "Copiar" para copiar prompt; remover `formPanel` quando `showFormPanel={false}` para expandir editor Monaco
+
+**Razão**: 
+- Modo avançado precisa de visualização REAL dos dados conforme edita (não esperando salvar)
+- UI Schema edição deve atualizar seções instantaneamente
+- Usuário vê aviso quando há mudanças não salvas
+- Documentação interna com prompt copy-paste para gerar UI Schema automaticamente
+
+**Impacto**:
+- **Preview em Tempo Real**: Ao editar aba DADOS → dados aparecem no Editor Campo; ao editar aba INTERFACE → seções aparecem no Menu SEÇÕES
+- **Unsaved Changes Banner**: Topo-centro mostra "Alterações não salvas" com pulsação enquanto há mudanças
+- **Aviso Navegador**: Se tentar reload/close com mudanças, navegador avisa
+- **Sem Modal**: Clica em Salvar e salva direto (sem preview modal antes)
+- **AdvancedJsonEditor Sync**: Mudanças no UI Schema sincronizam instantaneamente com SchemaBuilderEditor
+- **Documentação IA**: Seção "Prompt para gerar UI Schema com IA" com botão copiar para qualquer IA criar UI Schema automaticamente
+
+---
+
+### [2026-05-21] — UX Developer: AdvancedJsonEditor + 3 colunas no Builder Avançado
+
+**Arquivos**:
+- `src/components/schema-builder/SchemaBuilderEditor.tsx`: quando `isAdvancedMode=true`, renderiza `AdvancedJsonEditor` (com tabs internos Dados | Interface) no center; modo não-advanced mantém Monaco editor; 3 colunas lado direito quando advanced (menu seções 350px | editor campo 350px); botão 📖 Doc no header (integrado com AdvancedJsonEditor)
+
+**Razão**: Developer edita dados e UI schema na mesma tela com tabs internos, vendo simultaneamente preview de seções e como cada campo ficaria
+
+**Impacto**:
+- Modo normal: Monaco editor (JSON bruto) - PRESERVADO
+- Modo avançado: AdvancedJsonEditor com tabs Dados/Interface + 3 colunas (seções + editor)
+- AdvancedJsonEditor já tem tabs e documentação internos
+- Botão 📖 Doc integrado no header
+
+---
+
+### [2026-05-21] — UX Developer: 3 colunas no Builder Avançado (Editor JSON | Menu Seções | Editor Campo)
+
+**Arquivos**:
+- `src/components/schema-builder/SchemaBuilderEditor.tsx`: quando `isAdvancedMode=true`, renderiza 3 colunas no lado direito: left (1fr) = Monaco editor (JSON bruto, sempre), middle (350px) = menu seções com `Object.keys(localData)`, right (350px) = `DynamicFieldRenderer` contextual ao clicar seção; `setDeep()` + `handleFieldChange()` para edição imutável; `MediaUploadModal` integrado; botão Salvar persiste via `updatePageAdvancedData()` e recarrega estado
+
+**Razão**: Developer edita JSON no Monaco (mesma coluna de sempre) e vê em tempo real como cada seção/campo renderizaria ao ser editado (2 colunas novas ao lado)
+
+**Impacto**:
+- Modo não-avançado: left (menu + abas) | center (Monaco) | right (preview legado) — PRESERVADO
+- Modo avançado: left (menu + abas, oculto) | center (Monaco) | right (menu seções 350px + editor campo 350px)
+- SEM iframe (diferente do edit mode)
+- Upload de mídia funciona normalmente
+- Mesma estrutura que edit mode (3 colunas) mas sem iframe
+
+---
+
+### [2026-05-20] — Verificação Completa: ZERO Sobreescritas — Isolamento Garantido em Todos os Cenários
+
+**Arquivos Verificados**:
+- `src/components/schema-builder/SchemaBuilderEditor.tsx`: Builder → `updatePageSchema()` (schemaData)
+- `src/components/schema-builder/SiteContentEditClient.tsx`: Edit Legado → `updatePageContentData()` (contentData); Edit Avançado → `updatePageSchema()` (schemaData)
+- `src/components/schema-builder/DynamicForm.tsx`: Legado → carrega contentData + schemaData, salva contentData APENAS
+- `src/modules/projects/actions/updatePageSchema.ts`: salva schemaData APENAS
+- `src/modules/projects/actions/updatePageContentData.ts`: salva contentData APENAS
+- `src/modules/projects/actions/updatePageAdvancedData.ts`: salva schemaData + uiSchema (Builder Advanced)
+- `src/modules/projects/actions/updatePageMode.ts`: muda isAdvanced APENAS
+
+**Razão**: Validar que não há cenário onde um modo sobrescreva o outro; garantia arquitetural total
+
+**Impacto**:
+- ✅ Builder salva em schemaData, nunca em contentData
+- ✅ Edit Legado salva em contentData, nunca em schemaData
+- ✅ Edit Avançado salva em schemaData, ignora contentData
+- ✅ Modo Avançado no Builder salva schemaData + uiSchema (sem tocar contentData)
+- ✅ Alternância de modos via updatePageMode (flag APENAS)
+- ✅ Invariante: contentData (legado) ⊥ schemaData (avançado) — campos isolados, nunca compartilham
+- ✅ Criar documento: `.claude/context/cms/data-isolation-verification.md` com tabela completa de cenários
+
+---
+
+### [2026-05-20] — Segurança: Isolamento total entre modos (cada um no seu quadrado)
+
+**Arquivos**:
+- `src/components/schema-builder/SiteContentEditClient.tsx`: corrigido — modo avançado carrega de `schemaData` (dados JSON) e salva em `schemaData`; modo legado carrega de `contentData` (valores) e salva em `contentData`
+
+**Razão**: Garantir que cada modo tenha seu próprio espaço de dados, sem jamais sobrescrever o outro
+
+**Impacto**:
+- Modo legado: lê `schemaData` (schema) + `contentData` (valores) → salva em `contentData` APENAS
+- Modo avançado: lê `schemaData` (dados JSON), ignora `contentData` → salva em `schemaData` APENAS
+- Sem compartilhamento de campos entre modos
+- Usuário alterna modos sem perder dados ou causar sobrescita
+- Cada campo "na sua caixa": legado em `contentData`, avançado em `schemaData`
+
+---
+
+### [2026-05-20] — Edit page avançado: layout 3 colunas (Menu de Seções → Iframe → Editor Contextual)
+
+**Arquivos**:
+- `src/components/schema-builder/SiteContentEditClient.tsx`: reescrito — modo avançado usa `grid grid-cols-[250px_1fr_350px]`; coluna 1 é menu de seções com `getSectionLabel` via uiSchema; coluna 2 é iframe; coluna 3 é `DynamicFieldRenderer` contextual com empty state (`MousePointerClick`) e botão Salvar no rodapé; `AdvancedJsonEditor` removido do fluxo de edição; `setDeep` + `localData` state substituem `schemaDataRef`; upload de mídia integrado via `MediaUploadModal` + `uploadMedia`; modo legado preservado sem alterações
+
+**Razão**: UX de edição para usuário final em modo avançado: ao invés de editar JSON bruto no Monaco, usuário navega seções e edita campos visuais
+
+**Impacto**:
+- Modo avançado: 3 colunas; seções derivadas de `Object.keys(schemaData)`; labels via `uiSchema[key]?.['ui:label']`
+- Coluna 3 vazia enquanto nenhuma seção selecionada (empty state)
+- Campo alterado → `setDeep` imutável + debounced postMessage ao iframe
+- Salvar persiste via `updatePageSchema` (mesmo endpoint de antes)
+- Modo legado: layout 2 colunas preservado sem mudanças
+
+---
+
+### [2026-05-20] — UI Schema: documentação amigável reescrita no painel flutuante
+
+**Arquivos**:
+- `src/components/cms/AdvancedJsonEditor.tsx`: conteúdo do painel Docs reescrito em linguagem não-técnica; 4 seções estruturadas: (1) explicação motor vs maquiagem, (2) propriedades com nome/apelido/exemplo, (3) tabela de ui:widget com descrições amigáveis, (4) regra do asterisco, (5) exemplo prático com checklist do resultado
+
+**Razão**: Documentação anterior era técnica e voltada para devs; usuário pediu linguagem acessível para quem não programa
+
+**Impacto**:
+- Nenhuma mudança de lógica — apenas conteúdo do painel de docs
+- Layout mantido: painel flutuante `w-80 absolute right-0` sem overlay
+
+---
+
+### [2026-05-20] — UI Schema: painel de docs flutuante (sem overlay) no Builder
+
+**Arquivos**:
+- `src/components/cms/AdvancedJsonEditor.tsx`: Accordion removido; painel de documentação refeito como `absolute right-0 top-0 h-full w-80` dentro do container do modo dev (sem overlay); botão "Docs" aparece apenas na aba Interface; painel tem seções: Propriedades, Valores de ui:widget, Sintaxe de caminho, Exemplo
+
+**Razão**: Accordion inline reduzia a altura do Monaco; usuário pediu painel flutuante no canto direito sem overlay/backdrop
+
+**Impacto**:
+- Monaco ocupa 100% da altura disponível (Accordion não compete mais)
+- Painel flutua sobre o form panel direito sem escurecer nada
+- Botão "Docs" ativo/inativo com estado visual; fecha com X
+- Disponível somente quando aba Interface está ativa
+
+---
+
+### [2026-05-20] — UI Schema: wildcard preciso + Accordion de documentação no Builder
+
+**Arquivos**:
+- `src/components/cms/DynamicFieldRenderer.tsx`: `resolveUiConfig` reescrita com 3 prioridades explícitas — (1) caminho exato `dotPath`, (2) wildcard via `dotPath.replace(/\.\d+\./g, '.*.')`, (3) array-raiz via `'*.' + path.slice(1).join('.')`
+- `src/components/cms/AdvancedJsonEditor.tsx`: Sheet removido; Accordion "📖 Como usar o UI Schema" adicionado acima do Monaco quando aba Interface está ativa; documentação em formato de tabela (propriedades + sintaxe de caminho)
+
+**Razão**: Wildcard anterior usava array.map que não mapeava corretamente caminhos raiz (ex: `0.name` → `*.name`); documentação em Sheet era menos visível que Accordion inline
+
+**Impacto**:
+- `card.0.name` → resolve `card.*.name` ✓; `0.name` → resolve `*.name` ✓
+- Accordion aparece somente na aba "Interface" — não polui a aba "Dados"
+- Tabela explica todas as props e sintaxe de wildcard diretamente no editor
+
+---
+
+### [2026-05-20] — UI Schema: padrão de separação entre dados e interface (Modo Avançado)
+
+**Arquivos**:
+- `prisma/schema.prisma`: novo campo `uiSchema Json? @default("{}") @map("ui_schema")` no model Page
+- `src/modules/projects/actions/updatePageAdvancedData.ts`: nova action criada — salva `schemaData` + `uiSchema` atomicamente
+- `src/components/cms/DynamicFieldRenderer.tsx`: adicionado prop `uiSchema`, função `resolveUiConfig` (dot notation + wildcard), suporte a `ui:label`, `ui:description`, `ui:widget` (incluindo `hidden`), `ui:group`
+- `src/components/cms/AdvancedJsonEditor.tsx`: adicionado prop `initialUiSchema` e `onUiSchemaChange`; layout em modo dev agora tem abas "Dados" / "Interface" no Monaco; Sheet "📖 Ajuda" com documentação embutida
+- `src/components/schema-builder/SchemaBuilderEditor.tsx`: adicionado `initialUiSchema` prop, `uiSchemaRef`; `handleSaveContent` agora chama `updatePageAdvancedData`
+- `src/app/.../sites/.../builder/page.tsx`: query inclui `uiSchema`, passa `initialUiSchema`
+- `src/app/.../landing-pages/.../builder/page.tsx`: idem
+- `src/app/.../sites/.../edit/page.tsx`: query inclui `uiSchema`, passa `initialUiSchema`
+- `src/app/.../landing-pages/.../edit/page.tsx`: idem
+- `src/components/schema-builder/SiteContentEditClient.tsx`: aceita e repassa `initialUiSchema` para `AdvancedJsonEditor`
+
+**Razão**: Dev precisava de controle sobre labels e tipos de input no painel sem poluir o payload JSON entregue pela API ao site
+
+**Impacto**:
+- Builder (modo avançado): duas abas no Monaco — "Dados" (schemaData) e "Interface" (uiSchema); botão "📖 Ajuda" com documentação inline; save chama `updatePageAdvancedData`
+- Edit page (modo avançado): renderiza form com labels/tipos sobrescritos pelo uiSchema (read-only para o uiSchema)
+- API pública (`contentData`): nunca contém chaves de UI — separação garantida em nível de DB
+- Resolução de caminho usa dot notation com suporte a wildcard (`cards.*.nome`) e sem índice (`cards.nome`)
+
+---
+
 ### [2026-05-19] — Edit page modo avançado salva schema (não conteúdo)
 
 **Arquivos**:

@@ -1,21 +1,25 @@
 'use client'
 
-import { useEffect, useState, useTransition, useRef } from 'react'
+import { useEffect, useState, useTransition, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import {
   ChevronLeft, Save, Loader2, CheckCircle2, AlertCircle, Copy, Layers, Eye, Trash2,
   LayoutTemplate, ListChecks, PlaySquare, FileText, FormInput, GalleryHorizontalEnd,
-  Search, Sliders, Library, Monitor,
+  Search, Sliders, Library, Monitor, MousePointerClick,
 } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
 import { updatePageSchema } from '@/modules/projects/actions/updatePageSchema'
 import { updatePageMode } from '@/modules/projects/actions/updatePageMode'
 import { updatePageContentData } from '@/modules/projects/actions/updatePageContentData'
+import { updatePageAdvancedData } from '@/modules/projects/actions/updatePageAdvancedData'
 import { LiveFormPreview } from './LiveFormPreview'
 import { PublishPageButton } from '@/components/projects/PublishPageButton'
 import { AdvancedJsonEditor } from '@/components/cms/AdvancedJsonEditor'
+import { DynamicFieldRenderer } from '@/components/cms/DynamicFieldRenderer'
+import { MediaUploadModal } from './MediaUploadModal'
+import { uploadMedia } from '@/modules/upload/actions/uploadMedia'
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react').then((m) => m.default), {
   ssr: false,
@@ -46,6 +50,7 @@ interface SchemaBuilderEditorProps {
   initialSchema: unknown
   initialContentData?: unknown
   initialIsAdvanced?: boolean
+  initialUiSchema?: unknown
   apiUrl: string
   initialPublished: boolean
   previewHref: string
@@ -58,6 +63,32 @@ const DEFAULT_SCHEMA: SchemaSection[] = [
     fields: [{ name: 'title', label: 'Título', type: 'text' }],
   },
 ]
+
+function setDeep(obj: Record<string, unknown>, path: string[], value: unknown): Record<string, unknown> {
+  const clone = structuredClone(obj) as Record<string, unknown>
+  let curr: unknown = clone
+  for (let i = 0; i < path.length - 1; i++) {
+    curr = Array.isArray(curr)
+      ? (curr as unknown[])[Number(path[i])]
+      : (curr as Record<string, unknown>)[path[i]]
+  }
+  const last = path[path.length - 1]
+  if (Array.isArray(curr)) {
+    (curr as unknown[])[Number(last)] = value
+  } else {
+    (curr as Record<string, unknown>)[last] = value
+  }
+  return clone
+}
+
+function getSectionLabel(key: string, uiSchema: Record<string, unknown>): string {
+  const config = uiSchema[key]
+  if (typeof config === 'object' && config !== null) {
+    const label = (config as Record<string, unknown>)['ui:label']
+    if (typeof label === 'string') return label
+  }
+  return key
+}
 
 const SNIPPETS = [
   {
@@ -240,6 +271,7 @@ export function SchemaBuilderEditor({
   initialSchema,
   initialContentData,
   initialIsAdvanced = false,
+  initialUiSchema,
   apiUrl,
   initialPublished,
   previewHref,
@@ -252,8 +284,15 @@ export function SchemaBuilderEditor({
     !Array.isArray(initialContentData)
       ? (initialContentData as Record<string, unknown>)
       : {}
+  const uiSchemaObj =
+    typeof initialUiSchema === 'object' &&
+    initialUiSchema !== null &&
+    !Array.isArray(initialUiSchema)
+      ? (initialUiSchema as Record<string, unknown>)
+      : {}
   const contentDataRef = useRef<Record<string, unknown>>(contentDataObj)
   const advancedSchemaRef = useRef<Record<string, unknown>>((initialSchema as Record<string, unknown>) || {})
+  const uiSchemaRef = useRef<Record<string, unknown>>(uiSchemaObj)
 
   const [editorValue, setEditorValue] = useState<string>(initialString)
   const [validSchema, setValidSchema] = useState<SchemaSection[]>(
@@ -265,6 +304,74 @@ export function SchemaBuilderEditor({
   const [isPending, startTransition] = useTransition()
   const [focusedSectionId, setFocusedSectionId] = useState<string | null>(null)
   const [isAdvancedMode, setIsAdvancedMode] = useState<boolean>(initialIsAdvanced)
+  const [selectedSection, setSelectedSection] = useState<string | null>(null)
+  const [uploadingPaths, setUploadingPaths] = useState<Set<string>>(new Set())
+  const [mediaModal, setMediaModal] = useState<{
+    open: boolean
+    path: string[]
+    mediaType: 'image' | 'video'
+  }>({ open: false, path: [], mediaType: 'image' })
+  const [uiSchemaState, setUiSchemaState] = useState<Record<string, unknown>>(uiSchemaObj)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const mediaModalPathRef = useRef<string[]>([])
+
+  const initialAdvancedData =
+    typeof (initialSchema as unknown) === 'object' && initialSchema !== null && !Array.isArray(initialSchema)
+      ? (initialSchema as Record<string, unknown>)
+      : {}
+  const [localData, setLocalData] = useState<Record<string, unknown>>(initialAdvancedData)
+  const localDataRef = useRef<Record<string, unknown>>(initialAdvancedData)
+
+  const uiSchemaSections = Object.keys(uiSchemaState).filter(key => !key.includes('.'))
+  const sections = uiSchemaSections.length > 0 ? uiSchemaSections : Object.keys(localData)
+
+  const handleFieldChange = useCallback(
+    (path: string[], value: unknown) => {
+      setLocalData((prev) => {
+        const updated = setDeep(prev, path, value)
+        localDataRef.current = updated
+        advancedSchemaRef.current = updated
+        setHasUnsavedChanges(true)
+        return updated
+      })
+    },
+    [],
+  )
+
+  const handleOpenMediaModal = useCallback(
+    (path: string[], mediaType: 'image' | 'video') => {
+      mediaModalPathRef.current = path
+      setMediaModal({ open: true, path, mediaType })
+    },
+    [setMediaModal],
+  )
+
+  const handleMediaUrlSubmit = useCallback(
+    (url: string) => {
+      handleFieldChange(mediaModalPathRef.current, url)
+      setMediaModal((prev) => ({ ...prev, open: false }))
+    },
+    [handleFieldChange, setMediaModal],
+  )
+
+  const handleMediaFileUpload = useCallback(
+    async (file: File) => {
+      const path = [...mediaModalPathRef.current]
+      const pathKey = path.join('.')
+      setMediaModal((prev) => ({ ...prev, open: false }))
+      setUploadingPaths((prev) => new Set([...prev, pathKey]))
+      const result = await uploadMedia({ file, folder: 'media' })
+      setUploadingPaths((prev) => {
+        const n = new Set(prev)
+        n.delete(pathKey)
+        return n
+      })
+      if (result.ok && result.url) {
+        handleFieldChange(path, result.url)
+      }
+    },
+    [handleFieldChange, setMediaModal],
+  )
 
   useEffect(() => {
     if (typeof document === 'undefined') return
@@ -274,6 +381,17 @@ export function SchemaBuilderEditor({
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
     return () => observer.disconnect()
   }, [])
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
 
   function handleEditorChange(val: string | undefined) {
     const str = val ?? ''
@@ -305,9 +423,11 @@ export function SchemaBuilderEditor({
     startTransition(async () => {
       if (isAdvancedMode) {
         const schemaJson = JSON.stringify(advancedSchemaRef.current)
-        const result = await updatePageSchema({ pageId, schemaJson })
+        const uiSchemaJson = JSON.stringify(uiSchemaRef.current)
+        const result = await updatePageAdvancedData({ pageId, schemaJson, uiSchemaJson })
         if (result.ok) {
           setFeedback({ type: 'success', message: 'Schema salvo' })
+          setHasUnsavedChanges(false)
           setTimeout(() => setFeedback(null), 3000)
         } else {
           setFeedback({ type: 'error', message: result.error ?? 'Erro ao salvar' })
@@ -316,6 +436,7 @@ export function SchemaBuilderEditor({
         const result = await updatePageContentData({ pageId, contentData: contentDataRef.current })
         if (result.ok) {
           setFeedback({ type: 'success', message: 'Conteúdo salvo' })
+          setHasUnsavedChanges(false)
           setTimeout(() => setFeedback(null), 3000)
         } else {
           setFeedback({ type: 'error', message: result.error ?? 'Erro ao salvar' })
@@ -416,7 +537,7 @@ export function SchemaBuilderEditor({
           {isAdvancedMode ? (
             <button
               onClick={handleSaveContent}
-              disabled={isPending}
+              disabled={isPending || !hasUnsavedChanges}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-primary text-white hover:bg-brand-hover transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -524,7 +645,7 @@ export function SchemaBuilderEditor({
         )}
 
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-brand-bg">
-          {isAdvancedMode && (
+          {!isAdvancedMode && (
             <div className="px-4 py-2 border-b border-border bg-card shrink-0 flex items-center gap-3">
               <span className="text-xs font-semibold text-brand-muted whitespace-nowrap">Endpoint:</span>
               <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -546,76 +667,149 @@ export function SchemaBuilderEditor({
           )}
 
           {isAdvancedMode ? (
-            <AdvancedJsonEditor
-              pageId={pageId}
-              data={(initialSchema as Record<string, unknown>) || {}}
-              isDevMode={true}
-              onDataChange={(d) => { advancedSchemaRef.current = d }}
-            />
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <AdvancedJsonEditor
+                pageId={pageId}
+                data={localData}
+                initialUiSchema={uiSchemaState}
+                isDevMode={true}
+                showFormPanel={false}
+                onDataChange={(d) => { advancedSchemaRef.current = d; setLocalData(d); setHasUnsavedChanges(true) }}
+                onUiSchemaChange={(d) => { uiSchemaRef.current = d; setUiSchemaState(d); setHasUnsavedChanges(true) }}
+              />
+            </div>
           ) : (
-            <>
-              <div className="px-4 py-2 border-b border-border bg-card shrink-0 flex items-center gap-3">
-                <span className="text-xs font-semibold text-brand-muted whitespace-nowrap">Endpoint:</span>
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <input
-                    type="text"
-                    readOnly
-                    value={apiUrl}
-                    className="flex-1 bg-brand-bg border border-border rounded px-2.5 py-1 text-xs text-brand-text font-mono truncate focus:outline-none"
-                  />
-                  <button
-                    onClick={handleCopy}
-                    className="p-1.5 hover:bg-brand-btn-light rounded text-brand-muted hover:text-brand-text transition shrink-0"
-                    title="Copiar URL"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex-1 min-h-0">
-                <MonacoEditor
-                  height="100%"
-                  defaultLanguage="json"
-                  language="json"
-                  defaultValue={initialString}
-                  onMount={(editor) => {
-                    editorRef.current = editor
-                  }}
-                  onChange={handleEditorChange}
-                  theme={isDark ? 'vs-dark' : 'light'}
-                  options={{
-                    minimap: { enabled: false },
-                    formatOnPaste: true,
-                    formatOnType: true,
-                    tabSize: 2,
-                    insertSpaces: true,
-                    fontSize: 13,
-                    scrollBeyondLastLine: false,
-                    wordWrap: 'on',
-                    automaticLayout: true,
-                    renderLineHighlight: 'all',
-                    smoothScrolling: true,
-                    cursorBlinking: 'smooth',
-                    bracketPairColorization: { enabled: true },
-                  }}
-                />
-              </div>
-            </>
+            <div className="flex-1 min-h-0">
+              <MonacoEditor
+                height="100%"
+                defaultLanguage="json"
+                language="json"
+                defaultValue={initialString}
+                onMount={(editor) => {
+                  editorRef.current = editor
+                }}
+                onChange={handleEditorChange}
+                theme={isDark ? 'vs-dark' : 'light'}
+                options={{
+                  minimap: { enabled: false },
+                  formatOnPaste: true,
+                  formatOnType: true,
+                  tabSize: 2,
+                  insertSpaces: true,
+                  fontSize: 13,
+                  scrollBeyondLastLine: false,
+                  wordWrap: 'on',
+                  automaticLayout: true,
+                  renderLineHighlight: 'all',
+                  smoothScrolling: true,
+                  cursorBlinking: 'smooth',
+                  bracketPairColorization: { enabled: true },
+                }}
+              />
+            </div>
           )}
         </div>
 
         {!isAdvancedMode && (
-        <aside className="w-full lg:w-80 shrink-0 bg-card border-t lg:border-t-0 lg:border-l border-border flex flex-col overflow-y-auto">
-          <div className="px-4 py-3 border-b border-border shrink-0 flex items-center gap-2">
-            <Eye className="w-3.5 h-3.5 text-brand-muted" />
-            <span className="text-xs font-semibold text-brand-muted uppercase tracking-wide">
-              Preview do Formulário
-            </span>
-          </div>
-          <LiveFormPreview sections={validSchema} focusedSectionId={focusedSectionId} />
-        </aside>
+          <aside className="w-full lg:w-80 shrink-0 bg-card border-t lg:border-t-0 lg:border-l border-border flex flex-col overflow-y-auto">
+            <div className="px-4 py-3 border-b border-border shrink-0 flex items-center gap-2">
+              <Eye className="w-3.5 h-3.5 text-brand-muted" />
+              <span className="text-xs font-semibold text-brand-muted uppercase tracking-wide">
+                Preview do Formulário
+              </span>
+            </div>
+            <LiveFormPreview sections={validSchema} focusedSectionId={focusedSectionId} />
+          </aside>
         )}
+
+        {hasUnsavedChanges && isAdvancedMode && (
+          <div className="fixed top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-amber-500/20 border border-amber-500/40 rounded-lg text-sm text-amber-700 dark:text-amber-300 z-40 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <span className="font-medium">Alterações não salvas</span>
+          </div>
+        )}
+
+        {isAdvancedMode && (
+          <>
+            <aside className="w-full lg:w-80 shrink-0 bg-sidebar-bg border-t lg:border-t-0 lg:border-l border-border flex flex-col overflow-y-auto">
+              <div className="px-4 py-3 border-b border-border shrink-0 flex items-center gap-2">
+                <Layers className="w-3.5 h-3.5 text-brand-muted" />
+                <span className="text-xs font-semibold text-brand-muted uppercase tracking-wide">
+                  Seções
+                </span>
+              </div>
+              <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
+                {sections.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSelectedSection(key)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition ${
+                      selectedSection === key
+                        ? 'bg-brand-primary text-white shadow-sm'
+                        : 'text-brand-text bg-transparent hover:bg-brand-btn-light/40'
+                    }`}
+                  >
+                    {getSectionLabel(key, uiSchemaState)}
+                  </button>
+                ))}
+              </nav>
+            </aside>
+
+            <aside className="w-full lg:w-80 shrink-0 bg-sidebar-bg border-t lg:border-t-0 lg:border-l border-border flex flex-col overflow-y-auto">
+              {selectedSection === null ? (
+                <div className="flex-1 flex items-center justify-center gap-3 text-brand-muted px-6">
+                  <div className="flex flex-col items-center gap-3">
+                    <MousePointerClick className="w-10 h-10 opacity-30" />
+                    <p className="text-sm text-center">Selecione uma seção para editar</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="sticky top-0 shrink-0 px-4 py-3 bg-sidebar-bg border-b border-border z-10">
+                    <p className="text-xs font-semibold text-brand-muted uppercase tracking-wide">
+                      {getSectionLabel(selectedSection, uiSchemaState)}
+                    </p>
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="p-4 space-y-4">
+                      <DynamicFieldRenderer
+                        dataKey={selectedSection}
+                        value={localData[selectedSection]}
+                        path={[selectedSection]}
+                        onChange={handleFieldChange}
+                        onOpenMediaModal={handleOpenMediaModal}
+                        uploadingPaths={uploadingPaths}
+                        uiSchema={uiSchemaState}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="shrink-0 p-3 border-t border-brand-btn-light bg-sidebar-bg">
+                <button
+                  type="button"
+                  onClick={handleSaveContent}
+                  disabled={isPending || uploadingPaths.size > 0 || !hasUnsavedChanges}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-brand-cta text-white hover:bg-brand-cta-hover transition disabled:opacity-60"
+                >
+                  {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {isPending ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+            </aside>
+          </>
+        )}
+
+        <MediaUploadModal
+          isOpen={mediaModal.open}
+          onClose={() => setMediaModal((prev) => ({ ...prev, open: false }))}
+          onUrlSubmit={handleMediaUrlSubmit}
+          onFileUpload={handleMediaFileUpload}
+          mediaType={mediaModal.mediaType}
+          isUploading={uploadingPaths.has(mediaModal.path.join('.'))}
+        />
       </div>
     </div>
   )

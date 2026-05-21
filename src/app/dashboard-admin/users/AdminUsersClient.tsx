@@ -6,6 +6,7 @@ import { Users, Plus, Loader2, UserCircle, CheckCircle2, Clock, Trash2, Pencil, 
 import { adminCreateUser } from '@/modules/admin/actions/adminCreateUser'
 import { adminEditUser } from '@/modules/admin/actions/adminEditUser'
 import { adminDeleteUser } from '@/modules/admin/actions/adminDeleteUser'
+import { startImpersonation } from '@/modules/auth/actions/startImpersonation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -320,17 +321,13 @@ export function AdminUsersClient({ users, companies }: { users: User[]; companie
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={async () => {
-                          const result = await fetch('/api/impersonate', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId: user.id, companySlug: user.company.slug }),
-                          }).then((r) => r.json())
+                          const result = await startImpersonation(user.id, user.company.slug, window.location.href)
                           if (result.ok) {
-                            window.open(result.redirectUrl, '_blank')
+                            window.open(`/${user.company.slug}/dashboard`, '_self')
                           }
                         }}
                         className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
-                        title="Visualizar como usuário (abre em nova aba)"
+                        title="Visualizar como usuário"
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </button>

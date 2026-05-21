@@ -5,10 +5,7 @@ import { ChevronLeft, ArrowRight } from 'lucide-react'
 import { db } from '@/lib/prisma'
 import { getProjects } from '@/modules/projects/queries/getProjects'
 import { formatDate } from '@/lib/utils'
-import { hasPermission, getViewMode, VIEW_MODE_USER, VIEW_MODE_DEV } from '@/lib/auth/permissions'
-import { getUserPermissions } from '@/modules/auth/queries/getUserPermissions'
-import { getImpersonatedUserPermissions } from '@/modules/auth/queries/getImpersonatedUserPermissions'
-import { getImpersonatedDevPermissions } from '@/modules/auth/queries/getImpersonatedDevPermissions'
+import { hasPermission, isImpersonating, getEffectivePermissions } from '@/lib/auth/permissions'
 import { CreateProjectModal } from '@/components/projects/CreateProjectModal'
 import { EditProjectContainer } from '@/components/projects/EditProjectContainer'
 import { EditProjectButton } from '@/components/projects/EditProjectButton'
@@ -32,35 +29,21 @@ export default async function SitesPage({
 
   const projects = await getProjects({ companyId: company.id, type: 'INSTITUTIONAL' })
 
-  // Fetch permissions fresh from database (not from session cache)
-  const viewMode = await getViewMode()
-
-  // If in USER_MODE, use impersonated user's permissions; otherwise use logged-in user's permissions
-  let freshPermissions = await getUserPermissions(session.user.id)
-  if (viewMode === VIEW_MODE_USER) {
-    const impersonatedPerms = await getImpersonatedUserPermissions()
-    if (impersonatedPerms) {
-      freshPermissions = impersonatedPerms
-    }
-  } else if (viewMode === VIEW_MODE_DEV) {
-    const impersonatedPerms = await getImpersonatedDevPermissions()
-    if (impersonatedPerms) {
-      freshPermissions = impersonatedPerms
-    }
-  }
+  const impersonating = await isImpersonating()
+  const freshPermissions = await getEffectivePermissions(session.user.id)
 
   const sessionWithFreshPerms = {
     ...session,
     user: {
       ...session.user,
-      permissions: freshPermissions,
+      permissions: freshPermissions ?? undefined,
     },
   }
 
-  const canCreate = hasPermission(sessionWithFreshPerms, 'PROJECT_CREATE', 'sites', 'project', viewMode)
-  const canEdit = hasPermission(sessionWithFreshPerms, 'PROJECT_EDIT', 'sites', 'project', viewMode)
-  const canDelete = hasPermission(sessionWithFreshPerms, 'PROJECT_DELETE', 'sites', 'project', viewMode)
-  const canManageBlog = hasPermission(sessionWithFreshPerms, 'BLOG_MANAGE', 'sites', 'project', viewMode)
+  const canCreate = hasPermission(sessionWithFreshPerms, 'PROJECT_CREATE', 'sites', 'project', impersonating)
+  const canEdit = hasPermission(sessionWithFreshPerms, 'PROJECT_EDIT', 'sites', 'project', impersonating)
+  const canDelete = hasPermission(sessionWithFreshPerms, 'PROJECT_DELETE', 'sites', 'project', impersonating)
+  const canManageBlog = hasPermission(sessionWithFreshPerms, 'BLOG_MANAGE', 'sites', 'project', impersonating)
 
   return (
     <div className="p-8">

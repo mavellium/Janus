@@ -15,9 +15,17 @@
 ## 🔑 Conceitos-Chave
 
 **Page model** (Prisma):
-- `schemaData: Json` → Define formulário (legado)
-- `contentData: Json` → Dados livres (avançado)
+- `schemaData: Json` → Define formulário (legado) / JSON de dados em modo avançado
+- `contentData: Json` → Dados livres (avançado — não usado no flow atual)
+- `uiSchema: Json` → Configuração de UI separada (labels, tipos, ocultar campos)
 - `isAdvanced: boolean` → Qual modo renderizar
+
+**UI Schema** (Modo Avançado):
+- Salvo no campo `uiSchema` — nunca vai para o payload da API pública
+- Formato: `{ "hero.title": { "ui:label": "Título", "ui:widget": "textarea" } }`
+- Resolução por dot notation: exato → wildcard (`cards.*.nome`) → sem índice (`cards.nome`)
+- Props suportadas: `ui:label`, `ui:description`, `ui:widget`, `ui:group`
+- `ui:widget: "hidden"` oculta o campo no painel sem remover do JSON de dados
 
 **Heurística de tipo** (DynamicFieldRenderer):
 - Nome da chave + valor → Tipo de input inferido
@@ -51,4 +59,6 @@
 - Fluxo detalhado? → `mode-legacy.md` ou `mode-advanced.md`
 - Implementar action? → `server-actions.md`
 - Qual regra se aplica? → `rules.md`
+- UI Schema? → `changelog.md` (entry 2026-05-20)
+- Segurança de dados? → `data-isolation.md` ⭐ Como modos não se sobrescrevem
 - Copy-paste pattern? → `../../quick-ref/patterns.md`

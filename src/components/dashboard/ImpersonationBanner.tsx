@@ -1,157 +1,120 @@
 'use client'
 
 import { useTransition, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
-import Link from 'next/link'
-import { Eye, EyeOff, Loader2, KeyRound } from 'lucide-react'
-import { Switch } from '@/components/ui/switch'
-import { toggleViewMode, toggleDevViewMode } from '@/modules/auth/actions/toggleViewMode'
-import { viewAsUser } from '@/modules/auth/actions/viewAsUser'
+import { AlertTriangle, Loader2, Users, KeyRound, ArrowLeft, Shield } from 'lucide-react'
+import { stopImpersonation } from '@/modules/auth/actions/stopImpersonation'
+import { ImpersonationSelector } from './ImpersonationSelector'
 import { UserPermissionsModal } from './UserPermissionsModal'
-import { DevPermissionsModal } from './DevPermissionsModal'
-import type { ModuleType } from '@/lib/auth/permissions'
 
 interface Props {
-  companyName: string
   companySlug: string
-  role: 'ADMIN' | 'DEVELOPER'
-  initialSimulating: boolean
-  impersonatedUserId?: string | null
-  impersonatedUserEmail?: string | null
+  impersonatedUserName: string | null
+  isImpersonating: boolean
+  companyUsers: Array<{ id: string; name: string | null; email: string; role: string }>
+  realUserRole: 'ADMIN' | 'DEVELOPER'
+  impersonatedUserId: string | null
+  impersonatedUserEmail: string | null
   impersonatedUserPermissions?: string | string[] | Record<string, Record<string, string[]>>
-  isSimulatingDev?: boolean
-  impersonatedDevId?: string | null
-  impersonatedDevName?: string | null
-  impersonatedDevPermissions?: string | string[] | Record<string, Record<string, string[]>>
-  developerUsers?: Array<{ id: string; name: string | null; email: string; role: string }>
+  returnUrl?: string | null
 }
 
 export function ImpersonationBanner({
-  companyName,
   companySlug,
-  role,
-  initialSimulating,
+  impersonatedUserName,
+  isImpersonating,
+  companyUsers,
+  realUserRole,
   impersonatedUserId,
   impersonatedUserEmail,
   impersonatedUserPermissions,
-  isSimulatingDev,
-  impersonatedDevId,
-  impersonatedDevName,
-  impersonatedDevPermissions,
-  developerUsers = [],
+  returnUrl,
 }: Props) {
-  const router = useRouter()
-  const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
-  const [showUserPermissionsModal, setShowUserPermissionsModal] = useState(false)
-  const [showDevPermissionsModal, setShowDevPermissionsModal] = useState(false)
+  const [showSelector, setShowSelector] = useState(false)
+  const [showPermissions, setShowPermissions] = useState(false)
 
-  const currentModule: ModuleType = pathname.includes('/landing-pages') ? 'landingPages' : 'sites'
-  const backHref = role === 'ADMIN' ? '/dashboard-admin' : '/dev'
-
-  function handleUserToggle(checked: boolean) {
-    if (role === 'DEVELOPER' && checked && !initialSimulating && developerUsers.length > 0) {
-      // Auto-select first user and enter USER_MODE
-      const firstUser = developerUsers[0]
-      startTransition(async () => {
-        await viewAsUser(firstUser.id, companySlug, pathname)
-      })
-    } else {
-      startTransition(async () => {
-        const result = await toggleViewMode(checked, companySlug)
-        if (result.ok) router.refresh()
-      })
-    }
-  }
-
-  function handleDevToggle(checked: boolean) {
+  function handleBackToPanel() {
     startTransition(async () => {
-      const result = await toggleDevViewMode(checked, companySlug)
-      if (result.ok) router.refresh()
+      await stopImpersonation(returnUrl ?? undefined)
     })
   }
 
-  const isDevContext = isSimulatingDev || !!impersonatedDevId
-
-  const bannerText = isSimulatingDev && impersonatedDevName
-    ? <>Visualizando desenvolvedor <strong>{impersonatedDevName}</strong></>
-    : initialSimulating && impersonatedUserEmail
-      ? <>Visualizando usuário <strong>{impersonatedUserEmail}</strong></>
-      : <>Visualizando {companyName}</>
-
-  const isActive = isDevContext ? isSimulatingDev : initialSimulating
-  const handleToggle = isDevContext ? handleDevToggle : handleUserToggle
-  const toggleLabel = isDevContext ? 'Simular Visão do Dev' : 'Simular Visão do Usuário'
-
   return (
     <>
-      <div className="sticky top-0 z-50 w-full bg-destructive text-destructive-foreground px-4 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm font-medium shadow-md">
-        <div className="flex items-center gap-2">
-          {isActive ? (
-            <EyeOff className="w-4 h-4 shrink-0" />
-          ) : (
-            <Eye className="w-4 h-4 shrink-0" />
-          )}
-          <span>
-            {role === 'ADMIN' ? 'Modo Administrador' : 'Modo Desenvolvedor'}:
-            {bannerText}
-          </span>
-        </div>
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <span className="text-xs">{toggleLabel}</span>
-            <Switch
-              checked={isActive}
-              onCheckedChange={handleToggle}
+      {isImpersonating && (
+        <div className="sticky top-0 z-50 w-full bg-destructive text-destructive-foreground px-4 py-2.5 flex items-center justify-between gap-3 text-sm font-medium shadow-md">
+          <div className="flex items-center gap-2 min-w-0">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span className="truncate">
+              Atenção: Você está visualizando o sistema simulando o usuário: <strong>{impersonatedUserName}</strong>
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {impersonatedUserId && (
+              <button
+                onClick={() => setShowPermissions(true)}
+                className="p-1.5 rounded text-xs font-semibold bg-destructive-foreground/20 hover:bg-destructive-foreground/30 transition"
+                title="Editar permissões do usuário"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button
+              onClick={async () => {
+                await stopImpersonation(false)
+                window.location.reload()
+              }}
+              className="p-1.5 rounded text-xs font-semibold bg-destructive-foreground/20 hover:bg-destructive-foreground/30 transition"
+              title={`Ver como ${realUserRole === 'ADMIN' ? 'Admin' : 'Desenvolvedor'}`}
+            >
+              <Shield className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setShowSelector(true)}
+              className="px-3 py-1 rounded text-xs font-semibold bg-destructive-foreground/20 hover:bg-destructive-foreground/30 transition"
+            >
+              Trocar
+            </button>
+            <button
+              onClick={handleBackToPanel}
               disabled={isPending}
-              aria-label={toggleLabel}
-            />
-            {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-          </label>
-          {initialSimulating && impersonatedUserId && !isSimulatingDev && (
-            <button
-              onClick={() => setShowUserPermissionsModal(true)}
-              className="p-1.5 rounded text-destructive-foreground hover:bg-destructive-foreground/20 transition"
-              title="Gerenciar permissões"
+              className="px-3 py-1 rounded text-xs font-semibold bg-destructive-foreground text-destructive hover:opacity-90 transition flex items-center gap-1.5"
             >
-              <KeyRound className="w-4 h-4" />
+              {isPending && <Loader2 className="w-3 h-3 animate-spin" />}
+              <ArrowLeft className="w-3 h-3" />
+              Voltar ao Painel
             </button>
-          )}
-          {isSimulatingDev && impersonatedDevId && (
-            <button
-              onClick={() => setShowDevPermissionsModal(true)}
-              className="p-1.5 rounded text-destructive-foreground hover:bg-destructive-foreground/20 transition"
-              title="Gerenciar permissões do dev"
-            >
-              <KeyRound className="w-4 h-4" />
-            </button>
-          )}
-          <Link
-            href={backHref}
-            className="underline underline-offset-2 hover:opacity-80 transition text-xs"
-          >
-            Voltar
-          </Link>
+          </div>
         </div>
-      </div>
+      )}
 
-      {showUserPermissionsModal && impersonatedUserId && (
+      {!isImpersonating && companyUsers.length > 0 && (
+        <div className="sticky top-0 z-50 w-full border-b border-border bg-muted px-4 py-2 flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Modo privilegiado</span>
+          <button
+            onClick={() => setShowSelector(true)}
+            className="flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold text-foreground bg-background border border-border hover:bg-accent transition"
+          >
+            <Users className="w-3.5 h-3.5" />
+            Simular Usuário
+          </button>
+        </div>
+      )}
+
+      {showSelector && (
+        <ImpersonationSelector
+          companySlug={companySlug}
+          users={companyUsers}
+          onClose={() => setShowSelector(false)}
+        />
+      )}
+
+      {showPermissions && impersonatedUserId && (
         <UserPermissionsModal
           userId={impersonatedUserId}
           userEmail={impersonatedUserEmail || 'Usuário'}
           initialPermissions={impersonatedUserPermissions}
-          initialModule={currentModule}
-          onClose={() => setShowUserPermissionsModal(false)}
-        />
-      )}
-
-      {showDevPermissionsModal && impersonatedDevId && (
-        <DevPermissionsModal
-          devId={impersonatedDevId}
-          devName={impersonatedDevName || 'Desenvolvedor'}
-          initialPermissions={impersonatedDevPermissions}
-          initialModule={currentModule}
-          onClose={() => setShowDevPermissionsModal(false)}
+          onClose={() => setShowPermissions(false)}
         />
       )}
     </>

@@ -50,8 +50,12 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **Relações:** Um para Muitos com `Page`; belongsTo `Company`
 
 ### pages
-- **Entidade:** `Page` (Prisma) — id (UUID), projectId (fk), name, slug (unique por project), content (Json), soft-delete
+- **Entidade:** `Page` (Prisma) — id (UUID), projectId (fk), name, slug (unique por project), **NEW:** schemaData (Json, form structure), **NEW:** contentData (Json, form values), **NEW:** uiSchema (Json, UI configuration), **NEW:** isAdvanced (bool, edit mode flag), soft-delete
 - **Relações:** belongsTo `Project`
+- **Data Isolation:** 
+  - Legacy mode (isAdvanced=false): contentData é editável via DynamicForm; schemaData é READ-ONLY (estrutura do dev)
+  - Advanced mode (isAdvanced=true): schemaData é editável (dados JSON livre); contentData é IGNORADO
+  - Mode switching via updatePageMode APENAS altera flag, nunca toca dados
 
 ### projectHistories
 - **Entidade:** `ProjectHistory` (Prisma) — id (UUID), projectId (fk), userId (fk), previousState (Json), newState (Json), version (Int), createdAt
@@ -64,11 +68,62 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
   - `createPage.ts` — cria página com nome/slug (sanitizado); valida slug único por projeto; inicializa schemaData={} e contentData={}
   - `updatePage.ts` — atualiza nome e slug da página; autoriza por companySlug; sanitiza slug; revalida listagem
   - `updatePageSchema.ts` — persiste JSON schema em `Page.schemaData`; valida JSON, autoriza, revalida
-  - `updatePageContentData.ts` — persiste valores preenchidos em `Page.contentData`; valida, autoriza, revalida
+  - `updatePageContentData.ts` — persiste valores preenchidos em `Page.contentData` (legacy mode); valida, autoriza, revalida; NUNCA toca schemaData
+  - `updatePageMode.ts` — **NOVO:** alterna flag `isAdvanced`; ONLY muda flag, não toca dados (schemaData, contentData, uiSchema)
+  - `updatePageAdvancedData.ts` — **NOVO:** modo builder avançado salva `schemaData` + `uiSchema` em uma operação; valida, autoriza, revalida; NUNCA toca contentData
   - `togglePagePublish.ts` — toggle `isPublished`; valida acesso por companySlug; revalida listagem
 - **Queries:** 
   - `getProjects.ts` — busca projetos ativos (isActive: true, deletedAt: null) com filtro opcional por tipo; retorna com contagem de páginas
   - `getPagesByProjectId.ts` — busca páginas de um projeto específico; ordena por criação decrescente
+
+### Components (CMS Builder)
+
+#### SchemaBuilderEditor
+- **Localização:** `src/components/schema-builder/SchemaBuilderEditor.tsx`
+- **Props:** pageId, pageName, backHref, initialSchema, initialUiSchema, initialIsAdvanced, apiUrl, initialPublished, previewHref
+- **Estados:** 
+  - `isAdvancedMode` — alterna entre Monaco editor (legacy) e AdvancedJsonEditor (advanced)
+  - `uiSchemaState` — rastreia UI Schema em TEMPO REAL (sincroniza com AdvancedJsonEditor)
+  - `localData` — dados sendo editados (schemaData em advanced mode)
+  - `selectedSection` — seção selecionada no Menu SEÇÕES
+  - `hasUnsavedChanges` — indica mudanças não salvas (banner + aviso navegador)
+- **Layout Avançado (3 colunas):**
+  - Centro (1fr): AdvancedJsonEditor com tabs DADOS | INTERFACE
+  - Direita 1 (350px): Menu SEÇÕES (seções do uiSchemaState)
+  - Direita 2 (350px): Editor CAMPO (DynamicFieldRenderer contextual ao clicar seção)
+- **Preview em Tempo Real:** Conforme edita JSON, dados aparecem instantaneamente nas 3 colunas
+- **Unsaved Changes:** Banner topo-centro + aviso do navegador ao tentar sair sem salvar
+- **Upload Mídia:** MediaUploadModal integrado para uploads de imagem/vídeo
+
+#### AdvancedJsonEditor
+- **Localização:** `src/components/cms/AdvancedJsonEditor.tsx`
+- **Props:** pageId, data, initialUiSchema, isDevMode, showFormPanel, onDataChange, onUiSchemaChange
+- **Quando showFormPanel={false}:**
+  - Editor Monaco ocupa 100% da largura
+  - Renderiza APENAS tabs DADOS | INTERFACE (sem formPanel preview)
+  - Usado no builder avançado (SchemaBuilderEditor)
+- **Quando showFormPanel={true}:**
+  - Editor Monaco (40%) + FormPanel (60%)
+  - FormPanel renderiza campos baseado em uiSchemaLocal
+  - Usado em edit mode
+- **Sincronização:** useEffect monitora initialUiSchema prop; sincroniza uiSchemaLocal quando muda (TEMPO REAL)
+- **Documentação Interna:** Seção "5. Prompt para gerar UI Schema com IA" com botão copiar
+- **Tabs Internos:**
+  - DADOS: Editor JSON dos dados
+  - INTERFACE: Editor JSON do UI Schema
+
+#### DynamicFieldRenderer
+- **Localização:** `src/components/cms/DynamicFieldRenderer.tsx`
+- **Renderiza:** Campos baseado em tipo inferido (text, textarea, image, video, boolean, color, select, number, html, **icon**)
+- **Entrada:** value, path, dataKey, uiSchema (config do UI Schema)
+- **Callbacks:** onChange (atualiza dados), onOpenMediaModal (abre upload dialog)
+- **Icon widget:** delega para `IconPicker` (substituiu campo de texto livre)
+
+#### IconPicker
+- **Localização:** `src/components/cms/IconPicker.tsx`
+- **Renderiza:** Seletor visual de ícones lucide-react com busca em tempo real
+- **Comportamento:** Botão mostra ícone atual + nome; abre Dialog com grid; busca filtra por nome; MAX_VISIBLE=300 ícones por vez; X limpa seleção
+- **Integração:** Usado automaticamente quando `type === 'icon'` no DynamicFieldRenderer
 
 ### dev
 - **Queries:**
@@ -83,6 +138,44 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
   - `editCompany.ts` — edita nome/slug/descrição de empresa; valida conflito de slug
   - `deleteCompany.ts` — soft delete de empresa (set deletedAt)
   - `createUser.ts` — cria usuário com role DEFAULT vinculado a empresa; hash bcrypt
+
+---
+
+## CMS: Regras Absolutas (Data Isolation + UI Schema)
+
+**IMPORTANTE:** Leia `.claude/context/cms/` antes de mexer no builder/editor.
+
+### Data Isolation Guarantee
+- **Legacy Mode (isAdvanced=false):** Edita `contentData` via DynamicForm; `schemaData` permanece intacto
+- **Advanced Mode (isAdvanced=true):** Edita `schemaData` JSON livre; `contentData` é IGNORADO completamente
+- **Mode Switch:** `updatePageMode()` APENAS altera flag, NUNCA toca dados
+- **No Overwrites:** Alternar modos 1000x = dados sempre intactos (verificado em data-isolation-verification.md)
+
+### UI Schema Pattern (aba INTERFACE)
+- **Propósito:** Define labels, tipos de widgets, descrições (UX) sem alterar dados
+- **Estrutura:**
+  ```json
+  {
+    "card": { "ui:label": "👥 Cards" },
+    "card.*.name": { "ui:label": "Nome", "ui:widget": "text" },
+    "card.*.image": { "ui:label": "Foto", "ui:widget": "image" }
+  }
+  ```
+- **Wildcards:** `*.` significa "aplicar a TODOS os itens do array"
+- **Documentação:** Seção "5. Prompt para gerar UI Schema com IA" tem prompt copy-paste para qualquer IA gerar schema automaticamente
+
+### Builder Advanced Mode (3 Colunas)
+1. **Editor JSON (Centro):** AdvancedJsonEditor com tabs DADOS | INTERFACE
+2. **Menu SEÇÕES (Direita 1):** Mostra seções do UI Schema em tempo real
+3. **Editor CAMPO (Direita 2):** DynamicFieldRenderer para editar campos individuais
+4. **Preview:** Conforme edita, mudanças aparecem instantaneamente (sem salvar)
+5. **Unsaved Changes:** Banner + aviso navegador se tentar sair sem salvar
+
+### Componentes Críticos
+- `SchemaBuilderEditor.tsx` — orquestra todo o builder (legacy + advanced)
+- `AdvancedJsonEditor.tsx` — editor JSON com tabs e sincronização em tempo real
+- `DynamicFieldRenderer.tsx` — renderiza campos baseado em tipo + UI Schema
+- `SiteContentEditClient.tsx` — edit page (legacy + advanced, com iframe para preview)
 
 ### admin
 - **Queries:**
@@ -107,9 +200,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **Actions:** `uploadMedia.ts` — suporta image (→ AVIF) e video (direto raw); valida tamanho (5MB img / 200MB vídeo); envia para BunnyCDN; retorna URL pública
 
 ### auth
-- **Actions:** `checkIpStatus.ts` — Server Action que verifica status de bloqueio do IP, retorna `{ blocked, remainingSeconds, reason }` | `viewAsUser.ts` — seta USER_MODE + IMPERSONATED_USER_ID_COOKIE, redireciona para `/{companySlug}/dashboard` | `viewAsDeveloper.ts` — seta DEV_MODE + IMPERSONATED_DEV_ID_COOKIE, redireciona para `/{companySlug}/dashboard`
-- **Actions:** `toggleViewMode.ts` — `toggleViewMode()` alterna USER_MODE; `clearViewMode()` limpa; `toggleDevViewMode()` alterna DEV_MODE (ADMIN only)
-- **Queries:** `getImpersonatedUserPermissions.ts` — lê IMPERSONATED_USER_ID_COOKIE, busca permissions do usuário impersonado | `getImpersonatedDevPermissions.ts` — lê IMPERSONATED_DEV_ID_COOKIE, busca permissions do dev impersonado
+- **Actions:** `startImpersonation.ts` — valida ADMIN/DEVELOPER, seta 3 cookies HTTP-Only (`user_id`, `user_name`, `return_url`), aceita `returnTo` opcional | `stopImpersonation.ts` — deleta cookies; se `redirectTo=false` não redireciona (modo privilegiado); senão redireciona para `returnUrl` do cookie ou URL explícita | `checkIpStatus.ts` — rate limit por IP no login (3 tentativas/1h)
+- **Queries:** `getCompanyUsers.ts` — usuários ativos de uma empresa (id, name, email, role), ordenados por name
 
 ---
 
@@ -118,12 +210,15 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/components/auth/LoginForm.tsx` — Client — formulário de login com useActionState + checkIpStatus, countdown regressivo (MM:SS), overlay bloqueio com cor #514030
 - `src/components/dev/DevSidebar.tsx` — Client — sidebar colapsável exclusiva do Dev Dashboard; links para dashboard, empresas, usuários e configurações do dev
 - `src/components/admin/AdminSidebar.tsx` — Client — sidebar colapsável exclusiva do Admin Panel; links para `/dashboard-admin/*` (dashboard, empresas, desenvolvedores, usuários, logs, configurações)
-- `src/components/dashboard/DevPermissionsModal.tsx` — Client — modal de permissões do dev impersonado; usa `updateUserPermissions`; módulos Sites/Landing Pages; salva imediatamente ao toggle
+- `src/components/dashboard/ImpersonationSelector.tsx` — Client — modal de busca e seleção de usuário para impersonar; filtro por nome/email/role; dispara `startImpersonation(userId, slug, window.location.href)` e navega para dashboard
+- `src/components/dashboard/ImpersonationBanner.tsx` — Client — banner vermelho `bg-destructive` com nome do usuário impersonado; botões: KeyRound (editar permissões do alvo), Shield (ver como Admin/Dev — `stopImpersonation(false)` + reload), Trocar (abre selector), Voltar ao Painel (`stopImpersonation(returnUrl)`); barra subtís `bg-muted` com "Simular Usuário" quando não está impersonando
+- `src/components/dashboard/UserPermissionsModal.tsx` — Client — modal de permissões RBAC por módulo (sites/landingPages) e tier (project/page); toggle Switch salva imediatamente via `updateUserPermissions`; aberto pelo KeyRound no banner
 - `src/components/dashboard/Sidebar.tsx` — Client — sidebar colapsável com useState(initialCollapsed) + startTransition; logo 48px→28px; toggle PanelLeftClose/PanelLeftOpen; avatar next/image + fallback UserCircle; estado persistido via updatePreferences em background
 - `src/components/schema-builder/SchemaBuilderEditor.tsx` — Client — workspace 3 painéis: Esquerda (w-72) com Tabs Estrutura/Componentes — Estrutura lista seções com ícone `Layers`, `Trash2` hover-only para excluir via Monaco ref e click para `scrollIntoView` no preview com ring highlight 1s; Componentes tem 8 cards de snippets com ícone/descrição; Centro: Monaco full-width endpoint; IDs únicos por sufixo random ao inserir snippet; Direita: LiveFormPreview reativo
 - `src/components/schema-builder/LiveFormPreview.tsx` — Client — preview read-only; aceita `focusedSectionId?: string | null`; cada seção tem `id="section-{key}"` para `scrollIntoView`; highlight `ring-2 ring-brand-primary/20` quando focada; suporta tipos: text, textarea, image, number, color, boolean, select, url, html, list, video
 - `src/components/schema-builder/IframePreview.tsx` — Client — iframe de preview com toggle Desktop/Tablet/Mobile; fallback elegante quando sem previewUrl; mobile simula iPhone (375px), tablet simula iPad (768px)
 - `src/components/schema-builder/DynamicForm.tsx` — Client — formulário dinâmico com upload CDN BunnyCDN para `image` (→ AVIF) e `video` (direto); `uploadingFields: Set<string>` e `uploadErrors` por campo; botão Salvar desabilitado durante upload; suporta todos os tipos: text, textarea, image, number, color, boolean, select, url, html, list, video; tipo `list` dinâmico com adicionar/remover/itens e sub-campos (`itemFields`); chave de seção via `section.id ?? section.name ?? section.section`
+- `src/components/schema-builder/SiteContentEditClient.tsx` — Client — editor de conteúdo 3 colunas (modo avançado); coluna 1: menu de seções com labels via uiSchema; coluna 2: iframe preview (real-time updates); coluna 3: editor contextual com `DynamicFieldRenderer` + upload de mídia; modo legado 2 colunas preservado; `setDeep` imutável + `MediaUploadModal`
 - `src/components/projects/CreatePageModal.tsx` — Client — modal de criação de página com nome e slug (auto-gerado); valida slug único por projeto
 - `src/components/projects/PublishPageButton.tsx` — Client — toggle Publicar/Despublicar com ícones Globe/GlobeOff; server action `togglePagePublish`
 - `src/components/projects/EditPageContainer.tsx` — Client — container que gerencia estado e key incremental do `EditPageModal` (força re-mount com dados frescos)
@@ -301,6 +396,12 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 | Data       | Arquivo                                       | O que foi feito                                            |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
+| 2026-05-21 | `src/components/cms/IconPicker.tsx` | NOVO: Seletor visual de ícones lucide-react com busca e grid; integrado ao DynamicFieldRenderer substituindo input de texto |
+| 2026-05-21 | `src/components/cms/DynamicFieldRenderer.tsx` | FIX: Campo icon agora usa IconPicker (Dialog com grid de ícones) em vez de input de texto livre |
+| 2026-05-21 | `src/components/cms/AdvancedJsonEditor.tsx` | FIX: handleFieldChange atualiza rawJson em tempo real; useEffect sincroniza Monaco quando prop data muda externamente |
+| 2026-05-21 | `.claude/context/auth/` | DOCS: Documentação completa do módulo de permissões e impersonation (_index, domain, actions, queries, patterns, changelog) |
+| 2026-05-20 | `src/app/dashboard-admin/companies/AdminCompaniesClient.tsx`, `getAdminCompanies.ts` | FEAT: Botão "Acessar Painel" no admin agora abre modal de seleção de usuário da empresa para impersonar; query expandida com name/email dos users |
+| 2026-05-20 | `src/lib/auth/permissions.ts`, `src/modules/auth/actions/*`, `src/components/dashboard/ImpersonationBanner.tsx`, `src/components/dashboard/ImpersonationSelector.tsx` | REFACTOR: Arquitetura de impersonation completamente refatorada — VIEW_MODE genérico abolido; modelo específico por usuário via cookies HTTP-Only `janus_impersonated_user_id` + `janus_impersonated_user_name`; `checkPermission()` auto-detecta e aplica permissões do alvo; banner vermelho com nome do usuário; modal de seleção com busca |
 | 2026-05-19 | `prisma/schema.prisma` | FEAT: Adicionado parentId (hierarquia) + seoTitle/seoDescription/seoKeywords em BlogCategory e BlogTag |
 | 2026-05-19 | `getBlogCategories.ts`, `getBlogTags.ts` | FEAT: Queries agora incluem parent e children das entidades blog |
 | 2026-05-19 | `createBlogCategory.ts`, `updateBlogCategory.ts`, `createBlogTag.ts`, `updateBlogTag.ts` | FEAT: Actions atualizadas para persistir parentId e campos SEO |
@@ -323,6 +424,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-20 | `getBlogCategories.ts`, `getBlogTags.ts` | FEAT: children select inclui `isActive` |
 | 2026-05-20 | `CategoriesClient.tsx` | REESCRITO: 3 colunas (Categorias / Subcategorias / Painel), imagem-first, isActive toggle, trash+modal, sem parentId selector |
 | 2026-05-20 | `TagsClient.tsx` | REESCRITO: 3 colunas (Tags / Sub-tags / Painel), imagem-first, isActive toggle, trash+modal, sem parentId selector |
+| 2026-05-20 | `SiteContentEditClient.tsx` | FEAT: Modo avançado refatorado para 3 colunas (Menu Seções → Iframe → Editor Contextual); seção title adicionado; scroll em column 3 corrigido; selected button com background sólido |
+| 2026-05-20 | `updatePageAdvancedContent.ts` | NOVO: Action para modo avançado salvar em `contentData` (não toca `schemaData`); segurança contra sobrescita ao alternar modos |
 | 2026-05-17 | `src/components/ui/SlugInput.tsx` | NOVO: Componente reutilizável de input de slug com validação em tempo real; sanitiza a-z, 0-9, hífen; feedback visual de erro |
 | 2026-05-17 | `CreatePageModal.tsx`, `EditPageModal.tsx`, `CompaniesClient.tsx`, `AdminCompaniesClient.tsx`, `CreateCompanyModal.tsx` | FIX: Substituição de inputs raw slug pelo componente SlugInput com validação live |
 | 2026-05-17 | `src/modules/projects/actions/createPage.ts` + 10 actions | FIX: `session.user.companySlug` undefined para DEVELOPER — adicionado guard `&& session.user.companySlug` antes de comparar |

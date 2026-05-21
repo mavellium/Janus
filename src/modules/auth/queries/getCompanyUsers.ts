@@ -1,10 +1,9 @@
 import { db } from '@/lib/prisma'
 
-export async function getDeveloperUsers(developerId: string, companyId: string) {
+export async function getCompanyUsers(companyId: string) {
   return db.user.findMany({
     where: {
       deletedAt: null,
-      createdById: developerId,
       company: { id: companyId },
     },
     select: {
@@ -13,6 +12,6 @@ export async function getDeveloperUsers(developerId: string, companyId: string) 
       email: true,
       role: true,
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { name: 'asc' },
   })
 }
