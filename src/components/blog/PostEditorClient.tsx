@@ -82,7 +82,7 @@ export function PostEditorClient({
   const [state, formAction, isPending] = useActionState(action, { ok: false as const, error: '' })
 
   const [body, setBody] = useState(post?.body ?? '')
-  const [coverImageUrl, setCoverImageUrl] = useState(post?.coverImageUrl ?? '')
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(post?.coverImageUrl ?? null)
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(post?.tags.map((t) => t.tag.id) ?? [])
   const [uploadingCover, setUploadingCover] = useState(false)
   const coverRef = useRef<HTMLInputElement>(null)
@@ -118,7 +118,7 @@ export function PostEditorClient({
     if (!file) return
     setUploadingCover(true)
     const result = await uploadImage({ file, folder: 'blog-covers' })
-    if (result.ok && result.url) setCoverImageUrl(result.url)
+    if (result.ok && result.url) setCoverImageUrl(result.url ?? null)
     setUploadingCover(false)
     e.target.value = ''
   }
@@ -178,7 +178,7 @@ export function PostEditorClient({
         <input type="hidden" name="projectId" value={projectId} />
         <input type="hidden" name="companySlug" value={companySlug} />
         <input type="hidden" name="body" value={body} />
-        <input type="hidden" name="coverImageUrl" value={coverImageUrl} />
+        <input type="hidden" name="coverImageUrl" value={coverImageUrl ?? ''} />
         <input type="hidden" name="status" value={status} />
         <input type="hidden" name="authorId" value={selectedAuthorId} />
         {selectedTagIds.map((id) => (
@@ -237,14 +237,18 @@ export function PostEditorClient({
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-xs">Imagem de Capa</Label>
                   {coverImageUrl ? (
-                    <div className="relative w-full h-36 rounded-lg overflow-hidden border border-border">
-                      <Image src={coverImageUrl} alt="Capa" fill className="object-cover" />
+                    <div className="flex flex-col gap-1.5">
+                      <div className="relative w-full h-36 rounded-lg overflow-hidden border border-border bg-muted">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={coverImageUrl} alt="Capa" className="w-full h-full object-cover" />
+                      </div>
                       <button
                         type="button"
-                        onClick={() => setCoverImageUrl('')}
-                        className="absolute top-2 right-2 p-1 rounded bg-card/80 text-brand-text hover:bg-card transition"
+                        onClick={() => setCoverImageUrl(null)}
+                        className="flex items-center gap-1 text-xs text-brand-muted hover:text-destructive transition w-fit"
                       >
-                        <X size={14} />
+                        <X size={12} />
+                        Remover capa
                       </button>
                     </div>
                   ) : (
