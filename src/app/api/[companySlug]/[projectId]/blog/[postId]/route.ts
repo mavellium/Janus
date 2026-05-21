@@ -34,7 +34,8 @@ export async function GET(
     where: {
       id: postId,
       projectId,
-      publishedAt: { lte: new Date() },
+      status: 'PUBLISHED',
+      publishedAt: { not: null, lte: new Date() },
       project: { companyId: company.id, blogEnabled: true, isActive: true, deletedAt: null },
     },
     select: {
@@ -48,7 +49,7 @@ export async function GET(
       seoTitle: true,
       seoDescription: true,
       seoKeywords: true,
-      category: true,
+      categories: { select: { category: true } },
       tags: { select: { tag: true } },
       project: { select: { id: true, name: true } },
       createdAt: true,

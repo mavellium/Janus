@@ -4,8 +4,9 @@ export async function getBlogPost(id: string) {
   return db.blogPost.findUnique({
     where: { id },
     include: {
-      category: { select: { id: true, name: true } },
+      categories: { include: { category: { select: { id: true, name: true, parentId: true } } } },
       tags: { include: { tag: { select: { id: true, name: true } } } },
+      author: { select: { id: true, name: true, email: true, image: true } },
     },
   })
 }

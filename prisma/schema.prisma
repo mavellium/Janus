@@ -23,6 +23,13 @@ enum ProjectType {
   @@map("project_type")
 }
 
+enum BlogPostStatus {
+  DRAFT
+  PUBLISHED
+
+  @@map("blog_post_status")
+}
+
 model Company {
   id               String    @id @default(uuid()) @db.Uuid
   slug             String    @unique
@@ -96,6 +103,7 @@ model User {
   deletedAt              DateTime? @map("deleted_at")
 
   projectHistories ProjectHistory[]
+  blogPosts        BlogPost[]       @relation("BlogPostAuthor")
 
   @@index([email])
   @@index([companyId])
@@ -142,23 +150,23 @@ model Project {
 }
 
 model BlogCategory {
-  id             String         @id @default(uuid()) @db.Uuid
+  id             String              @id @default(uuid()) @db.Uuid
   name           String
   description    String?
-  imageUrl       String?        @map("image_url")
+  imageUrl       String?             @map("image_url")
   slug           String
-  seoTitle       String?        @map("seo_title")
-  seoDescription String?        @map("seo_description")
-  seoKeywords    String?        @map("seo_keywords")
-  isActive       Boolean        @default(true) @map("is_active")
-  projectId      String         @db.Uuid @map("project_id")
-  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  parentId       String?        @db.Uuid @map("parent_id")
-  parent         BlogCategory?  @relation("SubCategories", fields: [parentId], references: [id])
-  children       BlogCategory[] @relation("SubCategories")
-  posts          BlogPost[]
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  seoTitle       String?             @map("seo_title")
+  seoDescription String?             @map("seo_description")
+  seoKeywords    String?             @map("seo_keywords")
+  isActive       Boolean             @default(true) @map("is_active")
+  projectId      String              @db.Uuid @map("project_id")
+  project        Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parentId       String?             @db.Uuid @map("parent_id")
+  parent         BlogCategory?       @relation("SubCategories", fields: [parentId], references: [id])
+  children       BlogCategory[]      @relation("SubCategories")
+  posts          BlogPostCategory[]
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
 
   @@unique([projectId, slug])
   @@index([projectId])
@@ -192,30 +200,43 @@ model BlogTag {
 }
 
 model BlogPost {
-  id             String        @id @default(uuid()) @db.Uuid
-  slug           String?       @map("slug")
+  id             String             @id @default(uuid()) @db.Uuid
+  slug           String?            @map("slug")
   title          String
   subtitle       String?
-  publishedAt    DateTime      @map("published_at")
-  body           String        @db.Text
-  coverImageUrl  String?       @map("cover_image_url")
-  authorName     String        @map("author_name")
-  readingTime    Int?          @map("reading_time")
-  seoTitle       String?       @map("seo_title")
-  seoDescription String?       @map("seo_description")
-  seoKeywords    String?       @map("seo_keywords")
-  projectId      String        @db.Uuid @map("project_id")
-  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  categoryId     String?       @db.Uuid @map("category_id")
-  category       BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  status         BlogPostStatus     @default(PUBLISHED) @map("status")
+  publishedAt    DateTime?          @map("published_at")
+  body           String             @db.Text
+  coverImageUrl  String?            @map("cover_image_url")
+  authorName     String             @map("author_name")
+  authorId       String?            @db.Uuid @map("author_id")
+  author         User?              @relation("BlogPostAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  readingTime    Int?               @map("reading_time")
+  seoTitle       String?            @map("seo_title")
+  seoDescription String?            @map("seo_description")
+  seoKeywords    String?            @map("seo_keywords")
+  projectId      String             @db.Uuid @map("project_id")
+  project        Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  categories     BlogPostCategory[]
   tags           BlogPostTag[]
-  createdAt      DateTime      @default(now()) @map("created_at")
-  updatedAt      DateTime      @updatedAt @map("updated_at")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
 
   @@unique([projectId, slug])
   @@index([projectId])
-  @@index([categoryId])
+  @@index([authorId])
+  @@index([status])
   @@map("blog_posts")
+}
+
+model BlogPostCategory {
+  postId     String       @db.Uuid @map("post_id")
+  categoryId String       @db.Uuid @map("category_id")
+  post       BlogPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  category   BlogCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([postId, categoryId])
+  @@map("blog_post_categories")
 }
 
 model BlogPostTag {
@@ -265,4 +286,3 @@ model ProjectHistory {
   @@index([userId])
   @@map("project_histories")
 }
-
