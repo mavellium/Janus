@@ -16,6 +16,94 @@
 
 ---
 
+### [2026-05-22] — Docs: Painel de documentação in-app reescrito (Padrões Essenciais + Prompt IA)
+
+**Arquivos**:
+- `src/components/cms/AdvancedJsonEditor.tsx`: seções 3-6 do painel Docs reescritas; `handleCopyPrompt` atualizado
+
+**Razão**: Documentação anterior não cobria padrões críticos (rich-text array, array aninhado, escalar na raiz, objeto fixo). IA gerava UI Schema incorreto para esses casos.
+
+**Impacto**: Painel Docs agora tem seção "5 Padrões Essenciais" com exemplos de dado + UI Schema para cada padrão. Prompt copiável cobre todos os 5 padrões, heurística de widget por nome de campo, e lista de campos hidden. Qualquer IA que receba o prompt consegue gerar UI Schema correto para qualquer JSON de dados.
+
+---
+
+### [2026-05-22] — Feat: Propriedades visuais no UI Schema (ui:color, ui:size, ui:placeholder)
+
+**Arquivos**:
+- `src/components/cms/DynamicFieldRenderer.tsx`:
+  - `UiConfig` ampliado com `ui:color`, `ui:size`, `ui:placeholder`
+  - `accentColor` / `accentStyle` / `accentClass` derivados do `uiConfig` e aplicados em todos os renderers de leaf (text, textarea, url, number)
+  - `textareaHeightClass` mapeado de `ui:size` → classes `min-h-[*]`
+  - `placeholder` sobrescreve o auto-gerado nos inputs de texto, textarea e url
+  - Object collapsible: borda esquerda colorida no container + título colorido no header quando `ui:color` definido
+- `src/components/cms/AdvancedJsonEditor.tsx`:
+  - Seção 2 do painel Docs reescrita: tabela de `ui:widget` + 3 novas seções (ui:color, ui:size, ui:placeholder) com exemplos visuais e grid de tamanhos
+  - Prompt IA (exibido e copiado) atualizado com `PROPRIEDADES VISUAIS` e exemplo incluindo `ui:color`, `ui:size`, `ui:placeholder`
+- `.claude/context/cms/mode-advanced.md`: tabela de propriedades ampliada com as 3 novas
+
+**Razão**: Desenvolvedor não tinha como diferenciar visualmente campos críticos, controlar altura de textareas longas nem customizar os placeholders sem editar código
+
+**Impacto**:
+- `ui:color: "#00D26A"` → borda esquerda verde em qualquer campo, vermelho em campos de atenção, etc.
+- `ui:size: "xl"` → textarea de 280px para campos de corpo de texto
+- `ui:placeholder: "Ex: ..."` → instrução contextual no campo sem precisar de `ui:description`
+
+---
+
+### [2026-05-22] — Fix: Documentação interna do painel "Como personalizar a tela do cliente" corrigida
+
+**Arquivos**:
+- `src/components/cms/AdvancedJsonEditor.tsx`: seções 3, 4 e 5 do painel Docs reescritas
+  - Seção 3 ("regra do asterisco") → renomeada para "prefixo content. e asterisco *"; exemplos corrigidos de `hero.title` / `cards.*.image` para `content.hero.title` / `content.hero.slides.*.headline`
+  - Seção 4 ("Exemplo na prática") → reescrito com `content.equipe.*` mostrando seção raiz + array aninhado; resultado lista "seção aparece no menu lateral" (não apenas "bloco ganhou título")
+  - Seção 5 (prompt IA) → reescrito completamente: instrui gerar chaves com `content.` prefix, inclui todos os `ui:widget` incluindo `url`, exemplo correto de FAQ embutido; prompt `handleCopyPrompt` sincronizado
+
+**Razão**: Os exemplos anteriores usavam `"card"` e `"cards.*.image"` (sem `content.` prefix) — o desenvolvedor colava esses exemplos e o painel de seções ficava vazio porque `resolveUiConfig` não encontrava as chaves
+
+**Impacto**:
+- ✅ Desenvolvedor que seguir a documentação interna agora gera UI Schema no formato correto de primeira
+- ✅ Prompt da IA gera chaves com `content.` prefix obrigatório + exemplo embutido no prompt para ancoragem
+
+---
+
+### [2026-05-22] — Docs: mode-advanced.md reescrito + formato canônico de UI Schema documentado
+
+**Arquivos**:
+- `.claude/context/cms/mode-advanced.md`: reescrito por completo — novo layout 3 colunas, UI Schema formato flat canônico, normalização nested→flat, `getDeep`, `effectiveUiSchema`, tabela de `ui:widget`, exemplo completo, diferenças Builder vs Edit
+- `.claude/context/cms/_index.md`: seção UI Schema atualizada com formato correto (`content.` prefix obrigatório) e nota sobre formato nested
+
+**Razão**: Documentação anterior não refletia o sistema de seções derivado do UI Schema, o prefixo `content.` obrigatório nas chaves, nem a normalização de formato nested → flat
+
+**Impacto**: Qualquer Claude futuro que precise gerar ou depurar UI Schema saberá imediatamente o formato correto e como o `resolveUiConfig` resolve os caminhos
+
+---
+
+### [2026-05-22] — Fix: Renderização correta de seções no Builder Avançado (UI Schema nested + DFR inline)
+
+**Arquivos**:
+- `src/components/schema-builder/SchemaBuilderEditor.tsx`:
+  - Adicionado `getDeep()` para navegar `localData` por array de path (ex: `["content","faq"]`)
+  - Adicionado `isNestedUiSchema()`, `processNode()`, `normalizeNestedUiSchema()` para converter formato nested → flat com prefixo `content.`
+  - Adicionado `effectiveUiSchema` via `useMemo` — normaliza se necessário, nunca muta o estado do Monaco
+  - Substituído todo uso de `uiSchemaState` no render (sections filter, `getSectionLabel`, DFR `uiSchema` prop) por `effectiveUiSchema`
+  - DFR agora recebe `path={selectedSection.split('.')}` e `value={getDeep(localData, selectedSection.split('.'))}` — correto para seções em `content.*`
+  - Prop `inline` passada ao DFR (pula wrapper collapsible na raiz da seção)
+- `src/components/cms/DynamicFieldRenderer.tsx`:
+  - Adicionado prop `inline?: boolean` — quando `true`, renderiza filhos direto sem accordion wrapper
+  - Extraído `renderEntries()` para reutilização entre inline e collapsible
+
+**Razão**: 
+- `uiSchemaState` com formato nested gerava seções com chave sem `content.` prefix → `localData["faq"]` retornava `undefined`; com formato flat gerava chaves `"content.faq"` mas o filtro `!key.includes('.')` excluía todas → painel de seções vazio
+- DFR envolvia a seção inteira num accordion com título `"content.faq-mavellium"` desnecessário
+
+**Impacto**:
+- ✅ Formato flat (`"content.faq": {...}`) → seções aparecem corretamente, dados carregados via `getDeep`
+- ✅ Formato nested (`{ "faq": { "ui:label": "..." } }`) → normalizado automaticamente para flat com `content.` prefix
+- ✅ Seção selecionada renderiza campos sem wrapper collapsible extra
+- ✅ Labels de `ui:label` aparecen corretamente em todos os campos via `resolveUiConfig`
+
+---
+
 ### [2026-05-21] — Feat: UI Padrão Automática Quando Sem UI Schema
 
 **Arquivos**:

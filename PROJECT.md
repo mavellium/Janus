@@ -81,43 +81,30 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 #### SchemaBuilderEditor
 - **Localização:** `src/components/schema-builder/SchemaBuilderEditor.tsx`
 - **Props:** pageId, pageName, backHref, initialSchema, initialUiSchema, initialIsAdvanced, apiUrl, initialPublished, previewHref
-- **Estados:** 
-  - `isAdvancedMode` — alterna entre Monaco editor (legacy) e AdvancedJsonEditor (advanced)
-  - `uiSchemaState` — rastreia UI Schema em TEMPO REAL (sincroniza com AdvancedJsonEditor)
-  - `localData` — dados sendo editados (schemaData em advanced mode)
-  - `selectedSection` — seção selecionada no Menu SEÇÕES
-  - `hasUnsavedChanges` — indica mudanças não salvas (banner + aviso navegador)
-- **Layout Avançado (3 colunas):**
-  - Centro (1fr): AdvancedJsonEditor com tabs DADOS | INTERFACE
-  - Direita 1 (350px): Menu SEÇÕES (seções do uiSchemaState)
-  - Direita 2 (350px): Editor CAMPO (DynamicFieldRenderer contextual ao clicar seção)
-- **Preview em Tempo Real:** Conforme edita JSON, dados aparecem instantaneamente nas 3 colunas
-- **Unsaved Changes:** Banner topo-centro + aviso do navegador ao tentar sair sem salvar
-- **Upload Mídia:** MediaUploadModal integrado para uploads de imagem/vídeo
+- **Estados:** `isAdvancedMode`, `uiSchemaState` (raw do Monaco), `localData` (schemaData), `selectedSection`, `hasUnsavedChanges`
+- **`effectiveUiSchema`:** `useMemo` que normaliza nested→flat via `isNestedUiSchema` + `normalizeNestedUiSchema`; nunca persiste; chaves espelham paths reais sem prefixo obrigatório
+- **Normalização:** `normalizeNestedUiSchema` converte `{ "secao": { "ui:label": "..." } }` para `{ "secao": { "ui:label": "..." } }` (sem `content.` prefix)
+- **Layout Avançado (3 colunas):** Centro: AdvancedJsonEditor tabs DADOS/INTERFACE | Direita 1 (350px): Menu SEÇÕES via `effectiveUiSchema` | Direita 2 (350px): DynamicFieldRenderer com `inline` prop
+- **Unsaved Changes:** Banner + aviso navegador ao sair sem salvar
+- **Upload Mídia:** MediaUploadModal integrado
 
 #### AdvancedJsonEditor
 - **Localização:** `src/components/cms/AdvancedJsonEditor.tsx`
 - **Props:** pageId, data, initialUiSchema, isDevMode, showFormPanel, onDataChange, onUiSchemaChange
-- **Quando showFormPanel={false}:**
-  - Editor Monaco ocupa 100% da largura
-  - Renderiza APENAS tabs DADOS | INTERFACE (sem formPanel preview)
-  - Usado no builder avançado (SchemaBuilderEditor)
-- **Quando showFormPanel={true}:**
-  - Editor Monaco (40%) + FormPanel (60%)
-  - FormPanel renderiza campos baseado em uiSchemaLocal
-  - Usado em edit mode
-- **Sincronização:** useEffect monitora initialUiSchema prop; sincroniza uiSchemaLocal quando muda (TEMPO REAL)
-- **Documentação Interna:** Seção "5. Prompt para gerar UI Schema com IA" com botão copiar
-- **Tabs Internos:**
-  - DADOS: Editor JSON dos dados
-  - INTERFACE: Editor JSON do UI Schema
+- **Quando showFormPanel={false}:** Monaco ocupa 100%; tabs DADOS | INTERFACE apenas; usado no builder
+- **Quando showFormPanel={true}:** Monaco (40%) + FormPanel (60%); FormPanel renderiza campos via uiSchemaLocal
+- **Sincronização:** useEffect monitora initialUiSchema prop; sincroniza uiSchemaLocal em TEMPO REAL
+- **Painel Docs (botão "Docs" na aba INTERFACE):** 6 seções — propriedades, widgets, regra das chaves, 5 padrões essenciais, exemplo completo, prompt IA copiável
+- **Tabs Internos:** DADOS (editor JSON dos dados) | INTERFACE (editor JSON do UI Schema)
 
 #### DynamicFieldRenderer
 - **Localização:** `src/components/cms/DynamicFieldRenderer.tsx`
-- **Renderiza:** Campos baseado em tipo inferido (text, textarea, image, video, boolean, color, select, number, html, **icon**)
-- **Entrada:** value, path, dataKey, uiSchema (config do UI Schema)
+- **Renderiza:** Campos por tipo inferido ou `ui:widget` (text, textarea, image, video, boolean, color, number, url, icon, **hidden**)
+- **Entrada:** value, path, dataKey, uiSchema, `inline` (bool — pula wrapper collapsible no objeto raiz)
+- **Propriedades UiConfig:** `ui:label`, `ui:widget`, `ui:description`, `ui:color` (borda hex), `ui:size` (sm/md/lg/xl textarea), `ui:placeholder`
+- **`resolveUiConfig`:** exact path → wildcard (`\.\d+\.` → `.*. `) → array-root; lê `effectiveUiSchema` plano
 - **Callbacks:** onChange (atualiza dados), onOpenMediaModal (abre upload dialog)
-- **Icon widget:** delega para `IconPicker` (substituiu campo de texto livre)
+- **Icon widget:** delega para `IconPicker` (galeria Lucide)
 
 #### IconPicker
 - **Localização:** `src/components/cms/IconPicker.tsx`
@@ -152,17 +139,22 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **No Overwrites:** Alternar modos 1000x = dados sempre intactos (verificado em data-isolation-verification.md)
 
 ### UI Schema Pattern (aba INTERFACE)
-- **Propósito:** Define labels, tipos de widgets, descrições (UX) sem alterar dados
+- **Propósito:** Define labels, tipos de widgets, visuais (UX) sem alterar dados
+- **Regra fundamental:** chave = caminho exato no JSON de dados; SEM prefixo obrigatório
 - **Estrutura:**
   ```json
   {
-    "card": { "ui:label": "👥 Cards" },
-    "card.*.name": { "ui:label": "Nome", "ui:widget": "text" },
-    "card.*.image": { "ui:label": "Foto", "ui:widget": "image" }
+    "parceiros": { "ui:label": "🤝 Parceiros", "ui:color": "#f59e0b" },
+    "parceiros.*.nome": { "ui:label": "Nome" },
+    "parceiros.*.img": { "ui:label": "Foto", "ui:widget": "image" },
+    "parceiros.*.depoimento.*.type": { "ui:widget": "hidden" },
+    "parceiros.*.depoimento.*.value": { "ui:label": "Depoimento", "ui:widget": "textarea" }
   }
   ```
-- **Wildcards:** `*.` significa "aplicar a TODOS os itens do array"
-- **Documentação:** Seção "5. Prompt para gerar UI Schema com IA" tem prompt copy-paste para qualquer IA gerar schema automaticamente
+- **Wildcards:** `*` substitui índices numéricos; wildcard duplo `*.*.` para arrays aninhados
+- **Propriedades visuais:** `ui:color` (borda hex), `ui:size` (sm/md/lg/xl textarea), `ui:placeholder`, `ui:description`
+- **5 Padrões:** Rich-text Array, Array de Objetos, Array Aninhado, Objeto Fixo, Escalar na Raiz — documentados no painel Docs do builder
+- **Prompt IA:** Botão "Copiar" na seção "6. Prompt para gerar com IA" do painel Docs gera UI Schema correto para qualquer JSON
 
 ### Builder Advanced Mode (3 Colunas)
 1. **Editor JSON (Centro):** AdvancedJsonEditor com tabs DADOS | INTERFACE
@@ -200,7 +192,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **Actions:** `uploadMedia.ts` — suporta image (→ AVIF) e video (direto raw); valida tamanho (5MB img / 200MB vídeo); envia para BunnyCDN; retorna URL pública
 
 ### auth
-- **Actions:** `startImpersonation.ts` — valida ADMIN/DEVELOPER, seta 3 cookies HTTP-Only (`user_id`, `user_name`, `return_url`), aceita `returnTo` opcional | `stopImpersonation.ts` — deleta cookies; se `redirectTo=false` não redireciona (modo privilegiado); senão redireciona para `returnUrl` do cookie ou URL explícita | `checkIpStatus.ts` — rate limit por IP no login (3 tentativas/1h)
+- **Actions:** `startImpersonation.ts` — valida ADMIN/DEVELOPER, **guarda impersonação de ADMIN/DEVELOPER (retorna erro se target.role !== DEFAULT)**, seta 3 cookies HTTP-Only (`user_id`, `user_name`, `return_url`), aceita `returnTo` opcional | `stopImpersonation.ts` — deleta cookies; se `redirectTo=false` não redireciona (modo privilegiado); senão redireciona para `returnUrl` do cookie ou URL explícita | `checkIpStatus.ts` — rate limit por IP no login (3 tentativas/1h)
 - **Queries:** `getCompanyUsers.ts` — usuários ativos de uma empresa (id, name, email, role), ordenados por name
 
 ---
@@ -211,7 +203,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/components/dev/DevSidebar.tsx` — Client — sidebar colapsável exclusiva do Dev Dashboard; links para dashboard, empresas, usuários e configurações do dev
 - `src/components/admin/AdminSidebar.tsx` — Client — sidebar colapsável exclusiva do Admin Panel; links para `/dashboard-admin/*` (dashboard, empresas, desenvolvedores, usuários, logs, configurações)
 - `src/components/dashboard/ImpersonationSelector.tsx` — Client — modal de busca e seleção de usuário para impersonar; filtro por nome/email/role; dispara `startImpersonation(userId, slug, window.location.href)` e navega para dashboard
-- `src/components/dashboard/ImpersonationBanner.tsx` — Client — banner vermelho `bg-destructive` com nome do usuário impersonado; botões: KeyRound (editar permissões do alvo), Shield (ver como Admin/Dev — `stopImpersonation(false)` + reload), Trocar (abre selector), Voltar ao Painel (`stopImpersonation(returnUrl)`); barra subtís `bg-muted` com "Simular Usuário" quando não está impersonando
+- `src/components/dashboard/ImpersonationBanner.tsx` — Client — banner vermelho `bg-destructive` com nome do usuário impersonado; botões: KeyRound (editar permissões do alvo), Shield (ver como Admin/Dev — `stopImpersonation(false)` + `window.location.href`), Trocar (abre selector), Voltar ao Painel (`stopImpersonation(returnUrl)` via `window.location.href`); barra sutil `bg-muted` com "Simular Usuário" quando não impersonando — também mostra "Voltar ao Painel" no modo privilegiado (não impersonando)
 - `src/components/dashboard/UserPermissionsModal.tsx` — Client — modal de permissões RBAC por módulo (sites/landingPages) e tier (project/page); toggle Switch salva imediatamente via `updateUserPermissions`; aberto pelo KeyRound no banner
 - `src/components/dashboard/Sidebar.tsx` — Client — sidebar colapsável com useState(initialCollapsed) + startTransition; logo 48px→28px; toggle PanelLeftClose/PanelLeftOpen; avatar next/image + fallback UserCircle; estado persistido via updatePreferences em background
 - `src/components/schema-builder/SchemaBuilderEditor.tsx` — Client — workspace 3 painéis: Esquerda (w-72) com Tabs Estrutura/Componentes — Estrutura lista seções com ícone `Layers`, `Trash2` hover-only para excluir via Monaco ref e click para `scrollIntoView` no preview com ring highlight 1s; Componentes tem 8 cards de snippets com ícone/descrição; Centro: Monaco full-width endpoint; IDs únicos por sufixo random ao inserir snippet; Direita: LiveFormPreview reativo
@@ -398,6 +390,15 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 | Data       | Arquivo                                       | O que foi feito                                            |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
+| 2026-05-22 | `src/components/cms/AdvancedJsonEditor.tsx` | DOCS: Painel Docs reescrito — seção "5 Padrões Essenciais" (rich-text array, array aninhado, objeto fixo, escalar), exemplo completo, prompt IA copiável abrangente |
+| 2026-05-22 | `src/components/schema-builder/SchemaBuilderEditor.tsx` | FIX: `normalizeNestedUiSchema` removeu prefixo `content.` forçado; chaves agora espelham paths reais; `effectiveUiSchema` via useMemo |
+| 2026-05-22 | `src/components/cms/DynamicFieldRenderer.tsx` | FEAT: Propriedades visuais `ui:color` (borda hex), `ui:size` (altura textarea sm/md/lg/xl), `ui:placeholder`; prop `inline` pula wrapper collapsible |
+| 2026-05-22 | `src/modules/auth/actions/startImpersonation.ts` | FEAT: Guard contra impersonar ADMIN ou DEVELOPER (retorna erro se target.role !== DEFAULT) |
+| 2026-05-22 | `src/app/dashboard-admin/users/AdminUsersClient.tsx` | FIX: Botão olho (impersonar) só aparece para usuários com role DEFAULT; removido tipo `PermissionTier` não utilizado |
+| 2026-05-22 | `src/components/dashboard/ImpersonationBanner.tsx` | FIX: "Voltar ao Painel" usa `window.location.href` (não redirect server-side); botão também exibido no modo privilegiado sem impersonação |
+| 2026-05-22 | `src/app/[companySlug]/dashboard/layout.tsx` | FEAT: Calcula `adminReturnPath` e passa como prop ao ImpersonationBanner |
+| 2026-05-22 | `.claude/context/cms/mode-advanced.md` | DOCS: Reescrito — "Não existe prefixo obrigatório"; regra das chaves, padrões, propriedades visuais, exemplo canônico |
+| 2026-05-22 | `.claude/context/cms/changelog.md` | DOCS: 5 entries adicionadas com todas as mudanças da sessão |
 | 2026-05-21 | `src/components/cms/IconPicker.tsx` | NOVO: Seletor visual de ícones lucide-react com busca e grid; integrado ao DynamicFieldRenderer substituindo input de texto |
 | 2026-05-21 | `src/components/cms/DynamicFieldRenderer.tsx` | FIX: Campo icon agora usa IconPicker (Dialog com grid de ícones) em vez de input de texto livre |
 | 2026-05-21 | `src/components/cms/AdvancedJsonEditor.tsx` | FIX: handleFieldChange atualiza rawJson em tempo real; useEffect sincroniza Monaco quando prop data muda externamente |

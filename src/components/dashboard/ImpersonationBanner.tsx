@@ -1,21 +1,37 @@
-'use client'
+"use client";
 
-import { useTransition, useState } from 'react'
-import { AlertTriangle, Loader2, Users, KeyRound, ArrowLeft, Shield } from 'lucide-react'
-import { stopImpersonation } from '@/modules/auth/actions/stopImpersonation'
-import { ImpersonationSelector } from './ImpersonationSelector'
-import { UserPermissionsModal } from './UserPermissionsModal'
+import { useTransition, useState } from "react";
+import {
+  AlertTriangle,
+  Loader2,
+  Users,
+  KeyRound,
+  ArrowLeft,
+  Shield,
+} from "lucide-react";
+import { stopImpersonation } from "@/modules/auth/actions/stopImpersonation";
+import { ImpersonationSelector } from "./ImpersonationSelector";
+import { UserPermissionsModal } from "./UserPermissionsModal";
 
 interface Props {
-  companySlug: string
-  impersonatedUserName: string | null
-  isImpersonating: boolean
-  companyUsers: Array<{ id: string; name: string | null; email: string; role: string }>
-  realUserRole: 'ADMIN' | 'DEVELOPER'
-  impersonatedUserId: string | null
-  impersonatedUserEmail: string | null
-  impersonatedUserPermissions?: string | string[] | Record<string, Record<string, string[]>>
-  returnUrl?: string | null
+  companySlug: string;
+  impersonatedUserName: string | null;
+  isImpersonating: boolean;
+  companyUsers: Array<{
+    id: string;
+    name: string | null;
+    email: string;
+    role: string;
+  }>;
+  realUserRole: "ADMIN" | "DEVELOPER";
+  impersonatedUserId: string | null;
+  impersonatedUserEmail: string | null;
+  impersonatedUserPermissions?:
+    | string
+    | string[]
+    | Record<string, Record<string, string[]>>;
+  returnUrl?: string | null;
+  adminReturnPath: string;
 }
 
 export function ImpersonationBanner({
@@ -28,15 +44,17 @@ export function ImpersonationBanner({
   impersonatedUserEmail,
   impersonatedUserPermissions,
   returnUrl,
+  adminReturnPath,
 }: Props) {
-  const [isPending, startTransition] = useTransition()
-  const [showSelector, setShowSelector] = useState(false)
-  const [showPermissions, setShowPermissions] = useState(false)
+  const [isPending, startTransition] = useTransition();
+  const [showSelector, setShowSelector] = useState(false);
+  const [showPermissions, setShowPermissions] = useState(false);
 
   function handleBackToPanel() {
     startTransition(async () => {
-      await stopImpersonation(returnUrl ?? undefined)
-    })
+      await stopImpersonation(false);
+      window.location.href = returnUrl ?? adminReturnPath;
+    });
   }
 
   return (
@@ -46,7 +64,8 @@ export function ImpersonationBanner({
           <div className="flex items-center gap-2 min-w-0">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span className="truncate">
-              Atenção: Você está visualizando o sistema simulando o usuário: <strong>{impersonatedUserName}</strong>
+              Atenção: Você está visualizando o sistema simulando o usuário:{" "}
+              <strong>{impersonatedUserName}</strong>
             </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -61,11 +80,11 @@ export function ImpersonationBanner({
             )}
             <button
               onClick={async () => {
-                await stopImpersonation(false)
-                window.location.reload()
+                await stopImpersonation(false);
+                window.location.reload();
               }}
               className="p-1.5 rounded text-xs font-semibold bg-destructive-foreground/20 hover:bg-destructive-foreground/30 transition"
-              title={`Ver como ${realUserRole === 'ADMIN' ? 'Admin' : 'Desenvolvedor'}`}
+              title={`Ver como ${realUserRole === "ADMIN" ? "Admin" : "Desenvolvedor"}`}
             >
               <Shield className="w-3.5 h-3.5" />
             </button>
@@ -91,13 +110,22 @@ export function ImpersonationBanner({
       {!isImpersonating && companyUsers.length > 0 && (
         <div className="sticky top-0 z-50 w-full border-b border-border bg-muted px-4 py-2 flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Modo privilegiado</span>
-          <button
-            onClick={() => setShowSelector(true)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold text-foreground bg-background border border-border hover:bg-accent transition"
-          >
-            <Users className="w-3.5 h-3.5" />
-            Simular Usuário
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowSelector(true)}
+              className="flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold text-foreground bg-background border border-border hover:bg-accent transition"
+            >
+              <Users className="w-3.5 h-3.5" />
+              Simular Usuário
+            </button>
+            <a
+              href={adminReturnPath}
+              className="flex items-center gap-1.5 px-3 py-1 rounded text-xs font-semibold text-foreground bg-background border border-border hover:bg-accent transition"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Voltar ao Painel
+            </a>
+          </div>
         </div>
       )}
 
@@ -112,11 +140,11 @@ export function ImpersonationBanner({
       {showPermissions && impersonatedUserId && (
         <UserPermissionsModal
           userId={impersonatedUserId}
-          userEmail={impersonatedUserEmail || 'Usuário'}
+          userEmail={impersonatedUserEmail || "Usuário"}
           initialPermissions={impersonatedUserPermissions}
           onClose={() => setShowPermissions(false)}
         />
       )}
     </>
-  )
+  );
 }

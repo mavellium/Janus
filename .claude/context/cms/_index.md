@@ -22,10 +22,13 @@
 
 **UI Schema** (Modo Avançado):
 - Salvo no campo `uiSchema` — nunca vai para o payload da API pública
-- Formato: `{ "hero.title": { "ui:label": "Título", "ui:widget": "textarea" } }`
-- Resolução por dot notation: exato → wildcard (`cards.*.nome`) → sem índice (`cards.nome`)
+- Formato canônico (flat): `{ "content.hero.slides.*.headline": { "ui:label": "Headline" } }`
+- Chaves **sempre começam com `content.`** para refletir o path real em `localData`
+- Suporta formato nested (sem `content.` prefix, sem `.` nas chaves raiz) — normalizado automaticamente em runtime para flat por `effectiveUiSchema`
+- Resolução por dot notation: exato → wildcard (`content.cards.*.nome`) → array-raiz (`*.nome`)
 - Props suportadas: `ui:label`, `ui:description`, `ui:widget`, `ui:group`
 - `ui:widget: "hidden"` oculta o campo no painel sem remover do JSON de dados
+- Fallback sem UI Schema: seções derivadas de `Object.keys(localData)`, tipos por heurística (`inferType`)
 
 **Heurística de tipo** (DynamicFieldRenderer):
 - Nome da chave + valor → Tipo de input inferido

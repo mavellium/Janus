@@ -63,6 +63,9 @@ export default async function DashboardLayout({
     companyUsers = await getCompanyUsers(company.id)
   }
 
+  const adminReturnPath =
+    role === 'ADMIN' ? '/dashboard-admin' : `/dev/${session.user.id}/dashboard`
+
   return (
     <ThemeProvider darkMode={prefs.darkMode}>
       <div className="h-screen flex bg-brand-bg">
@@ -95,6 +98,7 @@ export default async function DashboardLayout({
               impersonatedUserEmail={impersonatedUserEmail}
               impersonatedUserPermissions={impersonatedUserPermissions}
               returnUrl={returnUrl}
+              adminReturnPath={adminReturnPath}
             />
           )}
           <div className="flex-1 min-h-0">

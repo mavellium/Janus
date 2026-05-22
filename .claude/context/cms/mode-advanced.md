@@ -1,229 +1,377 @@
-# 🚀 Modo Avançado (Tegbe) — Fluxo Completo
+# 🚀 Modo Avançado (JSON Livre) — Fluxo Completo
 
 ## Visão Geral
 
 **Ativado quando**: `Page.isAdvanced = true`  
-**Dados em**: `Page.contentData` (JSON livre)  
-**Editor**: Monaco (esquerda) + Form Fields com heurística (direita)
+**Dados em**: `Page.schemaData` (JSON livre — estrutura + conteúdo juntos)  
+**UI Schema em**: `Page.uiSchema` (configuração de interface — nunca vai para API pública)  
+**Editor**: Monaco (centro) + Painel Seções (lateral) + DynamicFieldRenderer (lateral)
 
 ```
-┌─────────────────────────────────────────┐
-│  SchemaBuilderEditor (isAdvancedMode)   │
-├────────────────┬────────────────────────┤
-│                │                        │
-│  Monaco JSON   │  DynamicFieldRenderer  │
-│  (contentData) │  (heurística + form)   │
-│                │                        │
-├────────────────┼────────────────────────┤
-│  Templates     │  Botão Save (header)   │
-└────────────────┴────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│  SchemaBuilderEditor (isAdvancedMode=true)                       │
+├──────────────────────┬────────────────────┬──────────────────────┤
+│                      │                    │                      │
+│  AdvancedJsonEditor  │  Seções (sidebar)  │  DynamicFieldRenderer│
+│  ├── aba Dados       │  ← de uiSchema /   │  (campos da seção    │
+│  │   (schemaData)    │    localData.keys  │   selecionada)       │
+│  └── aba Interface   │                    │                      │
+│      (uiSchema)      │                    │                      │
+│                      │                    │                      │
+└──────────────────────┴────────────────────┴──────────────────────┘
 ```
 
 ---
 
-## Fluxo de Dados
+## Estrutura de Dados no DB
 
-### 1️⃣ Edição (Monaco)
+```
+Page.schemaData  ← JSON livre completo (o que a API pública entrega)
+Page.uiSchema    ← Configuração de interface (labels, tipos, ocultação)
+Page.contentData ← IGNORADO no modo avançado (pertence ao modo legado)
+```
 
-Usuário digita JSON no Monaco:
-```typescript
-handleRawJsonChange(jsonString) {
-  setRawJson(jsonString)
-  try {
-    const parsed = JSON.parse(jsonString)
-    setLocalData(parsed)           // ← State atualizado
-    setIsJsonValid(true)
-    fireReplace(parsed)            // ← Debounced 400ms
-    onDataChange?.(parsed)         // ← Não debounced
-  } catch {
-    setIsJsonValid(false)
+### Formato Esperado do `schemaData`
+
+O JSON livre deve ter `content` como chave de topo para que a navegação por seções funcione:
+
+```json
+{
+  "name": "Home",
+  "slug": "home",
+  "content": {
+    "hero-section": {
+      "slides": [{ "headline": "...", "mediaUrl": "..." }]
+    },
+    "faq": {
+      "items": [{ "question": "...", "answer": "..." }]
+    }
   }
 }
 ```
 
-### 2️⃣ Edição (Form Fields)
+> **Por quê `content.*`?** O UI Schema usa `content.` como prefixo nas chaves (ex: `"content.faq"`) para refletir o caminho real dentro do JSON. `getDeep(localData, ["content", "faq"])` navega corretamente.
 
-Usuário clica em input, DynamicFieldRenderer muda:
-```typescript
-handleFieldChange(path, value) {
-  setLocalData((prev) => {
-    const next = setDeep(prev, path, value)  // ← structuredClone
-    fireReplace(next)                        // ← 400ms delay
-    onDataChange?.(next)                     // ← Imediato
-    return next
-  })
+---
+
+## UI Schema — Formato e Resolução
+
+### O que é
+
+O `uiSchema` é um JSON separado (salvo em `Page.uiSchema`) que descreve **como renderizar** cada campo — labels, tipos de input, campos ocultos. Nunca faz parte do payload da API pública.
+
+### Regra fundamental: as chaves espelham o JSON de dados
+
+**Não existe prefixo obrigatório.** A chave no UI Schema é o caminho exato para o campo no JSON de dados. Se o seu JSON é `{ "equipe": { "cards": [{ "nome": "" }] } }`, as chaves são:
+
+```json
+{
+  "equipe": { "ui:label": "👥 Equipe" },
+  "equipe.cards.*.nome": { "ui:label": "Nome" }
 }
 ```
 
-### 3️⃣ Preview em Tempo Real
+Se o JSON fosse `{ "content": { "equipe": { ... } } }`, as chaves seriam `"content.equipe"` e `"content.equipe.cards.*.nome"`. O prefixo nasce da estrutura dos dados — não é imposto pelo sistema.
 
-`fireReplace()` envia para iframe com debounce:
+### Formato Flat (Canônico)
+
+Chaves são dot-paths que refletem o caminho no JSON de dados:
+
+```json
+{
+  "faq": { "ui:label": "FAQ" },
+  "faq.items": { "ui:label": "Perguntas" },
+  "faq.items.*.question": { "ui:label": "Pergunta" },
+  "faq.items.*.answer": { "ui:label": "Resposta", "ui:widget": "textarea" },
+  "faq.items.*.image": { "ui:label": "Imagem", "ui:widget": "image" },
+
+  "hero": { "ui:label": "Hero Section" },
+  "hero.slides": { "ui:label": "Slides" },
+  "hero.slides.*.headline": { "ui:label": "Headline" },
+  "hero.slides.*.mediaUrl": { "ui:label": "URL da mídia", "ui:widget": "video" }
+}
+```
+
+**Este é o formato que o `resolveUiConfig` lê diretamente.**
+
+### Formato Nested (Alternativo, Normalizado Automaticamente)
+
+Aceito pelo editor; convertido para flat em runtime pelo `effectiveUiSchema` (sem adicionar nenhum prefixo):
+
+```json
+{
+  "faq": {
+    "ui:label": "FAQ",
+    "items": {
+      "ui:label": "Perguntas",
+      "items.*.question": { "ui:label": "Pergunta" },
+      "items.*.answer": { "ui:label": "Resposta", "ui:widget": "textarea" }
+    }
+  }
+}
+```
+
+### Propriedades Suportadas
+
+| Propriedade | Valores | Efeito |
+|---|---|---|
+| `ui:label` | string | Substitui a chave crua como label do campo |
+| `ui:widget` | ver tabela abaixo | Sobrescreve a heurística de tipo |
+| `ui:description` | string | Texto auxiliar abaixo do campo |
+| `ui:group` | string | Agrupa campos visualmente (cosmético) |
+| `ui:color` | `"#hex"` | Pinta a borda esquerda do campo com a cor; no object collapsible, colore título e borda |
+| `ui:size` | `"sm"` \| `"md"` \| `"lg"` \| `"xl"` | Altura mínima de textareas — sm=48px, md=80px (padrão), lg=160px, xl=280px |
+| `ui:placeholder` | string | Substitui o placeholder automático em inputs de texto, textarea e url |
+
+### Valores de `ui:widget`
+
+| Valor | Renderiza |
+|---|---|
+| `text` | Input texto simples |
+| `textarea` | Área de texto grande |
+| `image` | Botão de upload de imagem |
+| `video` | Botão de upload de vídeo |
+| `url` | Input com validação de URL |
+| `color` | Color picker |
+| `boolean` | Switch toggle |
+| `number` | Input numérico |
+| `icon` | IconPicker (seletor visual Lucide) |
+| `hidden` | Campo ocultado no painel (dado preservado no JSON) |
+
+### Resolução de Caminho (`resolveUiConfig`)
+
+**Localização**: `src/components/cms/DynamicFieldRenderer.tsx`
+
+Prioridade decrescente:
+1. **Exato**: `"content.faq.items.0.question"` → busca literal
+2. **Wildcard**: `"content.faq.items.*.question"` → troca `/\.\d+\./g` por `".*."` 
+3. **Array-raiz**: `"*.question"` → quando path começa com índice
+
+---
+
+## Fluxo de Renderização de Seções
+
+### 1. Derivação de Seções (`uiSchemaSections`)
+
 ```typescript
-iframe.contentWindow.postMessage(
-  { type: 'janus:content-update', contentData: data },
-  '*'
+// effectiveUiSchema é o uiSchema normalizado (flat, com content. prefix)
+const uiSchemaSections = Object.keys(effectiveUiSchema).filter(key => {
+  const config = effectiveUiSchema[key]
+  if (typeof config !== 'object' || !config['ui:label']) return false
+  if (key.includes('*')) return false
+  // Só raízes: exclui filhos cujo pai também tem ui:label
+  return !Object.keys(effectiveUiSchema).some(
+    other => other !== key && key.startsWith(other + '.') && effectiveUiSchema[other]?.['ui:label']
+  )
+})
+
+// Fallback: sem UI Schema → chaves de localData
+const sections = uiSchemaSections.length > 0 ? uiSchemaSections : Object.keys(localData)
+```
+
+As seções no sidebar são os **dot-paths** das raízes com `ui:label`. Exemplo: `"content.faq"`, `"content.hero"`.
+
+### 2. Navegação e Renderização
+
+Ao clicar numa seção `"content.faq"`:
+
+```typescript
+// Buscar dados
+const value = getDeep(localData, ["content", "faq"])
+// → localData.content.faq
+
+// Renderizar campos
+<DynamicFieldRenderer
+  dataKey="content.faq"
+  value={value}
+  path={["content", "faq"]}
+  uiSchema={effectiveUiSchema}
+  inline       // ← pula o wrapper collapsible do object raiz
+  onChange={handleFieldChange}
+/>
+```
+
+### 3. `getDeep` — Leitura Aninhada
+
+```typescript
+function getDeep(obj: Record<string, unknown>, path: string[]): unknown {
+  let curr: unknown = obj
+  for (const key of path) {
+    if (curr === null || typeof curr !== 'object') return undefined
+    curr = (curr as Record<string, unknown>)[key]
+  }
+  return curr
+}
+```
+
+### 4. Propagação de Mudanças
+
+Campo editado → `handleFieldChange(path, value)` → `setDeep(localData, path, value)` → `setLocalData` + `advancedSchemaRef.current` atualizado.
+
+O `path` passado ao DFR é o caminho completo desde a raiz do `localData` (ex: `["content", "faq", "items", "0", "question"]`).
+
+---
+
+## Normalização de UI Schema Nested → Flat
+
+**Localização**: `SchemaBuilderEditor.tsx` (funções `isNestedUiSchema`, `processNode`, `normalizeNestedUiSchema`)
+
+```typescript
+// Detecta: se nenhuma chave tem '.' ou começa com 'ui:' → é nested
+function isNestedUiSchema(schema): boolean
+
+// Converte nested para flat com prefixo content.
+function normalizeNestedUiSchema(nested): Record<string, unknown>
+
+// Aplicado via useMemo (não muta o estado do Monaco)
+const effectiveUiSchema = useMemo(
+  () => isNestedUiSchema(uiSchemaState) ? normalizeNestedUiSchema(uiSchemaState) : uiSchemaState,
+  [uiSchemaState]
 )
 ```
 
-### 4️⃣ Rastreamento de Latest Data
-
-`onDataChange` callback (sem debounce) atualiza ref no parent:
-```typescript
-// Em SchemaBuilderEditor
-const contentDataRef = useRef<Record<string, unknown>>()
-// Passa para AdvancedJsonEditor:
-<AdvancedJsonEditor onDataChange={(d) => { contentDataRef.current = d }} />
-```
-
-### 5️⃣ Persistência (Save Button)
-
-User clica "Salvar" no header:
-```typescript
-handleSaveContent() {
-  startTransition(async () => {
-    const result = await updatePageContentData({
-      pageId,
-      contentData: contentDataRef.current,  // ← Latest data
-    })
-    // ... feedback ...
-  })
-}
-```
-
-**Server Action** faz:
-```typescript
-const safeData = JSON.parse(JSON.stringify(contentData))  // ← Full replace
-await db.page.update({ contentData: safeData })
-revalidatePath('/${company}/dashboard', 'layout')
-```
-
-### 6️⃣ Revalidação + Reload
-
-Cache é invalidado, próximo F5 carrega dados freshes do DB.
+**Importante**: `uiSchemaState` (estado bruto, preservado no Monaco) é sempre salvo no DB. `effectiveUiSchema` é apenas para renderização — nunca persiste.
 
 ---
 
-## Heurística de Tipo (Type Inference)
+## Heurística de Tipo (Fallback sem UI Schema)
 
-**Localização**: `DynamicFieldRenderer.inferType()`
-
-Padrão matching na chave (case-insensitive) + análise de valor:
+Quando não há `ui:widget` definido, `DynamicFieldRenderer.inferType()` decide o widget:
 
 ```
-NOME DA CHAVE              VALOR EXEMPLO      → TIPO
-─────────────────────────────────────────────────────
-link, url, href            "https://..."      → url (cyan)
-color, starts with #       "#FF0000"          → color picker
-video, .mp4/.webm          "vid.mp4"          → upload video
-image, img, bg, .png/.jpg  "img.png"          → upload image
-icon                       "star"             → icon selector
-paragraph, paragrafo       ["p1", "p2"]       → paragraphs array
-cta, button, botao         {text, href}       → cta grid
-desc, text, body, >50 chr  "long string..."   → textarea
-boolean type               true/false         → switch
-number type                123                → input number
-─────────────────────────────────────────────────────
-(default)                  "qualquer"         → text input
+CHAVE (case-insensitive)     VALOR EXEMPLO         → WIDGET
+──────────────────────────────────────────────────────────────
+link, url, href, destino     "https://..."         → url
+color / valor "#..."         "#FF0000"             → color
+video / .mp4/.webm           "vid.mp4"             → video
+image/img/bg/logo/src/...    "img.png"             → image
+icon                         "ArrowRight"          → icon picker
+paragraph/paragrafo (array)  ["p1", "p2"]          → paragraphs
+cta/button/botao (object)    { text, href }        → cta grid
+desc/text/body/>50 chars     "longa string..."     → textarea
+boolean                      true / false          → switch
+number                       123                   → number input
+──────────────────────────────────────────────────────────────
+(default)                    qualquer              → text input
 ```
 
 ---
 
-## Função setDeep() — Mutação Imutável
-
-Atualiza valor aninhado sem gambiarra:
+## `setDeep` — Mutação Imutável
 
 ```typescript
-function setDeep(
-  obj: Record<string, unknown>,
-  path: string[],    // e.g., ['hero', 'cta', 'text']
-  value: unknown,
-): Record<string, unknown> {
+function setDeep(obj, path, value) {
   const clone = structuredClone(obj)  // 1. Deep copy
-  
-  let current: Record<string, unknown> | unknown[] = clone
+  let curr = clone
   for (let i = 0; i < path.length - 1; i++) {
-    const key = path[i]
-    const nextKey = path[i + 1]
-    const isNextIndex = /^\d+$/.test(nextKey)
-    
-    if (Array.isArray(current)) {
-      const idx = parseInt(key, 10)
-      if (current[idx] === undefined) {
-        current[idx] = isNextIndex ? [] : {}
-      }
-      current = current[idx]
-    } else {
-      if (!current[key]) {
-        current[key] = isNextIndex ? [] : {}
-      }
-      current = current[key]
-    }
+    // navega criando estrutura intermediária se necessário
+    curr = curr[path[i]]
   }
-  
-  // 2. Atualizar a folha
-  const lastKey = path[path.length - 1]
-  if (Array.isArray(current)) {
-    current[parseInt(lastKey, 10)] = value
-  } else {
-    current[lastKey] = value
-  }
-  
-  return clone  // 3. Nova referência (React detecta)
+  curr[path[path.length - 1]] = value  // 2. Atualiza folha
+  return clone                          // 3. Nova referência
 }
 ```
 
-**Garantias**:
-- ✅ Sem referência compartilhada (imutável)
-- ✅ Cria estrutura intermediária se needed
-- ✅ Diferencia array (índice) de objeto (chave)
-- ✅ React re-render acionado
-
 ---
 
-## Templates Embutidos
-
-Fórmulas pré-construídas (botões em footer):
+## Persistência (Save)
 
 ```typescript
-[
-  { label: 'Nova Seção', template: { title: '', subtitle: '', backgroundImage: '', active: true } },
-  { label: 'Lista', template: { items: [{ title: '', description: '', imageUrl: '' }] } },
-  { label: 'Parágrafos', template: { paragraphs: ['', ''] } },
-  { label: 'CTA', template: { cta: { text: 'Saiba Mais', href: '/', icon: '' } } },
-  { label: 'Hero', template: { title: '', subtitle: '', backgroundImage: '', cta: {...}, active: true } },
-]
+handleSaveContent() → updatePageAdvancedData({
+  pageId,
+  schemaJson: JSON.stringify(advancedSchemaRef.current),  // localData completo
+  uiSchemaJson: JSON.stringify(uiSchemaRef.current),       // uiSchema bruto (não normalizado)
+})
 ```
 
-Click → `handleInjectTemplate()` → merge com `localData` → atualiza Monaco + form.
+**Server Action** faz full-replace em ambos os campos atomicamente.
 
 ---
 
 ## Diferenças: Builder vs Edit Page
 
-| Aspecto | Builder | Edit |
-|---------|---------|------|
+| Aspecto | Builder (`/builder`) | Edit (`/edit`) |
+|---|---|---|
 | `isDevMode` | `true` | `false` |
-| Monaco | SIM (2/5) | NÃO |
-| Form Fields | SIM (3/5) | SIM (full) |
-| Templates | SIM (footer) | NÃO |
-| Save Button | Header "Salvar" | Footer "Salvar" |
-| Escopo | Schema + Content | Content only |
+| Monaco | SIM (AdvancedJsonEditor) | NÃO |
+| Edição UI Schema | SIM (aba Interface) | NÃO (read-only) |
+| Seções sidebar | SIM | SIM |
+| DFR campos | SIM | SIM |
+| Save destino | `updatePageAdvancedData` | `updatePageSchema` |
+| Preview | Seções + campos side by side | Iframe em tempo real |
 
 ---
 
-## Callbacks Não-Debounced vs Debounced
+## Exemplo Completo de UI Schema (Flat, Canônico)
 
-| Callback | Debounce | Uso |
-|----------|----------|-----|
-| `onDataChange` | NÃO | Rastrear latest para save |
-| `fireReplace` | 400ms | Preview em iframe (evita flood) |
-| `onReplaceData` | 400ms | Notificar parent (preview) |
+Todas as propriedades disponíveis demonstradas em conjunto:
+
+```json
+{
+  "content.faq": {
+    "ui:label": "❓ FAQ",
+    "ui:color": "#6366f1"
+  },
+  "content.faq.items": { "ui:label": "Perguntas" },
+  "content.faq.items.*.question": {
+    "ui:label": "Pergunta",
+    "ui:placeholder": "Ex: Como funciona o serviço?",
+    "ui:color": "#6366f1"
+  },
+  "content.faq.items.*.answer": {
+    "ui:label": "Resposta",
+    "ui:widget": "textarea",
+    "ui:size": "lg",
+    "ui:description": "Seja objetivo. Máximo de 3 linhas."
+  },
+  "content.faq.items.*.image": {
+    "ui:label": "Imagem ilustrativa",
+    "ui:widget": "image"
+  },
+
+  "content.hero": { "ui:label": "🦸 Hero Section" },
+  "content.hero.slides": { "ui:label": "Slides" },
+  "content.hero.slides.*.headline": {
+    "ui:label": "Headline",
+    "ui:placeholder": "Ex: A solução que a sua empresa precisa"
+  },
+  "content.hero.slides.*.description": {
+    "ui:label": "Descrição",
+    "ui:widget": "textarea",
+    "ui:size": "md"
+  },
+  "content.hero.slides.*.mediaUrl": {
+    "ui:label": "Vídeo / Imagem de fundo",
+    "ui:widget": "video"
+  },
+  "content.hero.slides.*.primaryButtonText": { "ui:label": "Texto do botão" },
+  "content.hero.slides.*.primaryButtonLink": {
+    "ui:label": "Link do botão",
+    "ui:widget": "url",
+    "ui:color": "#ef4444"
+  },
+
+  "content.theme": {
+    "ui:label": "🎨 Tema",
+    "ui:color": "#f59e0b"
+  },
+  "content.theme.primary_color": {
+    "ui:label": "Cor principal",
+    "ui:widget": "color"
+  },
+  "content.theme.internal_id": {
+    "ui:widget": "hidden"
+  }
+}
+```
+
+> **Regra de ouro**: toda chave começa com `content.` + `<section-key>`. Arrays usam `*` como índice coringa. Objetos aninhados usam dot notation progressivo. Propriedades visuais (`ui:color`, `ui:size`, `ui:placeholder`) podem ser combinadas livremente com `ui:label` e `ui:widget`.
 
 ---
 
 ## Ver também
 
-- `type-inference.md` — Árvore detalhada de decisão
-- `mutations.md` — Mais exemplos de setDeep
-- `server-actions.md` — Implementação completa da action
-- `../../quick-ref/patterns.md` — Copy-paste código
+- `rules.md` — Proibições e obrigações arquiteturais
+- `data-model.md` — Campos do model Page no Prisma
+- `data-isolation.md` — Por que `contentData` e `schemaData` nunca se misturam
+- `changelog.md` — Histórico de alterações
