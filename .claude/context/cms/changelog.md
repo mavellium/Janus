@@ -16,6 +16,29 @@
 
 ---
 
+### [2026-05-23] — Fix: Edit avançado não refletia mudanças do builder
+
+**Arquivos**:
+- `src/components/schema-builder/SiteContentEditClient.tsx`: lógica do modo advanced reescrita — `effectiveUiSchema`, `uiSchemaSections`, `getDeep`, prop `inline` no DFR; save usa nova action `updatePageSchemaContent`
+- `src/modules/projects/actions/updatePageSchemaContent.ts`: NOVO — salva `schemaData` sem restrição de role (acessível a usuários DEFAULT)
+
+**Razão**: `SiteContentEditClient` usava `Object.keys(localData)` como seções (retornava `["name","slug","schema","content"]`), `getSectionLabel` com `uiSchemaObj` (chaves não tinham `ui:label`), e `path={[selectedSection]}` sem `getDeep`. O `handleSave` chamava `updatePageSchema` que restringe a DEVELOPER/ADMIN — bloqueando DEFAULT.
+
+**Impacto**: Edit avançado agora mostra as seções corretas do UI Schema, labels corretos, renderiza campos via `getDeep` com path completo (ex: `content.faq`), e salva em `schemaData` sem restrição de role.
+
+---
+
+### [2026-05-22] — Docs: Padrão 6 adicionado ao painel Docs (JSON com chave de agrupamento)
+
+**Arquivos**:
+- `src/components/cms/AdvancedJsonEditor.tsx`: Seção 3 com aviso ⚠️, Padrão 6 na seção 4 (6 Padrões), dois exemplos na seção 5, prompt atualizado com PADRÃO CRÍTICO
+
+**Razão**: Documentação não cobria o caso onde dados estão sob chave de agrupamento (`content`, `data`, `sections`). UI Schema com `"faq"` retorna `undefined` quando dado real está em `localData.content["faq"]`.
+
+**Impacto**: Qualquer IA ou desenvolvedor que leia os docs agora sabe que deve incluir o agrupador no path (ex: `"content.faq"` não `"faq"`). Erros silenciosos (campos não renderizando) têm diagnóstico claro com exemplos ❌/✅.
+
+---
+
 ### [2026-05-22] — Docs: Painel de documentação in-app reescrito (Padrões Essenciais + Prompt IA)
 
 **Arquivos**:

@@ -423,7 +423,12 @@ QUANDO USAR CADA WIDGET:
 - icon:     chave é "icon" ou "icone"
 - hidden:   id, _id, key, order, type (rich-text estrutural), slug, variant, size, target, action
 
-5 PADRÕES QUE VOCÊ DEVE RECONHECER:
+6 PADRÕES QUE VOCÊ DEVE RECONHECER:
+
+⚠️ PADRÃO CRÍTICO — JSON COM CHAVE DE AGRUPAMENTO:
+Se o JSON possui uma chave que engloba as seções editáveis (ex: "content", "data", "sections"),
+as chaves do UI Schema DEVEM incluir esse agrupador no caminho.
+Ignorar o agrupador faz os campos retornarem undefined e não renderizarem nada.
 
 1. RICH-TEXT ARRAY: campo = [{type, value}] ou [{type, value, color}]
    → type: hidden (campo estrutural do rich-text)
@@ -470,6 +475,23 @@ QUANDO USAR CADA WIDGET:
    Exemplo de dado: "msgFinal": "Vagas limitadas"
    UI Schema:
    "msgFinal": {"ui:label": "Mensagem Final"}
+
+6. JSON COM CHAVE DE AGRUPAMENTO: o JSON tem chave que engloba as seções (content, data, sections, schema)
+   → campos fora do agrupador (name, slug, schema) → hidden
+   → seções dentro do agrupador → prefixar a chave com o agrupador
+   Exemplo de dado:
+   { "name": "Home", "slug": "home", "schema": {...}, "content": { "faq": { "items": [...] }, "hero": { "slides": [...] } } }
+   UI Schema ERRADO (retorna undefined, nada renderiza):
+   "faq": {"ui:label": "FAQ"},
+   "faq.items.*.question": {"ui:label": "Pergunta"}
+   UI Schema CORRETO:
+   "name": {"ui:widget": "hidden"},
+   "slug": {"ui:widget": "hidden"},
+   "schema": {"ui:widget": "hidden"},
+   "content.faq": {"ui:label": "❓ FAQ"},
+   "content.faq.items.*.question": {"ui:label": "Pergunta"},
+   "content.hero": {"ui:label": "🎬 Hero"},
+   "content.hero.slides.*.headline": {"ui:label": "Headline"}
 
 REGRAS ADICIONAIS:
 - Use emojis nos ui:label das seções raiz para melhorar o visual
@@ -977,15 +999,12 @@ Retorne APENAS o JSON válido do UI Schema, sem markdown, sem explicações, sem
                     3. Como as chaves funcionam
                   </p>
                   <p className="leading-relaxed mb-2">
-                    A chave no UI Schema é o{" "}
+                    A chave = o{" "}
                     <span className="font-medium text-brand-text">
                       caminho exato
                     </span>{" "}
-                    do campo no JSON de dados.{" "}
-                    <span className="font-medium text-brand-text">
-                      Sem prefixo obrigatório
-                    </span>{" "}
-                    — a estrutura reflete os seus dados.
+                    do campo no JSON de dados. Sem prefixo fixo — a estrutura
+                    reflete os dados.
                   </p>
                   <div className="space-y-1.5 bg-brand-bg border border-border rounded p-2 mb-2">
                     {(
@@ -996,6 +1015,7 @@ Retorne APENAS o JSON válido do UI Schema, sem markdown, sem explicações, sem
                         ["Array aninhado", "parceiros.*.dep.*.value"],
                         ["Objeto fixo", "button.link"],
                         ["Escalar na raiz", "msgFinal"],
+                        ["Com agrupador", "content.hero.slides.*.headline"],
                       ] as [string, string][]
                     ).map(([tipo, chave]) => (
                       <p key={chave}>
@@ -1012,21 +1032,49 @@ Retorne APENAS o JSON válido do UI Schema, sem markdown, sem explicações, sem
                       <code className="font-mono not-italic text-brand-primary">
                         *
                       </code>{" "}
-                      substitui índices numéricos e aplica a regra para todos os
-                      itens da lista.
+                      substitui índices numéricos (todos os itens da lista).
+                    </p>
+                  </div>
+                  <div className="bg-destructive/10 border border-destructive/30 rounded p-2 mb-2">
+                    <p className="text-[10px] font-semibold text-destructive mb-1">
+                      ⚠️ Agrupador de seções (content, data, sections...)
+                    </p>
+                    <p className="text-[10px] leading-relaxed text-brand-muted">
+                      Se o JSON tem uma chave que engloba as seções editáveis,
+                      inclua-a no caminho. Ex: dado em{" "}
+                      <code className="font-mono text-brand-primary">
+                        {`{ "content": { "hero": {...} } }`}
+                      </code>{" "}
+                      → chave UI Schema ={" "}
+                      <code className="font-mono text-brand-primary">
+                        &quot;content.hero&quot;
+                      </code>
+                      , não{" "}
+                      <code className="font-mono text-destructive line-through">
+                        &quot;hero&quot;
+                      </code>
+                      . Chaves fora do agrupador (
+                      <code className="font-mono text-brand-primary">name</code>
+                      ,{" "}
+                      <code className="font-mono text-brand-primary">slug</code>
+                      ,{" "}
+                      <code className="font-mono text-brand-primary">
+                        schema
+                      </code>
+                      ) → hidden.
                     </p>
                   </div>
                   <p className="leading-relaxed text-[10px]">
                     <span className="font-semibold text-brand-text">
                       Seções no menu lateral
                     </span>{" "}
-                    = chaves raiz com{" "}
+                    = chaves com{" "}
                     <code className="font-mono text-brand-primary">
                       ui:label
                     </code>
                     , sem{" "}
-                    <code className="font-mono text-brand-primary">*</code> e
-                    sem pai com{" "}
+                    <code className="font-mono text-brand-primary">*</code>, sem
+                    pai com{" "}
                     <code className="font-mono text-brand-primary">
                       ui:label
                     </code>
@@ -1036,7 +1084,7 @@ Retorne APENAS o JSON válido do UI Schema, sem markdown, sem explicações, sem
 
                 <div className="px-3 py-3 border-b border-border">
                   <p className="text-[10px] font-semibold text-brand-muted uppercase tracking-wide mb-2.5">
-                    4. 5 Padrões que toda IA precisa conhecer
+                    4. 6 Padrões que toda IA precisa conhecer
                   </p>
                   <div className="space-y-3">
                     <div className="border border-border rounded overflow-hidden">
@@ -1149,59 +1197,111 @@ Retorne APENAS o JSON válido do UI Schema, sem markdown, sem explicações, sem
                       </div>
                       <pre className="text-[10px] font-mono text-brand-text bg-card p-2 overflow-x-auto whitespace-pre leading-relaxed">{`"msgFinal": { "ui:label": "💬 Mensagem Final" }`}</pre>
                     </div>
+
+                    <div className="border border-destructive/40 rounded overflow-hidden">
+                      <div className="bg-destructive/10 px-2 py-1.5 border-b border-destructive/30">
+                        <p className="font-semibold text-destructive text-[10px]">
+                          ⚠️ 6. JSON com Chave de Agrupamento{" "}
+                          <code className="font-mono font-normal text-brand-muted">
+                            {`{ "content": { "secao": {...} } }`}
+                          </code>
+                        </p>
+                        <p className="text-[10px] leading-relaxed text-brand-muted mt-0.5">
+                          Quando o JSON tem{" "}
+                          <code className="font-mono text-brand-primary">
+                            content
+                          </code>
+                          ,{" "}
+                          <code className="font-mono text-brand-primary">
+                            data
+                          </code>
+                          ,{" "}
+                          <code className="font-mono text-brand-primary">
+                            sections
+                          </code>{" "}
+                          ou similar envolvendo as seções, a chave UI Schema{" "}
+                          <span className="font-semibold text-destructive">
+                            DEVE incluir o agrupador
+                          </span>
+                          . Sem ele, o campo retorna{" "}
+                          <code className="font-mono">undefined</code> e não
+                          renderiza.
+                        </p>
+                      </div>
+                      <pre className="text-[10px] font-mono text-brand-text bg-card p-2 overflow-x-auto whitespace-pre leading-relaxed">{`// Dado: { "name":"Home", "schema":{...}, "content": { "faq":{...} } }
+
+// ❌ ERRADO — ignora o agrupador:
+"faq": { "ui:label": "FAQ" }           // → undefined, não renderiza
+
+// ✅ CORRETO — inclui o agrupador:
+"name":   { "ui:widget": "hidden" },
+"schema": { "ui:widget": "hidden" },
+"content.faq": { "ui:label": "❓ FAQ" },
+"content.faq.items.*.question": { "ui:label": "Pergunta" },
+"content.faq.items.*.answer":   { "ui:label": "Resposta", "ui:widget": "textarea" }`}</pre>
+                    </div>
                   </div>
                 </div>
 
                 <div className="px-3 py-3 border-b border-border">
                   <p className="text-[10px] font-semibold text-brand-muted uppercase tracking-wide mb-2">
-                    5. Exemplo completo (todos os padrões)
+                    5. Exemplos (com e sem agrupador)
                   </p>
-                  <p className="leading-relaxed text-[10px] mb-2 text-brand-text/70">
-                    JSON com rich-text, array de objetos, array aninhado, objeto
-                    fixo e escalar:
+                  <p className="text-[10px] font-semibold text-brand-text mb-1">
+                    JSON plano (sem agrupador):
                   </p>
-                  <pre className="text-[10px] font-mono text-brand-text leading-relaxed bg-brand-bg border border-border rounded p-2 overflow-x-auto whitespace-pre mb-3">{`{
-  "title": [
-    {"type":"text","value":"Conheça "},
-    {"type":"highlight","color":"#F9396F","value":"nosso time"}
-  ],
+                  <pre className="text-[10px] font-mono text-brand-text leading-relaxed bg-brand-bg border border-border rounded p-2 overflow-x-auto whitespace-pre mb-1">{`{
   "button": {"label":"Falar agora","link":"/","size":"lg"},
   "msgFinal": "Vagas limitadas",
-  "parceiros": [{
-    "id": 1,
-    "nome": "Ana Lima",
-    "img_logo": "/logo.png",
-    "depoimento": [{"type":"text","value":"Excelente!"}]
-  }]
+  "parceiros": [{"id":1,"nome":"Ana","img_logo":"/l.png",
+    "depoimento":[{"type":"text","value":"Excelente!"}]}]
 }`}</pre>
-                  <pre className="text-[10px] font-mono text-brand-text leading-relaxed bg-brand-bg border border-border rounded p-2 overflow-x-auto whitespace-pre">{`{
-  "title": { "ui:label": "📝 Título" },
-  "title.*.type": { "ui:widget": "hidden" },
-  "title.*.value": { "ui:label": "Texto" },
-  "title.*.color": {
-    "ui:label": "Cor de destaque",
-    "ui:widget": "color"
-  },
-
-  "button": { "ui:label": "🔘 Botão", "ui:color": "#10b981" },
-  "button.label": { "ui:label": "Texto do botão" },
-  "button.link": { "ui:label": "Link", "ui:widget": "url" },
-  "button.size": { "ui:widget": "hidden" },
-
-  "msgFinal": { "ui:label": "💬 Mensagem Final" },
-
-  "parceiros": { "ui:label": "🤝 Parceiros", "ui:color": "#f59e0b" },
+                  <pre className="text-[10px] font-mono text-brand-text leading-relaxed bg-brand-bg border border-border rounded p-2 overflow-x-auto whitespace-pre mb-3">{`{
+  "msgFinal": { "ui:label": "💬 Mensagem" },
+  "button": { "ui:label": "🔘 Botão" },
+  "button.label": { "ui:label": "Texto" },
+  "button.link":  { "ui:label": "Link", "ui:widget": "url" },
+  "button.size":  { "ui:widget": "hidden" },
+  "parceiros": { "ui:label": "🤝 Parceiros" },
   "parceiros.*.id": { "ui:widget": "hidden" },
   "parceiros.*.nome": { "ui:label": "Nome" },
-  "parceiros.*.img_logo": {
-    "ui:label": "Logo",
-    "ui:widget": "image"
+  "parceiros.*.img_logo": { "ui:label": "Logo", "ui:widget": "image" },
+  "parceiros.*.depoimento.*.type":  { "ui:widget": "hidden" },
+  "parceiros.*.depoimento.*.value": { "ui:label": "Depoimento",
+    "ui:widget": "textarea", "ui:size": "lg" }
+}`}</pre>
+                  <p className="text-[10px] font-semibold text-brand-text mb-1">
+                    JSON com agrupador{" "}
+                    <code className="font-mono font-normal text-brand-primary">
+                      content
+                    </code>
+                    :
+                  </p>
+                  <pre className="text-[10px] font-mono text-brand-text leading-relaxed bg-brand-bg border border-border rounded p-2 overflow-x-auto whitespace-pre mb-1">{`{
+  "name": "Home",
+  "slug": "home",
+  "schema": { ... },
+  "content": {
+    "faq":  { "items": [{"question":"...","answer":"..."}] },
+    "hero": { "slides": [{"headline":"...","mediaUrl":""}] }
+  }
+}`}</pre>
+                  <pre className="text-[10px] font-mono text-brand-text leading-relaxed bg-brand-bg border border-border rounded p-2 overflow-x-auto whitespace-pre">{`{
+  "name":   { "ui:widget": "hidden" },
+  "slug":   { "ui:widget": "hidden" },
+  "schema": { "ui:widget": "hidden" },
+
+  "content.faq": { "ui:label": "❓ FAQ" },
+  "content.faq.items.*.question": { "ui:label": "Pergunta" },
+  "content.faq.items.*.answer": {
+    "ui:label": "Resposta",
+    "ui:widget": "textarea", "ui:size": "lg"
   },
-  "parceiros.*.depoimento.*.type": { "ui:widget": "hidden" },
-  "parceiros.*.depoimento.*.value": {
-    "ui:label": "Depoimento",
-    "ui:widget": "textarea",
-    "ui:size": "lg"
+
+  "content.hero": { "ui:label": "🎬 Hero" },
+  "content.hero.slides.*.headline": { "ui:label": "Headline" },
+  "content.hero.slides.*.mediaUrl": {
+    "ui:label": "Vídeo", "ui:widget": "video"
   }
 }`}</pre>
                 </div>
@@ -1222,20 +1322,19 @@ Retorne APENAS o JSON válido do UI Schema, sem markdown, sem explicações, sem
                     </button>
                   </div>
                   <p className="leading-relaxed text-[10px] mb-2">
-                    Cole o prompt acima em qualquer IA junto com o JSON de
-                    dados. O prompt completo já inclui os 5 padrões e todos os
-                    widgets.
+                    Cole o prompt em qualquer IA junto com o JSON de dados. O
+                    prompt cobre os 6 padrões incluindo o caso de agrupador.
                   </p>
                   <div className="bg-brand-bg border border-border rounded p-2 space-y-1.5">
                     <p className="text-[10px] font-semibold text-brand-text">
                       O prompt cobre:
                     </p>
                     {[
-                      "Regra das chaves (sem prefixo)",
-                      "Todos os widgets e quando usar",
-                      "5 padrões com exemplos de dado e UI",
+                      "Regra das chaves (caminho exato)",
+                      "Todos os widgets e heurística por nome",
+                      "6 padrões com exemplos de dado e UI",
+                      "⚠️ JSON com agrupador (content, data...)",
                       "Campos que devem ser hidden",
-                      "Heurística por nome de chave",
                     ].map((item) => (
                       <p key={item} className="leading-relaxed text-[10px]">
                         ✅ {item}

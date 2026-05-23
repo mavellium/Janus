@@ -390,6 +390,9 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 | Data       | Arquivo                                       | O que foi feito                                            |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
+| 2026-05-23 | `src/components/schema-builder/SiteContentEditClient.tsx` | FIX: Modo advanced reescrito — `effectiveUiSchema`+`uiSchemaSections` para seções corretas, `getDeep` para valor do DFR, `inline` prop, save via `updatePageSchemaContent` (sem restrição de role) |
+| 2026-05-23 | `src/modules/projects/actions/updatePageSchemaContent.ts` | NOVO: Action que salva `schemaData` sem restrição de role; usada pelo edit avançado para usuários DEFAULT |
+| 2026-05-22 | `src/components/cms/AdvancedJsonEditor.tsx` | DOCS: Padrão 6 adicionado — JSON com chave de agrupamento (`content`, `data`, `sections`); aviso ⚠️ na seção 3, card red-border na seção 4 (agora "6 Padrões"), dois exemplos na seção 5 (flat vs wrapper), prompt atualizado com PADRÃO CRÍTICO |
 | 2026-05-22 | `src/components/cms/AdvancedJsonEditor.tsx` | DOCS: Painel Docs reescrito — seção "5 Padrões Essenciais" (rich-text array, array aninhado, objeto fixo, escalar), exemplo completo, prompt IA copiável abrangente |
 | 2026-05-22 | `src/components/schema-builder/SchemaBuilderEditor.tsx` | FIX: `normalizeNestedUiSchema` removeu prefixo `content.` forçado; chaves agora espelham paths reais; `effectiveUiSchema` via useMemo |
 | 2026-05-22 | `src/components/cms/DynamicFieldRenderer.tsx` | FEAT: Propriedades visuais `ui:color` (borda hex), `ui:size` (altura textarea sm/md/lg/xl), `ui:placeholder`; prop `inline` pula wrapper collapsible |
