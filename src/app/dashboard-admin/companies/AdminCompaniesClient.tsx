@@ -24,7 +24,7 @@ interface Company {
   description: string | null
   guestModeEnabled: boolean
   createdAt: Date
-  users: { id: string; name: string | null; email: string }[]
+  users: { id: string; name: string | null; email: string; role: string }[]
   projects: { id: string }[]
 }
 
@@ -303,35 +303,46 @@ export function AdminCompaniesClient({ companies }: { companies: Company[] }) {
                     </div>
                   )
                 }
-                return filtered.map((user) => (
-                  <button
-                    key={user.id}
-                    onClick={async () => {
-                      setIsImpersonating(true)
-                      const result = await startImpersonation(user.id, modal.company.slug, window.location.href)
-                      if (result.ok) {
-                        window.open(`/${modal.company.slug}/dashboard`, '_self')
-                      } else {
-                        setIsImpersonating(false)
-                      }
-                    }}
-                    disabled={isImpersonating}
-                    className="w-full px-5 py-3 flex items-center gap-3 text-left hover:bg-accent transition disabled:opacity-50"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                      <UserCircle className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">
-                        {user.name || user.email}
-                      </p>
-                      {user.name && (
-                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                      )}
-                    </div>
-                    {isImpersonating && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />}
-                  </button>
-                ))
+                return filtered.map((user) => {
+                  const isPlatformAdmin = user.role === 'ADMIN'
+                  return (
+                    <button
+                      key={user.id}
+                      onClick={async () => {
+                        if (isPlatformAdmin) return
+                        setIsImpersonating(true)
+                        const result = await startImpersonation(user.id, modal.company.slug, window.location.href)
+                        if (result.ok) {
+                          window.open(`/${modal.company.slug}/dashboard`, '_self')
+                        } else {
+                          setIsImpersonating(false)
+                        }
+                      }}
+                      disabled={isImpersonating || isPlatformAdmin}
+                      className="w-full px-5 py-3 flex items-center gap-3 text-left hover:bg-accent transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        <UserCircle className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {user.name || user.email}
+                          </p>
+                          {user.role !== 'DEFAULT' && (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-brand-primary/10 text-brand-primary shrink-0">
+                              {user.role === 'DEVELOPER' ? 'Dev' : 'Admin'}
+                            </span>
+                          )}
+                        </div>
+                        {user.name && (
+                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                        )}
+                      </div>
+                      {isImpersonating && !isPlatformAdmin && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />}
+                    </button>
+                  )
+                })
               })()}
             </div>
           </div>

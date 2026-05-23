@@ -72,8 +72,7 @@ export async function POST(
     const body = Buffer.from(scriptContent, "utf-8");
 
     const version = Date.now();
-    const fileName = `scripts/${projectId}-sync.js?v=${version}`;
-    const storagePath = `scripts/${projectId}-sync.js`;
+    const storagePath = `scripts/${projectId}-${version}.js`;
 
     const uploadResponse = await fetch(
       `https://${bunnyHost}/${storageZone}/${storagePath}`,
@@ -96,7 +95,7 @@ export async function POST(
       );
     }
 
-    const scriptUrl = `https://${pullZone}/${storagePath}?v=${version}`;
+    const scriptUrl = `https://${pullZone}/${storagePath}`;
 
     await db.project.update({
       where: { id: projectId },

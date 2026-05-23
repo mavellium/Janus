@@ -288,9 +288,35 @@ export function SiteContentEditClient({
 
   const handleReload = () => setReloadKey((prev) => prev + 1);
 
-  function sendIframeSection(key: string) {
+  function getSectionKey(uiKey: string): string {
+    const config = effectiveUiSchema[uiKey];
+    if (typeof config === "object" && config !== null) {
+      const sk = (config as Record<string, unknown>)["ui:sectionKey"];
+      if (typeof sk === "string" && sk) return sk;
+    }
+    return uiKey;
+  }
+
+  function findUiKeyBySectionKey(sectionKey: string): string | null {
+    for (const uiKey of sections) {
+      if (getSectionKey(uiKey) === sectionKey) return uiKey;
+    }
+    if (sections.includes(sectionKey)) return sectionKey;
+    return null;
+  }
+
+  function sendIframeSection(uiKey: string) {
     iframeRef.current?.contentWindow?.postMessage(
-      { type: "CMS_SELECT_SECTION", section: key },
+      { type: "CMS_SELECT_SECTION", section: getSectionKey(uiKey) },
+      "*",
+    );
+  }
+
+  function handleFocusField(path: string[]) {
+    const field = path.join(".");
+    console.log("[CMS] handleFocusField →", field, "iframe:", !!iframeRef.current?.contentWindow);
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "CMS_SELECT_FIELD", field },
       "*",
     );
   }
@@ -309,15 +335,32 @@ export function SiteContentEditClient({
     };
   }, []);
 
+  function focusCmsField(fieldPath: string) {
+    setTimeout(() => {
+      const el = document.querySelector<HTMLElement>(`[data-field-path="${fieldPath}"]`);
+      if (!el) return;
+      el.focus();
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+  }
+
   useEffect(() => {
     function handleMessage(e: MessageEvent) {
       if (!e.data || e.data.type !== "CMS_ELEMENT_CLICK") return;
-      const section = e.data.section as string | null;
-      if (section) setSelectedSection(section);
+      const sectionKey = e.data.section as string | null;
+      const fieldKey = e.data.field as string | null;
+      if (!sectionKey) return;
+      const uiKey = findUiKeyBySectionKey(sectionKey);
+      if (uiKey) {
+        setSelectedSection(uiKey);
+        sendIframeSection(uiKey);
+        if (fieldKey) focusCmsField(fieldKey);
+      }
     }
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections, effectiveUiSchema]);
 
   if (isAdvanced) {
     return (
@@ -422,6 +465,7 @@ export function SiteContentEditClient({
                     path={selectedSection.split(".")}
                     onChange={handleFieldChange}
                     onOpenMediaModal={handleOpenMediaModal}
+                    onFocusField={handleFocusField}
                     uploadingPaths={uploadingPaths}
                     uiSchema={effectiveUiSchema}
                     inline

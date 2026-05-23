@@ -52,6 +52,7 @@ interface User {
   permissions: string | string[] | Record<string, Record<string, string[]>>;
   requiresPasswordReset: boolean;
   createdAt: Date;
+  companyId: string;
   company: { id: string; name: string; slug: string };
 }
 

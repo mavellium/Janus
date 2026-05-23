@@ -551,12 +551,27 @@ export function SchemaBuilderEditor({
     if (!visualMode) return;
     function handleMessage(e: MessageEvent) {
       if (!e.data || e.data.type !== "CMS_ELEMENT_CLICK") return;
-      const section = e.data.section as string | null;
-      if (section) setSelectedSection(section);
+      const sectionKey = e.data.section as string | null;
+      const fieldKey = e.data.field as string | null;
+      if (!sectionKey) return;
+      const uiKey = sections.find((k) => getSectionKey(k) === sectionKey) ?? (sections.includes(sectionKey) ? sectionKey : null);
+      if (uiKey) {
+        setSelectedSection(uiKey);
+        sendIframeSection(uiKey);
+        if (fieldKey) {
+          setTimeout(() => {
+            const el = document.querySelector<HTMLElement>(`[data-field-path="${fieldKey}"]`);
+            if (!el) return;
+            el.focus();
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }, 80);
+        }
+      }
     }
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [visualMode]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visualMode, sections, effectiveUiSchema]);
 
   function handleEditorChange(val: string | undefined) {
     const str = val ?? "";
@@ -655,9 +670,25 @@ export function SchemaBuilderEditor({
     setTimeout(() => setFocusedSectionId(null), 1000);
   }
 
-  function sendIframeSection(key: string) {
+  function getSectionKey(uiKey: string): string {
+    const config = effectiveUiSchema[uiKey];
+    if (typeof config === "object" && config !== null) {
+      const sk = (config as Record<string, unknown>)["ui:sectionKey"];
+      if (typeof sk === "string" && sk) return sk;
+    }
+    return uiKey;
+  }
+
+  function sendIframeSection(uiKey: string) {
     iframeRef.current?.contentWindow?.postMessage(
-      { type: "CMS_SELECT_SECTION", section: key },
+      { type: "CMS_SELECT_SECTION", section: getSectionKey(uiKey) },
+      "*",
+    );
+  }
+
+  function handleFocusField(path: string[]) {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "CMS_SELECT_FIELD", field: path.join(".") },
       "*",
     );
   }
@@ -1068,7 +1099,7 @@ export function SchemaBuilderEditor({
                     type="button"
                     onClick={() => {
                       setSelectedSection(key);
-                      if (visualMode) sendIframeSection(key);
+                      sendIframeSection(key);
                     }}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition ${
                       selectedSection === key
@@ -1107,6 +1138,7 @@ export function SchemaBuilderEditor({
                         path={selectedSection.split(".")}
                         onChange={handleFieldChange}
                         onOpenMediaModal={handleOpenMediaModal}
+                        onFocusField={handleFocusField}
                         uploadingPaths={uploadingPaths}
                         uiSchema={effectiveUiSchema}
                         inline

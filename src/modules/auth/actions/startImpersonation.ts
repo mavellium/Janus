@@ -31,7 +31,7 @@ export async function startImpersonation(
     return { ok: false as const, error: "Usuário não encontrado" };
   }
 
-  if (targetUser.role === "ADMIN" || targetUser.role === "DEVELOPER") {
+  if (targetUser.role === "ADMIN") {
     return {
       ok: false as const,
       error: "Não é possível inspecionar um usuário administrador",

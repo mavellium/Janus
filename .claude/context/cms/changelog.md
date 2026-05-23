@@ -16,6 +16,36 @@
 
 ---
 
+### [2026-05-23] — Feat: Seleção bidirecional sincronizada iframe↔CMS + Live Preview + Scripts Dinâmicos
+
+**Arquivos**:
+- `src/lib/cms/sync-script-template.js`: badge flutuante com label ao selecionar (seção › campo); `applyLiveUpdate()` escuta `janus:content-update` e atualiza `textContent`/`src`/`href` de elementos `[data-cms-field]` em tempo real; handler `CMS_SELECT_FIELD` destaca campo específico no iframe
+- `src/components/schema-builder/SiteContentEditClient.tsx`: `getSectionKey()` + `findUiKeyBySectionKey()` para mapeamento bidirecional via `ui:sectionKey`; `handleFocusField()` manda `CMS_SELECT_FIELD` ao iframe; `focusCmsField()` foca input/textarea no painel via `data-field-path`; `CMS_ELEMENT_CLICK` agora sincroniza seção no iframe (`sendIframeSection`) além de abrir no painel
+- `src/components/schema-builder/SchemaBuilderEditor.tsx`: `getSectionKey()`, `sendIframeSection()` com `ui:sectionKey`, `handleFocusField()`; listener `CMS_ELEMENT_CLICK` sincroniza seção+campo em visualMode; `onFocusField` passado ao DFR; clique na seção sempre envia `CMS_SELECT_SECTION` (não só em visualMode)
+- `src/components/cms/DynamicFieldRenderer.tsx`: prop `onFocusField?(path)` adicionada; `onFocus` em `input` e `textarea` dispara `onFocusField(path)`; `data-field-path` nos inputs para seleção via DOM; propagado recursivamente em array/object
+- `src/app/[companySlug]/dashboard/sites/[siteId]/scripts/page.tsx`: `ApiEndpointBanner` no topo (igual ao Blog), visível para DEVELOPER/ADMIN
+- `src/app/api/projects/[projectId]/generate-script/route.ts`: nome do arquivo inclui timestamp (`{projectId}-{timestamp}.js`) — evita cache CDN sem precisar de API key de purge
+- `src/app/api/projects/[projectId]/check-script/route.ts`: `cache: "no-store"` + `Cache-Control: no-cache` no fetch do site externo
+- `src/components/projects/EditProjectModal.tsx`: botão copiar sobreposto no `pre` (canto superior direito); `skipNextCheck` flag evita auto-check após gerar script; feedback message instrui usuário a atualizar o site antes de verificar; log de debug temporário no `handleGenerateScript`
+- `prisma/schema.prisma`: modelo `SiteScript` (id, name, code, position, isActive, projectId→cascade, timestamps); enum `ScriptPosition` (HEAD, BODY_END)
+- `src/modules/scripts/actions/`: `createScript`, `updateScript`, `deleteScript`, `toggleScript`
+- `src/modules/scripts/queries/getScriptsByProjectId.ts`: lista scripts por projeto, exporta `SiteScriptRow`
+- `src/components/scripts/ScriptsClient.tsx`: CRUD completo com tabela, Switch, modal criar/editar, confirm delete
+- `src/app/[companySlug]/dashboard/sites/[siteId]/scripts/page.tsx`: página de scripts com banner de API
+- `src/app/api/sites/[siteId]/scripts/route.ts`: GET público, retorna scripts ativos, `revalidate=60`
+- `src/components/cms/JanusScriptManager.tsx`: Server Component async; injeta scripts via `next/script`; detecta `src` vs inline; strategy por position
+- `src/components/dashboard/Sidebar.tsx`: link Scripts (Code2) antes do Blog, só em contexto de `siteId`
+
+**Razão**: Experiência visual de edição: clicar no site abre seção+campo no CMS; digitar no CMS atualiza o site em tempo real (preview); scripts dinâmicos permitem gerenciar tags de terceiros por projeto sem deploy
+
+**Impacto**:
+- Bidirecional: site→CMS (click abre seção + foca campo) e CMS→site (foco no input destaca elemento no iframe)
+- Live preview: `janus:content-update` atualiza DOM sem salvar
+- Scripts: CRUD completo + API pública + `JanusScriptManager` para Next.js
+- CDN: arquivo com timestamp no nome garante entrega da versão nova sem purge
+
+---
+
 ### [2026-05-23] — Feat: Ativação do módulo CMS em Sites e Landing Pages
 
 **Arquivos**:

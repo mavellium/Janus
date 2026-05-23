@@ -52,6 +52,7 @@ interface DynamicFieldRendererProps {
   path: string[];
   onChange: (path: string[], value: unknown) => void;
   onOpenMediaModal: (path: string[], mediaType: "image" | "video") => void;
+  onFocusField?: (path: string[]) => void;
   uploadingPaths?: Set<string>;
   depth?: number;
   uiSchema?: Record<string, unknown>;
@@ -121,6 +122,7 @@ export function DynamicFieldRenderer({
   path,
   onChange,
   onOpenMediaModal,
+  onFocusField,
   uploadingPaths,
   depth = 0,
   uiSchema = {},
@@ -306,8 +308,10 @@ export function DynamicFieldRenderer({
   if (type === "textarea") {
     return (
       <textarea
+        data-field-path={path.join(".")}
         value={typeof value === "string" ? value : ""}
         onChange={(e) => onChange(path, e.target.value)}
+        onFocus={() => onFocusField?.(path)}
         className={`w-full ${textareaHeightClass} bg-brand-bg border border-border rounded-lg px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary resize-y ${accentClass}`}
         style={accentStyle}
         placeholder={placeholder ?? `${uiConfig["ui:label"] ?? dataKey}...`}
@@ -464,6 +468,7 @@ export function DynamicFieldRenderer({
                           path={fieldPath}
                           onChange={onChange}
                           onOpenMediaModal={onOpenMediaModal}
+                          onFocusField={onFocusField}
                           uploadingPaths={uploadingPaths}
                           depth={depth + 1}
                           uiSchema={uiSchema}
@@ -480,6 +485,7 @@ export function DynamicFieldRenderer({
                 path={[...path, String(idx)]}
                 onChange={onChange}
                 onOpenMediaModal={onOpenMediaModal}
+                onFocusField={onFocusField}
                 uploadingPaths={uploadingPaths}
                 depth={depth + 1}
                 uiSchema={uiSchema}
@@ -526,6 +532,7 @@ export function DynamicFieldRenderer({
               path={fieldPath}
               onChange={onChange}
               onOpenMediaModal={onOpenMediaModal}
+              onFocusField={onFocusField}
               uploadingPaths={uploadingPaths}
               depth={depth + 1}
               uiSchema={uiSchema}
@@ -574,8 +581,10 @@ export function DynamicFieldRenderer({
   return (
     <input
       type="text"
+      data-field-path={path.join(".")}
       value={typeof value === "string" ? value : ""}
       onChange={(e) => onChange(path, e.target.value)}
+      onFocus={() => onFocusField?.(path)}
       className={`w-full bg-brand-bg border border-border rounded-lg px-3 py-2 text-sm text-brand-text placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary ${accentClass}`}
       style={accentStyle}
       placeholder={placeholder ?? `${uiConfig["ui:label"] ?? dataKey}...`}
