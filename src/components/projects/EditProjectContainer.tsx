@@ -9,6 +9,8 @@ interface EditProjectContainerProps {
   initialPreviewUrl?: string | null
   initialBlogEnabled?: boolean
   canManageBlog?: boolean
+  initialCmsEnabled?: boolean
+  initialCmsSyncScriptUrl?: string | null
   companySlug: string
   trigger: React.ReactNode
 }
@@ -19,6 +21,8 @@ export function EditProjectContainer({
   initialPreviewUrl,
   initialBlogEnabled,
   canManageBlog,
+  initialCmsEnabled,
+  initialCmsSyncScriptUrl,
   companySlug,
   trigger,
 }: EditProjectContainerProps) {
@@ -43,6 +47,8 @@ export function EditProjectContainer({
           initialPreviewUrl={initialPreviewUrl}
           initialBlogEnabled={initialBlogEnabled}
           canManageBlog={canManageBlog}
+          initialCmsEnabled={initialCmsEnabled}
+          initialCmsSyncScriptUrl={initialCmsSyncScriptUrl}
           companySlug={companySlug}
           open={open}
           onOpenChange={setOpen}

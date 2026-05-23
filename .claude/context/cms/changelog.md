@@ -16,6 +16,39 @@
 
 ---
 
+### [2026-05-23] — Feat: Ativação do módulo CMS em Sites e Landing Pages
+
+**Arquivos**:
+- `src/app/[companySlug]/dashboard/sites/page.tsx`: badge CMS no card, status "Script pendente/não gerado", passa `initialCmsEnabled` e `initialCmsSyncScriptUrl` para `EditProjectContainer`
+- `src/app/[companySlug]/dashboard/landing-pages/page.tsx`: mesmas alterações espelhadas do sites/page.tsx
+- `src/components/projects/EditProjectModal.tsx`: switch "Módulo CMS Avançado", estado `cmsEnabled`/`cmsSyncScriptUrl`, status badge (ativo/pendente), botões gerar/copiar/regerar script
+- `src/components/projects/EditProjectContainer.tsx`: repassa `initialCmsEnabled` e `initialCmsSyncScriptUrl` para o modal
+- `src/modules/projects/actions/updateProject.ts`: persiste campo `cmsEnabled` no DB
+- `src/modules/projects/queries/getProjects.ts`: retorna `cmsEnabled`, `cmsSyncScriptUrl`, `previewUrl` nos projetos
+- `src/app/api/projects/[projectId]/check-script/route.ts`: NOVO — GET; detecta se o script está ativo no site do cliente via fetch do `previewUrl`
+- `prisma/schema.prisma`: campos `cmsEnabled Boolean @default(false)` e `previewUrl String?` em `Project`
+
+**Razão**: O módulo CMS precisava ser ativável por projeto, com visibilidade do status de instalação do script diretamente nas páginas de listagem.
+
+**Impacto**: Usuário pode habilitar/desabilitar CMS por projeto no modal de edição. Status ativo/pendente reflete se o script está instalado no site. Disponível tanto em Sites quanto em Landing Pages.
+
+---
+
+### [2026-05-23] — Feat: CMS Plug & Play via CDN (sync script + painel integração)
+
+**Arquivos**:
+- `src/lib/cms/sync-script-template.js`: NOVO — IIFE Vanilla JS; guard `window.parent === window`; injeção de `<style>` para `data-cms-selected`; click listener com `postMessage`; message listener para `CMS_SELECT_SECTION`
+- `src/app/api/projects/[projectId]/generate-script/route.ts`: NOVO — API POST; lê template, faz PUT na BunnyCDN (`scripts/[projectId]-sync.js`), salva URL em `Project.cmsSyncScriptUrl`
+- `prisma/schema.prisma`: campo `cmsSyncScriptUrl String? @map("cms_sync_script_url")` em `Project`
+- `src/components/schema-builder/SchemaBuilderEditor.tsx`: props `projectId` e `initialCmsSyncScriptUrl`; painel lateral "Integração Front-end" com tag `<script>` pronta, botão Copiar, botão Regerar, card de instruções
+- `src/app/.../builder/page.tsx`: query de `cmsSyncScriptUrl`, passa para `SchemaBuilderEditor`
+
+**Razão**: Front-end precisava de componente React específico para sincronizar com o CMS. Agora basta plugar um `<script defer>` único e marcar elementos com `data-cms-section`/`data-cms-field`.
+
+**Impacto**: Qualquer front-end (Next.js, Astro, HTML estático) integra com o CMS sem dependência de framework. Script é gerado e hospedado na BunnyCDN. Painel do builder mostra a tag pronta para copiar.
+
+---
+
 ### [2026-05-23] — Fix: Edit avançado não refletia mudanças do builder
 
 **Arquivos**:

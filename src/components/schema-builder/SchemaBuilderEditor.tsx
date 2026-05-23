@@ -31,6 +31,9 @@ import {
   Library,
   Monitor,
   MousePointerClick,
+  RefreshCw,
+  Code2,
+  X,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
@@ -81,6 +84,10 @@ interface SchemaBuilderEditorProps {
   apiUrl: string;
   initialPublished: boolean;
   previewHref: string;
+  projectId?: string;
+  initialCmsEnabled?: boolean;
+  initialCmsSyncScriptUrl?: string | null;
+  sitePreviewUrl?: string | null;
 }
 
 const DEFAULT_SCHEMA: SchemaSection[] = [
@@ -376,6 +383,10 @@ export function SchemaBuilderEditor({
   apiUrl,
   initialPublished,
   previewHref,
+  projectId,
+  initialCmsEnabled = false,
+  initialCmsSyncScriptUrl,
+  sitePreviewUrl,
 }: SchemaBuilderEditorProps) {
   const initialString = getInitialString(initialSchema);
   const editorRef = useRef<unknown>(null);
@@ -428,6 +439,17 @@ export function SchemaBuilderEditor({
     [uiSchemaState],
   );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [cmsModalOpen, setCmsModalOpen] = useState(false);
+  const [visualMode, setVisualMode] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [cmsSyncScriptUrl, setCmsSyncScriptUrl] = useState<string | null>(
+    initialCmsSyncScriptUrl ?? null,
+  );
+  const [isGeneratingScript, setIsGeneratingScript] = useState(false);
+  const [scriptFeedback, setScriptFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
   const mediaModalPathRef = useRef<string[]>([]);
 
   const initialAdvancedData =
@@ -524,6 +546,17 @@ export function SchemaBuilderEditor({
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    if (!visualMode) return;
+    function handleMessage(e: MessageEvent) {
+      if (!e.data || e.data.type !== "CMS_ELEMENT_CLICK") return;
+      const section = e.data.section as string | null;
+      if (section) setSelectedSection(section);
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [visualMode]);
 
   function handleEditorChange(val: string | undefined) {
     const str = val ?? "";
@@ -622,6 +655,55 @@ export function SchemaBuilderEditor({
     setTimeout(() => setFocusedSectionId(null), 1000);
   }
 
+  function sendIframeSection(key: string) {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "CMS_SELECT_SECTION", section: key },
+      "*",
+    );
+  }
+
+  async function handleGenerateScript() {
+    if (!projectId) return;
+    setIsGeneratingScript(true);
+    setScriptFeedback(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/generate-script`, {
+        method: "POST",
+      });
+      const data = (await res.json()) as {
+        ok: boolean;
+        url?: string;
+        error?: string;
+      };
+      if (data.ok && data.url) {
+        setCmsSyncScriptUrl(data.url);
+        setScriptFeedback({
+          type: "success",
+          message: "Script gerado com sucesso!",
+        });
+      } else {
+        setScriptFeedback({
+          type: "error",
+          message: data.error ?? "Erro ao gerar script",
+        });
+      }
+    } catch {
+      setScriptFeedback({ type: "error", message: "Erro de conexão" });
+    } finally {
+      setIsGeneratingScript(false);
+      setTimeout(() => setScriptFeedback(null), 4000);
+    }
+  }
+
+  function handleCopyScriptTag() {
+    if (!cmsSyncScriptUrl) return;
+    navigator.clipboard.writeText(
+      `<script src="${cmsSyncScriptUrl}" defer></script>`,
+    );
+    setScriptFeedback({ type: "success", message: "Tag copiada!" });
+    setTimeout(() => setScriptFeedback(null), 3000);
+  }
+
   function insertSnippet(snippet: SchemaSection) {
     const editor = editorRef.current as {
       getValue: () => string;
@@ -669,6 +751,30 @@ export function SchemaBuilderEditor({
         </div>
 
         <div className="flex items-center flex-wrap gap-2">
+          {initialCmsEnabled && projectId && sitePreviewUrl && isAdvancedMode && (
+            <button
+              type="button"
+              onClick={() => setVisualMode((v) => !v)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition ${
+                visualMode
+                  ? "border-brand-primary bg-brand-primary text-white"
+                  : "border-brand-primary/40 text-brand-primary hover:bg-brand-primary/10"
+              }`}
+            >
+              <Monitor className="w-4 h-4" />
+              {visualMode ? "Editor" : "Visual"}
+            </button>
+          )}
+          {initialCmsEnabled && projectId && (
+            <button
+              type="button"
+              onClick={() => setCmsModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-brand-primary/40 text-brand-primary hover:bg-brand-primary/10 transition"
+            >
+              <Code2 className="w-4 h-4" />
+              Integração
+            </button>
+          )}
           <label className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-border text-xs font-medium text-brand-text cursor-pointer select-none">
             <span>Modo Avançado (JSON Livre)</span>
             <Switch
@@ -862,7 +968,17 @@ export function SchemaBuilderEditor({
             </div>
           )}
 
-          {isAdvancedMode ? (
+          {isAdvancedMode && visualMode && sitePreviewUrl ? (
+            <div className="flex-1 min-h-0 overflow-hidden bg-zinc-950 flex items-stretch">
+              <iframe
+                ref={iframeRef}
+                src={sitePreviewUrl}
+                className="flex-1 border-0"
+                title="Preview do site"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+              />
+            </div>
+          ) : isAdvancedMode ? (
             <div className="flex-1 min-h-0 overflow-hidden">
               <AdvancedJsonEditor
                 pageId={pageId}
@@ -950,7 +1066,10 @@ export function SchemaBuilderEditor({
                   <button
                     key={key}
                     type="button"
-                    onClick={() => setSelectedSection(key)}
+                    onClick={() => {
+                      setSelectedSection(key);
+                      if (visualMode) sendIframeSection(key);
+                    }}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition ${
                       selectedSection === key
                         ? "bg-brand-primary text-white shadow-sm"
@@ -1016,6 +1135,119 @@ export function SchemaBuilderEditor({
               </div>
             </aside>
           </>
+        )}
+
+        {cmsModalOpen && initialCmsEnabled && projectId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="fixed inset-0 bg-black/50" onClick={() => setCmsModalOpen(false)} />
+            <div className="relative bg-card rounded-xl shadow-lg p-6 w-[95vw] max-w-md max-h-[90vh] overflow-y-auto mx-4 border border-brand-btn-light">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Code2 className="w-4 h-4 text-brand-primary" />
+                  <h2 className="text-base font-semibold text-brand-text">Integração Front-end</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCmsModalOpen(false)}
+                  className="p-1 rounded hover:bg-brand-btn-light/40 text-brand-muted hover:text-brand-text transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-brand-text">Script de sincronização</p>
+                  <p className="text-[11px] text-brand-muted leading-relaxed">
+                    Gere o script e adicione-o ao HTML do seu front-end. O CMS detectará elementos com{" "}
+                    <code className="bg-brand-btn-light px-1 rounded text-[10px]">data-cms-section</code>{" "}
+                    e{" "}
+                    <code className="bg-brand-btn-light px-1 rounded text-[10px]">data-cms-field</code>{" "}
+                    automaticamente.
+                  </p>
+                </div>
+
+                {cmsSyncScriptUrl ? (
+                  <div className="space-y-2">
+                    <p className="text-[11px] font-medium text-brand-muted uppercase tracking-wide">Tag pronta</p>
+                    <pre className="text-[10px] bg-brand-bg border border-border rounded-lg p-3 overflow-x-auto text-brand-text font-mono whitespace-pre-wrap break-all leading-relaxed">
+                      {`<script src="${cmsSyncScriptUrl}" defer></script>`}
+                    </pre>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCopyScriptTag}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-brand-primary text-white hover:bg-brand-hover transition"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        Copiar Script
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleGenerateScript}
+                        disabled={isGeneratingScript}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border border-border text-brand-text hover:bg-brand-btn-light/40 transition disabled:opacity-60"
+                        title="Regerar script na CDN"
+                      >
+                        {isGeneratingScript ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleGenerateScript}
+                    disabled={isGeneratingScript}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-medium bg-brand-primary text-white hover:bg-brand-hover transition disabled:opacity-60"
+                  >
+                    {isGeneratingScript ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Code2 className="w-3.5 h-3.5" />
+                    )}
+                    {isGeneratingScript ? "Gerando..." : "Gerar Script CDN"}
+                  </button>
+                )}
+
+                {scriptFeedback && (
+                  <p className={`text-xs flex items-center gap-1.5 ${scriptFeedback.type === "success" ? "text-brand-primary" : "text-destructive"}`}>
+                    {scriptFeedback.type === "success" ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    )}
+                    {scriptFeedback.message}
+                  </p>
+                )}
+
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+                  <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">Como usar no front-end</p>
+                  <ul className="text-[11px] text-brand-muted space-y-1.5 leading-relaxed">
+                    <li>
+                      1. Adicione a tag{" "}
+                      <code className="bg-brand-btn-light px-1 rounded text-[10px]">&lt;script&gt;</code>{" "}
+                      no{" "}
+                      <code className="bg-brand-btn-light px-1 rounded text-[10px]">&lt;head&gt;</code>{" "}
+                      do seu HTML
+                    </li>
+                    <li>
+                      2. Marque seções com{" "}
+                      <code className="bg-brand-btn-light px-1 rounded text-[10px]">data-cms-section="nome"</code>
+                    </li>
+                    <li>
+                      3. Marque campos com{" "}
+                      <code className="bg-brand-btn-light px-1 rounded text-[10px]">data-cms-field="campo"</code>
+                    </li>
+                    <li>4. O script só ativa dentro do iframe do CMS — não afeta produção</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         <MediaUploadModal

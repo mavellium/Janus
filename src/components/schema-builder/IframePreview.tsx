@@ -83,7 +83,6 @@ export const IframePreview = forwardRef<HTMLIFrameElement, IframePreviewProps>(f
               src={url}
               className="w-full h-full border-none"
               title="Preview"
-              sandbox="allow-scripts allow-same-origin"
             />
           </div>
         )}

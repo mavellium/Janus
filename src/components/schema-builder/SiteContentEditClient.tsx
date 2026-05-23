@@ -288,6 +288,13 @@ export function SiteContentEditClient({
 
   const handleReload = () => setReloadKey((prev) => prev + 1);
 
+  function sendIframeSection(key: string) {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "CMS_SELECT_SECTION", section: key },
+      "*",
+    );
+  }
+
   const handleContentChange = useCallback(
     (content: Record<string, unknown>) => {
       pendingContentRef.current = content;
@@ -300,6 +307,16 @@ export function SiteContentEditClient({
     return () => {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
+  }, []);
+
+  useEffect(() => {
+    function handleMessage(e: MessageEvent) {
+      if (!e.data || e.data.type !== "CMS_ELEMENT_CLICK") return;
+      const section = e.data.section as string | null;
+      if (section) setSelectedSection(section);
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   }, []);
 
   if (isAdvanced) {
@@ -355,7 +372,10 @@ export function SiteContentEditClient({
                 <button
                   key={key}
                   type="button"
-                  onClick={() => setSelectedSection(key)}
+                  onClick={() => {
+                    setSelectedSection(key);
+                    sendIframeSection(key);
+                  }}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition ${
                     selectedSection === key
                       ? "bg-brand-primary text-white shadow-sm"

@@ -128,9 +128,11 @@ model Project {
   company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
   name            String
   type            ProjectType
-  previewUrl      String?      @map("preview_url")
-  isActive        Boolean      @default(true) @map("is_active")
-  blogEnabled     Boolean      @default(false) @map("blog_enabled")
+  previewUrl         String?      @map("preview_url")
+  cmsSyncScriptUrl   String?      @map("cms_sync_script_url")
+  cmsEnabled         Boolean      @default(false) @map("cms_enabled")
+  isActive           Boolean      @default(true) @map("is_active")
+  blogEnabled        Boolean      @default(false) @map("blog_enabled")
   deletedBy       String?      @map("deleted_by")
   deletionReason  String?      @map("deletion_reason")
   createdAt       DateTime     @default(now()) @map("created_at")
@@ -142,6 +144,7 @@ model Project {
   blogCategories     BlogCategory[]
   blogTags           BlogTag[]
   blogPosts          BlogPost[]
+  siteScripts        SiteScript[]
 
   @@index([companyId])
   @@index([isActive])
@@ -270,6 +273,29 @@ model Page {
   @@index([projectId])
   @@index([deletedAt])
   @@map("pages")
+}
+
+enum ScriptPosition {
+  HEAD
+  BODY_END
+
+  @@map("script_position")
+}
+
+model SiteScript {
+  id         String         @id @default(uuid()) @db.Uuid
+  name       String
+  code       String         @db.Text
+  position   ScriptPosition @default(HEAD)
+  isActive   Boolean        @default(true) @map("is_active")
+  projectId  String         @db.Uuid @map("project_id")
+  project    Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  @@index([projectId])
+  @@index([isActive])
+  @@map("site_scripts")
 }
 
 model ProjectHistory {

@@ -84,6 +84,13 @@ export default async function SitesPage({
             className="bg-card rounded-xl border border-brand-btn-light overflow-hidden hover:shadow-lg transition relative"
           >
             <div className="h-32 bg-gradient-to-br from-brand-btn-light to-brand-muted/40 relative">
+              {project.cmsEnabled && (
+                <div className="absolute top-3 left-3">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-primary/10 text-brand-primary border border-brand-primary/20">
+                    CMS
+                  </span>
+                </div>
+              )}
               {canDelete && (
                 <div className="absolute top-3 right-3">
                   <DeleteProjectModal
@@ -119,6 +126,8 @@ export default async function SitesPage({
                     initialPreviewUrl={project.previewUrl}
                     initialBlogEnabled={project.blogEnabled}
                     canManageBlog={canManageBlog}
+                    initialCmsEnabled={project.cmsEnabled}
+                    initialCmsSyncScriptUrl={project.cmsSyncScriptUrl}
                     companySlug={companySlug}
                     trigger={<EditProjectButton />}
                   />

@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import {
   Home, FileText, Globe, Zap, FileStack,
   Bell, Settings, LogOut, PanelLeftClose, PanelLeftOpen, UserCircle,
-  ChevronLeft, BarChart3, BookOpen,
+  ChevronLeft, BarChart3, BookOpen, Code2,
 } from 'lucide-react'
 import { updatePreferences } from '@/modules/users/actions/updatePreferences'
 import { signOut } from 'next-auth/react'
@@ -251,6 +251,20 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
             }
           </Link>
         ))}
+
+        {isInProjectContext && siteId && (
+          <Link
+            href={`${basePath}/scripts`}
+            title={collapsed ? 'Scripts' : undefined}
+            className={navItemClasses(`${basePath}/scripts`)}
+          >
+            <Code2 size={16} className="flex-shrink-0" />
+            {collapsed
+              ? <span className="text-[10px] text-center leading-tight w-full">Scripts</span>
+              : <span>Scripts</span>
+            }
+          </Link>
+        )}
 
         {isInProjectContext && blogEnabled && (
           <Link

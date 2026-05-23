@@ -10,6 +10,7 @@ interface UpdateProjectParams {
   companySlug: string
   previewUrl?: string | null
   blogEnabled?: boolean
+  cmsEnabled?: boolean
 }
 
 export async function updateProject({
@@ -18,6 +19,7 @@ export async function updateProject({
   companySlug,
   previewUrl,
   blogEnabled,
+  cmsEnabled,
 }: UpdateProjectParams) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -51,6 +53,7 @@ export async function updateProject({
         name,
         ...(previewUrl !== undefined && { previewUrl }),
         ...(blogEnabled !== undefined && { blogEnabled }),
+        ...(cmsEnabled !== undefined && { cmsEnabled }),
       },
     })
 

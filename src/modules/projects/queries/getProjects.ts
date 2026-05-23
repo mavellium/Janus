@@ -13,7 +13,15 @@ export async function getProjects({ companyId, type }: GetProjectsParams) {
       deletedAt: null,
       ...(type && { type }),
     },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      previewUrl: true,
+      cmsSyncScriptUrl: true,
+      cmsEnabled: true,
+      blogEnabled: true,
+      createdAt: true,
       _count: {
         select: { pages: true },
       },

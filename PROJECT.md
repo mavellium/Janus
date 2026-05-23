@@ -187,6 +187,10 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
   - `adminCreateUser.ts` — cria usuário com role DEFAULT; verifica role ADMIN; hash bcrypt
   - `createDeveloper.ts` — cria usuário com role DEVELOPER; verifica role ADMIN; hash bcrypt
 
+### scripts
+- **Actions:** `createScript.ts` — cria SiteScript vinculado ao projectId | `updateScript.ts` — atualiza nome/code/position | `deleteScript.ts` — hard delete | `toggleScript.ts` — toggle isActive
+- **Queries:** `getScriptsByProjectId.ts` — lista scripts de um projeto (todos, sem filtro isActive); exporta `SiteScriptRow`
+
 ### upload
 - **Actions:** `uploadImage.ts` — converte imagens para .avif via sharp (quality: 80), suporta subpastas dinâmicas (folder: 'avatars'), upload para BunnyCDN
 - **Actions:** `uploadMedia.ts` — suporta image (→ AVIF) e video (direto raw); valida tamanho (5MB img / 200MB vídeo); envia para BunnyCDN; retorna URL pública
@@ -217,6 +221,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/components/projects/EditPageModal.tsx` — Client — modal de edição de página (nome/slug); usa `useActionState` + `useEffect` para fechar; aviso sobre slug alterar URL da API
 - `src/components/projects/EditProjectContainer.tsx` — Client — container com key incremental para `EditProjectModal` (força re-mount com previewUrl atualizado)
 - `src/components/projects/EditProjectModal.tsx` — Client — modal de configurações do projeto (nome + previewUrl); salva via `updateProject`
+- `src/components/scripts/ScriptsClient.tsx` — Client — CRUD completo de SiteScripts: tabela com Switch isActive, modal criar/editar (textarea para code, select posição), confirm de exclusão
+- `src/components/cms/JanusScriptManager.tsx` — Server — fetcha `/api/sites/[siteId]/scripts` (revalidate 60s) e injeta scripts via `next/script`; detecta src vs inline; strategy `afterInteractive`/`lazyOnload` por posição
 - `src/components/ui/toast-container.tsx` — Client — toast notifications (success/error) com tokens semânticos
 - `src/components/ui/alert-dialog.tsx` — Client — AlertDialog primitivos (Radix) com overlay, header, footer, action, cancel
 - `src/components/ui/delete-alert-modal.tsx` — Client — modal reutilizável de confirmação de exclusão; props: isOpen, onClose, onConfirm, title, description, isDeleting
@@ -259,6 +265,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 **Páginas de Contexto (Sites):**
 - `src/app/[companySlug]/dashboard/sites/[siteId]/pages/page.tsx` — listagem de páginas; botões: Publicar, Configurações, Construir, Editar; modal CreatePageModal funcional
+- `src/app/[companySlug]/dashboard/sites/[siteId]/scripts/page.tsx` — Server Component; valida acesso; busca scripts via `getScriptsByProjectId`; renderiza `ScriptsClient`
+- `src/app/api/sites/[siteId]/scripts/route.ts` — GET público; retorna scripts ativos do projeto; `revalidate=60`; header `Cache-Control`
 - `src/app/[companySlug]/dashboard/sites/[siteId]/analytics/page.tsx` — tela de resultados (placeholder)
 - `src/app/[companySlug]/dashboard/sites/[siteId]/blog/page.tsx` — tela de blog (placeholder)
 
@@ -284,6 +292,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **LoginAttempt** (`login_attempts`) — id (UUID), ip (string, indexed), email (string optional), createdAt
 - **Project** (`projects`) — id (UUID), companyId (UUID, fk→companies **CASCADE**), name (string), type (LANDING_PAGE|INSTITUTIONAL), **previewUrl (String?, nullable)**, isActive (bool), deletedBy, deletionReason, deletedAt, createdAt, updatedAt
 - **Page** (`pages`) — id (UUID), projectId (UUID, fk→projects **CASCADE**), name, slug (unique per project), content (Json, legacy), **schemaData (Json, default {}, headless schema)**, **contentData (Json, default {}, valores preenchidos)**, isPublished (bool, default false), createdAt, updatedAt, deletedAt
+- **SiteScript** (`site_scripts`) — id (UUID), name, code (Text), position (HEAD|BODY_END enum), isActive (bool default true), projectId (UUID, fk→projects CASCADE), createdAt, updatedAt
 - **ProjectHistory** (`project_histories`) — id (UUID), projectId (UUID, fk→projects **CASCADE**), userId (UUID, fk→users **CASCADE**), previousState (Json?), newState (Json?), version (Int), createdAt
 
 ---
@@ -390,6 +399,11 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 | Data       | Arquivo                                       | O que foi feito                                            |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
+| 2026-05-23 | `src/lib/cms/sync-script-template.js` | NOVO: IIFE Vanilla JS; guard iframe; injeção de style; click→postMessage; message→CMS_SELECT_SECTION |
+| 2026-05-23 | `src/app/api/projects/[projectId]/generate-script/route.ts` | NOVO: API POST; lê template, upload BunnyCDN, salva `cmsSyncScriptUrl` no projeto |
+| 2026-05-23 | `prisma/schema.prisma` | ADD: campo `cmsSyncScriptUrl` em `Project` |
+| 2026-05-23 | `src/components/schema-builder/SchemaBuilderEditor.tsx` | FEAT: painel "Integração Front-end" — tag script pronta, botão Copiar, botão Regerar, card instruções |
+| 2026-05-23 | `src/app/.../builder/page.tsx` | UPDATE: query `cmsSyncScriptUrl`, passa `projectId` e `initialCmsSyncScriptUrl` ao editor |
 | 2026-05-23 | `src/components/schema-builder/SiteContentEditClient.tsx` | FIX: Modo advanced reescrito — `effectiveUiSchema`+`uiSchemaSections` para seções corretas, `getDeep` para valor do DFR, `inline` prop, save via `updatePageSchemaContent` (sem restrição de role) |
 | 2026-05-23 | `src/modules/projects/actions/updatePageSchemaContent.ts` | NOVO: Action que salva `schemaData` sem restrição de role; usada pelo edit avançado para usuários DEFAULT |
 | 2026-05-22 | `src/components/cms/AdvancedJsonEditor.tsx` | DOCS: Padrão 6 adicionado — JSON com chave de agrupamento (`content`, `data`, `sections`); aviso ⚠️ na seção 3, card red-border na seção 4 (agora "6 Padrões"), dois exemplos na seção 5 (flat vs wrapper), prompt atualizado com PADRÃO CRÍTICO |
