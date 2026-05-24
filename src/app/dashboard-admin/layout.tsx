@@ -2,7 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
 import { MobileNav } from '@/components/dashboard/MobileNav'
-import { ThemeProvider } from '@/components/ThemeProvider'
+import { ThemeProvider } from '@/components/ThemeContext'
 import { db } from '@/lib/prisma'
 import type { UserPreferences } from '@/types/next-auth'
 

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Globe, Zap } from 'lucide-react'
+import { Globe, Zap, ArrowLeft, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -108,10 +108,16 @@ export function UserPermissionsModal({ userId, userEmail, initialPermissions, in
   const { toast, toasts, removeToast } = useToast()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
+  const [phase, setPhase] = useState<1 | 2>(1)
   const [module, setModule] = useState<ModuleType>(initialModule)
   const [permissions, setPermissions] = useState<Record<ModuleType, Record<PermissionTier, string[]>>>(
     normalizePermissions(initialPermissions)
   )
+
+  const selectModule = (mod: ModuleType) => {
+    setModule(mod)
+    setPhase(2)
+  }
 
   const togglePermission = (tier: PermissionTier, permission: string) => {
     const newPermissions = {
@@ -174,88 +180,106 @@ export function UserPermissionsModal({ userId, userEmail, initialPermissions, in
             <div className="px-4 sm:px-6">
           <DialogHeader>
             <DialogTitle className="text-brand-text flex items-center gap-2 pt-4 mb-2">
+              {phase === 2 && (
+                <button
+                  onClick={() => setPhase(1)}
+                  className="mr-1 p-1 rounded-md hover:bg-brand-btn-light transition"
+                  title="Voltar para seleção de módulo"
+                >
+                  <ArrowLeft className="w-4 h-4 text-brand-primary" />
+                </button>
+              )}
               <Globe className="w-4 h-4 text-brand-primary" />
               Permissões de {userEmail}
             </DialogTitle>
           </DialogHeader>
 
         <div className="flex gap-4 flex-col">
-          <div className="flex gap-2 border-b border-brand-btn-light pb-3">
-            <button
-              onClick={() => setModule('sites')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
-                module === 'sites'
-                  ? 'bg-brand-primary text-white'
-                  : 'text-brand-text hover:bg-brand-btn-light'
-              }`}
-            >
-              Sites
-            </button>
-            <button
-              onClick={() => setModule('landingPages')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
-                module === 'landingPages'
-                  ? 'bg-brand-primary text-white'
-                  : 'text-brand-text hover:bg-brand-btn-light'
-              }`}
-            >
-              Landing Pages
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-6">
-            <div>
-              <h3 className="text-sm font-semibold text-brand-text mb-3 flex items-center gap-2">
-                <Zap className="w-4 h-4" />
-                Permissões Gerais
-              </h3>
-              <div className="space-y-2">
-                {PROJECT_TIER_PERMISSIONS.map((perm) => (
-                  <div key={perm} className="flex items-center justify-between p-3 bg-brand-btn-light/30 rounded-lg">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-brand-text">
-                        {PERMISSION_LABELS[perm]?.label || perm}
-                      </p>
-                      <p className="text-xs text-brand-muted">
-                        {PERMISSION_LABELS[perm]?.description || ''}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={permissions[module]['project'].includes(perm)}
-                      onCheckedChange={() => togglePermission('project', perm)}
-                      disabled={isPending}
-                    />
-                  </div>
-                ))}
+          {phase === 1 ? (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm text-brand-muted">Selecione o módulo que deseja configurar:</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => selectModule('sites')}
+                  className="flex flex-col items-center gap-2 p-6 rounded-xl border border-brand-btn-light bg-brand-btn-light/20 hover:bg-brand-btn-light/40 hover:border-brand-primary/40 transition text-brand-text"
+                >
+                  <Layers className="w-8 h-8 text-brand-primary" />
+                  <span className="text-sm font-semibold">Sites</span>
+                  <span className="text-xs text-brand-muted">Sites institucionais</span>
+                </button>
+                <button
+                  onClick={() => selectModule('landingPages')}
+                  className="flex flex-col items-center gap-2 p-6 rounded-xl border border-brand-btn-light bg-brand-btn-light/20 hover:bg-brand-btn-light/40 hover:border-brand-primary/40 transition text-brand-text"
+                >
+                  <Zap className="w-8 h-8 text-brand-primary" />
+                  <span className="text-sm font-semibold">Landing Pages</span>
+                  <span className="text-xs text-brand-muted">Páginas de conversão</span>
+                </button>
               </div>
             </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-brand-text mb-3 flex items-center gap-2">
-                <Zap className="w-4 h-4" />
-                Permissões de Páginas
-              </h3>
-              <div className="space-y-2">
-                {PAGE_TIER_PERMISSIONS.map((perm) => (
-                  <div key={perm} className="flex items-center justify-between p-3 bg-brand-btn-light/30 rounded-lg">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-brand-text">
-                        {PERMISSION_LABELS[perm]?.label || perm}
-                      </p>
-                      <p className="text-xs text-brand-muted">
-                        {PERMISSION_LABELS[perm]?.description || ''}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={permissions[module]['page'].includes(perm)}
-                      onCheckedChange={() => togglePermission('page', perm)}
-                      disabled={isPending}
-                    />
-                  </div>
-                ))}
+          ) : (
+            <>
+              <div className="flex items-center gap-2 pb-2">
+                <span className="text-xs font-medium px-2 py-1 rounded-md bg-brand-primary/10 text-brand-primary">
+                  {module === 'sites' ? 'Sites' : 'Landing Pages'}
+                </span>
               </div>
-            </div>
-          </div>
+
+              <div className="flex flex-col gap-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-brand-text mb-3 flex items-center gap-2">
+                    <Zap className="w-4 h-4" />
+                    Permissões Gerais
+                  </h3>
+                  <div className="space-y-2">
+                    {PROJECT_TIER_PERMISSIONS.map((perm) => (
+                      <div key={perm} className="flex items-center justify-between p-3 bg-brand-btn-light/30 rounded-lg">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-brand-text">
+                            {PERMISSION_LABELS[perm]?.label || perm}
+                          </p>
+                          <p className="text-xs text-brand-muted">
+                            {PERMISSION_LABELS[perm]?.description || ''}
+                          </p>
+                        </div>
+                        <Switch
+                          checked={permissions[module]['project'].includes(perm)}
+                          onCheckedChange={() => togglePermission('project', perm)}
+                          disabled={isPending}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-brand-text mb-3 flex items-center gap-2">
+                    <Zap className="w-4 h-4" />
+                    Permissões de Páginas
+                  </h3>
+                  <div className="space-y-2">
+                    {PAGE_TIER_PERMISSIONS.map((perm) => (
+                      <div key={perm} className="flex items-center justify-between p-3 bg-brand-btn-light/30 rounded-lg">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-brand-text">
+                            {PERMISSION_LABELS[perm]?.label || perm}
+                          </p>
+                          <p className="text-xs text-brand-muted">
+                            {PERMISSION_LABELS[perm]?.description || ''}
+                          </p>
+                        </div>
+                        <Switch
+                          checked={permissions[module]['page'].includes(perm)}
+                          onCheckedChange={() => togglePermission('page', perm)}
+                          disabled={isPending}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
 
           {error && (
             <p className="text-xs text-destructive bg-destructive/10 px-3 py-2 rounded-lg border border-destructive/20">

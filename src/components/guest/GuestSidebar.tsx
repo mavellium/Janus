@@ -54,14 +54,14 @@ export function GuestSidebar({ name, companyName, embedded = false }: GuestSideb
       style={asideStyle}
     >
       <div style={{ padding: '16px 12px', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-        <Link href={galleryHref} style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '90px', height: '40px' }}>
+        <Link href={galleryHref} style={{ display: 'flex', alignItems: 'center', position: 'relative', width: '115px', height: '50px' }}>
           <Image
             src={isDark ? '/janus-logo-white.svg' : '/janus-logo.svg'}
             alt="Janus"
             width={90}
-            height={40}
+            height={90}
             priority
-            style={{ objectFit: 'contain' }}
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
           />
         </Link>
       </div>

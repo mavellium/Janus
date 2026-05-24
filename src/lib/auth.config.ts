@@ -14,7 +14,11 @@ export const authConfig = {
       const slug = (auth?.user as { companySlug?: string })?.companySlug
       const userId = (auth?.user as { id?: string })?.id
 
-      if (nextUrl.pathname === '/first-access') {
+      if (
+        nextUrl.pathname === '/first-access' ||
+        nextUrl.pathname === '/no-company' ||
+        nextUrl.pathname === '/select-company'
+      ) {
         return isLoggedIn
       }
 
@@ -22,6 +26,7 @@ export const authConfig = {
         if (!isLoggedIn) return true
         if (isDeveloper) return NextResponse.redirect(new URL(`/dev/${userId}/dashboard`, nextUrl))
         if (isAdmin) return NextResponse.redirect(new URL('/dashboard-admin', nextUrl))
+        if (!slug) return NextResponse.redirect(new URL('/no-company', nextUrl))
         return NextResponse.redirect(new URL(`/${slug}/dashboard`, nextUrl))
       }
 
@@ -47,17 +52,14 @@ export const authConfig = {
           const pathCompanySlug = nextUrl.pathname.split('/')[1]
           return NextResponse.redirect(new URL(`/${pathCompanySlug}/welcome`, nextUrl))
         }
-        if (isDeveloper || isAdmin) return true
-        const pathCompanySlug = nextUrl.pathname.split('/')[1]
-        if (slug && pathCompanySlug !== slug) {
-          return NextResponse.redirect(new URL(`/${slug}/dashboard`, nextUrl))
-        }
+        // acesso real à empresa é validado no layout.tsx (consulta o banco)
         return true
       }
 
       if (nextUrl.pathname.startsWith('/login') && isLoggedIn) {
         if (isDeveloper) return NextResponse.redirect(new URL(`/dev/${userId}/dashboard`, nextUrl))
         if (isAdmin) return NextResponse.redirect(new URL('/dashboard-admin', nextUrl))
+        if (!slug) return NextResponse.redirect(new URL('/no-company', nextUrl))
         return NextResponse.redirect(new URL(`/${slug}/dashboard`, nextUrl))
       }
 

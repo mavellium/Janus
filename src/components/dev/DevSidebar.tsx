@@ -88,7 +88,7 @@ export function DevSidebar({ email, image, devId, embedded = false }: DevSidebar
       >
         <Link
           href={`/dev/${devId}/dashboard`}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative', width: '90px', height: '40px' }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative', width: '115px', height: '50px' }}
           title="Dev Dashboard"
         >
           <Image

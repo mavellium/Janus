@@ -33,6 +33,19 @@ async (redirectTo?: string | false)
   - `stopImpersonation('/dashboard-admin')` → redireciona para URL explícita
   - `stopImpersonation(false)` → limpa cookies, **não redireciona**, caller faz refresh
 
+## enterPrivilegedMode
+
+```typescript
+async (returnTo: string) => Promise<{ ok: true } | { ok: false, error: string }>
+```
+
+- **Validação:** Requer role ADMIN ou DEVELOPER
+- **Fluxo:**
+  1. Deleta `IMPERSONATED_USER_ID_COOKIE` e `IMPERSONATED_USER_NAME_COOKIE`
+  2. Seta `IMPERSONATION_RETURN_URL_COOKIE` com `returnTo`
+- **Uso:** Quando ADMIN clica em uma empresa no painel — entra no contexto da empresa sem simular nenhum usuário específico
+- **Diferença de `stopImpersonation`:** Não redireciona; caller navega para a empresa desejada
+
 ## checkIpStatus
 
 ```typescript

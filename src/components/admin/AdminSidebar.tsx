@@ -80,7 +80,7 @@ export function AdminSidebar({ email, image, embedded = false }: AdminSidebarPro
     >
       <div
         style={{
-          padding: collapsed ? '8px' : '16px 12px',
+          padding: collapsed ? '8px' : '16px 12px 0 12px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'space-between',
@@ -90,7 +90,7 @@ export function AdminSidebar({ email, image, embedded = false }: AdminSidebarPro
       >
         <Link
           href="/dashboard-admin"
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative', width: '90px', height: '40px' }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative', width: '115px', height: '50px' }}
           title="Admin Dashboard"
         >
           <Image

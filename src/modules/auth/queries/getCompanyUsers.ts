@@ -4,7 +4,11 @@ export async function getCompanyUsers(companyId: string) {
   return db.user.findMany({
     where: {
       deletedAt: null,
-      company: { id: companyId },
+      role: { not: 'ADMIN' },
+      OR: [
+        { companyId },
+        { companies: { some: { companyId } } },
+      ],
     },
     select: {
       id: true,

@@ -11,5 +11,5 @@ export default async function AdminCompaniesPage() {
 
   const companies = await getAdminCompanies()
 
-  return <AdminCompaniesClient companies={companies} />
+  return <AdminCompaniesClient companies={companies} currentRole={session.user.role} />
 }

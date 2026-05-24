@@ -1,61 +1,74 @@
-'use server'
+"use server";
 
-import { z } from 'zod'
-import { signIn } from '@/lib/auth'
-import { AuthError } from 'next-auth'
-import { db } from '@/lib/prisma'
+import { z } from "zod";
+import { signIn } from "@/lib/auth";
+import { AuthError } from "next-auth";
+import { db } from "@/lib/prisma";
 
 const schema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
-})
+});
 
-export type SignInState = { error?: string; redirectUrl?: string }
+export type SignInState = { error?: string; redirectUrl?: string };
 
 export async function signInAction(
   _prev: SignInState,
-  formData: FormData
+  formData: FormData,
 ): Promise<SignInState> {
   const parsed = schema.safeParse({
-    email: formData.get('email'),
-    password: formData.get('password'),
-  })
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
 
-  if (!parsed.success) return { error: 'Email ou senha inválidos.' }
+  if (!parsed.success) return { error: "Email ou senha inválidos." };
 
   try {
-    await signIn('credentials', { ...parsed.data, redirect: false })
+    await signIn("credentials", { ...parsed.data, redirect: false });
   } catch (err) {
     if (err instanceof AuthError) {
-      if (err.message === 'IP_BLOCKED') {
-        return { error: 'Acesso suspenso. Múltiplas tentativas falhas detectadas.' }
+      if (err.message === "IP_BLOCKED") {
+        return {
+          error: "Acesso suspenso. Múltiplas tentativas falhas detectadas.",
+        };
       }
-      return { error: 'Email ou senha inválidos.' }
+      return { error: "Email ou senha inválidos." };
     }
-    throw err
+    throw err;
   }
 
-  // auth() não tem sessão disponível na mesma Server Action — buscar pelo email do form
   const user = await db.user.findUnique({
     where: { email: parsed.data.email },
-    include: { company: { select: { slug: true } } },
-  })
+    include: {
+      company: { select: { slug: true } },
+      companies: { include: { company: { select: { slug: true } } } },
+    },
+  });
 
   if (!user || user.deletedAt) {
-    return { error: 'Usuário não encontrado.' }
+    return { error: "Usuário não encontrado." };
   }
 
   if (user.requiresPasswordReset) {
-    return { redirectUrl: '/first-access' }
+    return { redirectUrl: "/first-access" };
   }
 
-  if (user.role === 'DEVELOPER') {
-    return { redirectUrl: `/dev/${user.id}/dashboard` }
+  if (user.role === "DEVELOPER") {
+    return { redirectUrl: `/dev/${user.id}/dashboard` };
   }
 
-  if (user.role === 'ADMIN') {
-    return { redirectUrl: '/dashboard-admin' }
+  if (user.role === "ADMIN") {
+    return { redirectUrl: "/dashboard-admin" };
   }
 
-  return { redirectUrl: `/${user.company.slug}/dashboard` }
+  const allSlugs = [
+    user.company?.slug,
+    ...user.companies.map((uc) => uc.company?.slug),
+  ].filter(Boolean) as string[];
+
+  const unique = [...new Set(allSlugs)];
+
+  if (unique.length === 0) return { redirectUrl: "/no-company" };
+  if (unique.length === 1) return { redirectUrl: `/${unique[0]}/dashboard` };
+  return { redirectUrl: "/select-company" };
 }

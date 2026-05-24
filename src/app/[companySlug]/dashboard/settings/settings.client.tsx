@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, useActionState } from "react";
+import { useTheme } from "@/components/ThemeContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -67,19 +68,8 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Inicializar darkMode com valor do banco
-  const initialDarkMode = user.preferences?.darkMode || false;
-  const [darkModeEnabled, setDarkModeEnabled] = useState(initialDarkMode);
+  const { darkMode: darkModeEnabled, setDarkMode, setUserImage: setContextUserImage } = useTheme();
   const [, startPreferencesTransition] = useTransition();
-
-  // Aplicar tema ao carregar a página usando variáveis CSS
-  useEffect(() => {
-    if (initialDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [initialDarkMode]);
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, "");
@@ -168,31 +158,19 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
   };
 
   const handleDarkModeToggle = (checked: boolean) => {
-    setDarkModeEnabled(checked);
+    setDarkMode(checked);
 
     startPreferencesTransition(async () => {
-      const result = await updatePreferences({
-        darkMode: checked,
-      });
+      const result = await updatePreferences({ darkMode: checked });
 
       if (result.ok) {
-        // Aplicar tema escuro globalmente e salvar no localStorage
-        if (checked) {
-          document.documentElement.classList.add("dark");
-          localStorage.setItem("theme", "dark");
-        } else {
-          document.documentElement.classList.remove("dark");
-          localStorage.setItem("theme", "light");
-        }
-
         toast({
           message: `Tema ${checked ? "escuro" : "claro"} ativado com sucesso!`,
           type: "success",
         });
       } else {
         toast({ message: "Erro ao salvar preferências", type: "error" });
-        // Reverter estado se falhou
-        setDarkModeEnabled(!checked);
+        setDarkMode(!checked);
       }
     });
   };
@@ -262,7 +240,7 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                   <UpdateAvatarModal
                     userId={user.id}
                     currentImage={userImage}
-                    onAvatarUpdate={setUserImage}
+                    onAvatarUpdate={(url) => { setUserImage(url); setContextUserImage(url); }}
                   />
                 </div>
               </div>

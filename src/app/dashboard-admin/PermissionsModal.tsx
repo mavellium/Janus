@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { KeyRound, Loader2, Globe, Zap } from 'lucide-react'
+import { KeyRound, Loader2, Globe, Zap, ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -31,6 +31,7 @@ interface Props {
   userName: string
   initialPermissions?: string | string[] | Record<string, Record<string, string[]>>
   module: ModuleType
+  onBack?: () => void
   onClose: () => void
 }
 
@@ -113,6 +114,7 @@ export function PermissionsModal({
   userName,
   initialPermissions,
   module,
+  onBack,
   onClose,
 }: Props) {
   const router = useRouter()
@@ -173,6 +175,15 @@ export function PermissionsModal({
       <DialogContent className="bg-card border-border max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-brand-text flex items-center gap-2">
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="mr-1 p-1 rounded-md hover:bg-brand-btn-light transition"
+                title="Voltar para seleção de módulo"
+              >
+                <ArrowLeft className="w-4 h-4 text-brand-primary" />
+              </button>
+            )}
             <KeyRound className="w-4 h-4 text-brand-primary" />
             Permissões — {moduleIcon} {moduleLabel}
           </DialogTitle>

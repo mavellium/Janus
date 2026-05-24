@@ -40,10 +40,10 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **Relações:** Um para Muitos com `User` e `Project`
 
 ### users
-- **Entidade:** `src/modules/users/domain/User.ts` — usuário com role DEFAULT/ADMIN, normaliza email, valida hash; **Novo:** agora inclui `companyId` obrigatório
+- **Entidade:** `src/modules/users/domain/User.ts` — usuário com role DEFAULT/ADMIN, normaliza email, valida hash; `companyId` agora nullable (usuário pode não ter empresa)
 - **Erros:** `src/modules/users/domain/errors.ts` — INVALID_EMAIL, INVALID_PASSWORD, EMAIL_ALREADY_EXISTS, INVALID_CREDENTIALS
-- **Actions:** `registerUser.ts` — cria usuário com bcrypt hash e `companyId` = default company | `signInAction.ts` — form action para Auth.js (useActionState) | `updatePreferences.ts` — persiste preferências de UI no banco (sidebar_collapsed, theme) | `updateAvatar.ts` — atualiza avatar com URL da BunnyCDN
-- **Queries:** `getUserByEmail.ts` — busca usuário ativo por email (sem deletedAt), retorna image, preferences e company | `getUserPreferences.ts` — busca preferências do usuário logado
+- **Actions:** `registerUser.ts` — cria usuário com bcrypt hash e `companyId` = default company | `signInAction.ts` — redireciona para `/select-company` (multi-empresa), `/no-company` (sem empresa), ou direto para `/dashboard` (empresa única) | `updatePreferences.ts` — persiste preferências de UI no banco | `updateAvatar.ts` — atualiza avatar com URL da BunnyCDN
+- **Queries:** `getUserByEmail.ts` — busca usuário ativo por email (sem deletedAt) | `getUserPreferences.ts` — busca preferências do usuário logado | `getUserCompanies.ts` — lista empresas vinculadas via `UserCompany`
 
 ### projects
 - **Entidade:** `Project` (Prisma) — id (UUID), companyId (fk), name, type (LANDING_PAGE | INSTITUTIONAL), isActive (bool, default true), deletedBy (string?), deletionReason (string?), deletedAt — soft delete com auditoria
@@ -249,11 +249,14 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/app/dashboard-admin/layout.tsx` — layout protegido do Admin; valida role=ADMIN; AdminSidebar + ThemeProvider
 - `src/app/dashboard-admin/page.tsx` — dashboard global: 4 cards de métricas + listas de últimas empresas/usuários
 - `src/app/dashboard-admin/companies/page.tsx` + `AdminCompaniesClient.tsx` — CRUD completo de empresas (criar/editar/soft-delete)
-- `src/app/dashboard-admin/users/page.tsx` + `AdminUsersClient.tsx` — tabela de usuários DEFAULT/ADMIN + modal de criação
+- `src/app/dashboard-admin/users/page.tsx` + `AdminUsersClient.tsx` — tabela de usuários DEFAULT/ADMIN + modal criar/editar com `CompanyMultiSelect` (busca + criação rápida + badge principal) + `PasswordField`
 - `src/app/dashboard-admin/developers/page.tsx` + `AdminDevelopersClient.tsx` — tabela de DEVELOPERs + modal de criação com role DEVELOPER
 - `src/app/dashboard-admin/logs/page.tsx` + `AdminLogsClient.tsx` — Tabs: IPs Bloqueados (com botão Desbloquear) + Tentativas Recentes
 - `src/app/dashboard-admin/settings/page.tsx` — configurações do admin; reutiliza DevSettingsClient
 - `src/app/(auth)/login/page.tsx` — tela de login (Server Component)
+- `src/app/(auth)/no-company/page.tsx` — Client — bloqueio elegante para usuário sem empresa; botão "Voltar" chama `signOut({ callbackUrl: '/login' })`
+- `src/app/(auth)/select-company/page.tsx` — Server — seleção de empresa para usuários multi-empresa; redireciona direto se 0 ou 1 empresa
+- `src/app/(auth)/select-company/SelectCompanyClient.tsx` — Client — grid de empresas com loading state por card; badge "Principal"; botão Sair
 - `src/app/[companySlug]/dashboard/layout.tsx` — layout protegido; valida se usuário pode acessar a empresa; busca image e preferences do DB; passa initialCollapsed, email e image como props para Sidebar
 - `src/app/[companySlug]/dashboard/page.tsx` — dashboard principal com dados reais de projetos; busca institutional e landing page projects; exibe estatísticas; links dinâmicos para /sites e /landing-pages
 - `src/app/[companySlug]/dashboard/sites/page.tsx` — listagem de sites (INSTITUTIONAL); grid de cards com projeto, data, contagem de páginas; botão Gerenciar aponta para /sites/[siteId]/pages
@@ -288,7 +291,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 ## Schema Prisma
 
 - **Company** (`companies`) — id (UUID), slug (unique, indexed), name (string), description (String?), logo (String?), **createdById (UUID?, id do criador)**, createdAt, updatedAt, deletedAt | relações: User, Project, GuestEntry com **onDelete: Cascade**
-- **User** (`users`) — id (UUID), email (unique), password (text), role (**DEFAULT/ADMIN/DEVELOPER**), image (String?), preferences (Json? default {}), **companyId (UUID, fk→companies CASCADE)**, **createdById (UUID?, id do criador)**, requiresPasswordReset (bool), createdAt, updatedAt, deletedAt
+- **User** (`users`) — id (UUID), email (unique), password (text), role (**DEFAULT/ADMIN/DEVELOPER**), image (String?), preferences (Json? default {}), **companyId (UUID?, nullable fk→companies SET NULL)**, **createdById (UUID?, id do criador)**, requiresPasswordReset (bool), permissions (String[]), createdAt, updatedAt, deletedAt
+- **UserCompany** (`user_companies`) — id (UUID), userId (fk→users CASCADE), companyId (fk→companies CASCADE), permissions (String[]), createdAt | @@unique([userId, companyId])
 - **LoginAttempt** (`login_attempts`) — id (UUID), ip (string, indexed), email (string optional), createdAt
 - **Project** (`projects`) — id (UUID), companyId (UUID, fk→companies **CASCADE**), name (string), type (LANDING_PAGE|INSTITUTIONAL), **previewUrl (String?, nullable)**, isActive (bool), deletedBy, deletionReason, deletedAt, createdAt, updatedAt
 - **Page** (`pages`) — id (UUID), projectId (UUID, fk→projects **CASCADE**), name, slug (unique per project), content (Json, legacy), **schemaData (Json, default {}, headless schema)**, **contentData (Json, default {}, valores preenchidos)**, isPublished (bool, default false), createdAt, updatedAt, deletedAt
@@ -300,7 +304,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 ## Lib / Utilitários
 
 - `src/lib/prisma.ts` — singleton do PrismaClient com `accelerateUrl` (Prisma 7, export `db`)
-- `src/lib/auth.config.ts` — NextAuthConfig base: authorized callback trata 3 casos (rota raiz, /dev/[devId]/dashboard, /[slug]/dashboard); DEVELOPER pode acessar qualquer rota tenant sem redirect
+- `src/lib/auth.config.ts` — NextAuthConfig base: authorized callback protege `/first-access`, `/no-company`, `/select-company` (login obrigatório); rota raiz e `/login` redirecionam para `/no-company` quando `slug` é nulo; middleware reforça separação de roles
 - `src/lib/auth.ts` — NextAuth v5: CredentialsProvider + PrismaAdapter + JWT strategy
 - `src/lib/utils.ts` — `cn`, `formatCurrency` (BRL), `formatDate` (pt-BR)
 
@@ -399,6 +403,26 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 | Data       | Arquivo                                       | O que foi feito                                            |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
+| 2026-05-24 | `prisma/schema.prisma`, `prisma/migrations/20260524*` | FEAT: `companyId` em User agora nullable (String?); FK `ON DELETE SET NULL`; tabela `UserCompany` para vínculo many-to-many user↔company |
+| 2026-05-24 | `src/modules/admin/actions/adminCreateUser.ts` | REFACTOR: Aceita `linkedCompanyIds[]` via FormData; cria vínculos `UserCompany` em transação; `companyId` primary = primeiro da lista |
+| 2026-05-24 | `src/modules/admin/actions/adminEditUser.ts` | FEAT: Atualiza empresas vinculadas via deleteMany+createMany em transação; sincroniza `companyId` primário |
+| 2026-05-24 | `src/modules/admin/actions/adminQuickCreateCompany.ts` | NOVO: Cria empresa com apenas nome; auto-gera slug via `toSlug()`; sufixo timestamp em colisão |
+| 2026-05-24 | `src/modules/admin/actions/linkUserCompany.ts` | FIX: `unlinkUserCompany` migrado de `delete` para `deleteMany` (safe quando linha ausente); zera `companyId` se desvinculando empresa primária |
+| 2026-05-24 | `src/modules/auth/queries/getCompanyUsers.ts` | FIX: Query busca via `OR [companyId, companies.some]`; exclui role ADMIN da lista (não podem ser simulados) |
+| 2026-05-24 | `src/modules/auth/actions/enterPrivilegedMode.ts` | NOVO: Limpa cookies de impersonation; seta `IMPERSONATION_RETURN_URL_COOKIE`; usado ao clicar em empresa no admin |
+| 2026-05-24 | `src/modules/users/actions/signInAction.ts` | FEAT: Multi-empresa → `/select-company`; empresa única → `/dashboard`; sem empresa → `/no-company` |
+| 2026-05-24 | `src/components/ui/password-field.tsx` | NOVO: Input senha com olho toggle + botão "Gerar" senha segura (12 chars, upper/lower/digit/symbol) |
+| 2026-05-24 | `src/app/dashboard-admin/users/AdminUsersClient.tsx` | FEAT: `CompanyMultiSelect` em criar e editar; `PasswordField` em ambos os modais; removido ícone Building2 da tabela |
+| 2026-05-24 | `src/app/dashboard-admin/companies/AdminCompaniesClient.tsx` | FEAT: ADMIN clica empresa → `enterPrivilegedMode` + navega (nunca impersona usuário direto) |
+| 2026-05-24 | `src/app/[companySlug]/dashboard/layout.tsx` | FEAT: Passa `companyUsers` (via `getCompanyUsers`) e `allCompanies` ao `ImpersonationBanner` |
+| 2026-05-24 | `src/components/dashboard/ImpersonationBanner.tsx` | REESCRITO: Modo privilegiado mostra `UserPicker` (dropdown com busca, usuários da empresa); modo simulando mantém banner vermelho com Trocar/Shield/Voltar |
+| 2026-05-24 | `src/lib/auth.config.ts` | FEAT: Protege `/no-company` e `/select-company`; redireciona `slug` nulo para `/no-company` |
+| 2026-05-24 | `src/app/(auth)/no-company/page.tsx` | NOVO: Client Component com `signOut` no botão voltar (evita loop de redirect); UI com ícone composto + bloco instrução |
+| 2026-05-24 | `src/app/(auth)/select-company/page.tsx` | NOVO: Server Component; redireciona direto se 0/1 empresa; passa lista para `SelectCompanyClient` |
+| 2026-05-24 | `src/app/(auth)/select-company/SelectCompanyClient.tsx` | NOVO: Grid de empresas com loading por card; badge "Principal"; botão Sair via `signOut` |
+| 2026-05-24 | `src/app/dashboard-admin/PermissionsModal.tsx`, `AdminUsersClient.tsx`, `AdminDevelopersClient.tsx` | UX: Adicionado `onBack` ao PermissionsModal — botão ArrowLeft volta para o `PermissionsModuleSelector` para trocar de Sites/Landing Pages sem fechar tudo |
+| 2026-05-24 | `src/components/dashboard/UserPermissionsModal.tsx` | UX: Modal reescrito como wizard de 2 fases — Fase 1 escolhe módulo (Sites/Landing Pages), Fase 2 configura permissões; botão ArrowLeft no topo volta para Fase 1 |
+| 2026-05-24 | `src/components/dev/DevSidebar.tsx`, `src/components/dashboard/Sidebar.tsx`, `src/components/guest/GuestSidebar.tsx` | FIX: Logo padronizada para `115px × 50px` container + `90×90` image (replicado do AdminSidebar) |
 | 2026-05-23 | `src/lib/cms/sync-script-template.js` | NOVO: IIFE Vanilla JS; guard iframe; injeção de style; click→postMessage; message→CMS_SELECT_SECTION |
 | 2026-05-23 | `src/app/api/projects/[projectId]/generate-script/route.ts` | NOVO: API POST; lê template, upload BunnyCDN, salva `cmsSyncScriptUrl` no projeto |
 | 2026-05-23 | `prisma/schema.prisma` | ADD: campo `cmsSyncScriptUrl` em `Project` |

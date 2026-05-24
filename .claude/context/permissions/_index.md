@@ -16,10 +16,12 @@ Gerenciamento de permissões RBAC, impersonation por usuário específico e cont
 ## Checklist: Para usar este módulo você deve saber...
 
 - [ ] `checkPermission()` lê `janus_impersonated_user_id` cookie e aplica permissões do alvo
-- [ ] `startImpersonation(userId, companySlug, returnTo?)` seta cookies + salva URL de origem
+- [ ] `startImpersonation(userId, companySlug, returnTo?)` seta cookies + salva URL de origem; bloqueia ADMIN como alvo
 - [ ] `stopImpersonation(redirectTo?)` limpa cookies; se `false`, não redireciona (modo privilegiado)
-- [ ] Banner vermelho aparece quando `isImpersonating=true` no layout
-- [ ] Layout passa `email` e `name` do impersonated para a Sidebar
+- [ ] `enterPrivilegedMode(returnTo)` limpa impersonation + salva returnUrl; usado ao entrar em empresa como admin sem simular usuário
+- [ ] `getCompanyUsers(companyId)` busca usuários via `OR [companyId, userCompany.some]`; exclui ADMIN
+- [ ] Banner cinza = modo privilegiado (sem simulação); banner vermelho = simulando usuário específico
+- [ ] Fluxo login DEFAULT: sem empresa → `/no-company`; 1 empresa → direto; múltiplas → `/select-company`
 
 ## Links
 

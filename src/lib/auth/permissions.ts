@@ -108,7 +108,8 @@ export async function isImpersonating(): Promise<boolean> {
 
 export async function getImpersonatedUserId(): Promise<string | null> {
   const cookieStore = await cookies()
-  return cookieStore.get(IMPERSONATED_USER_ID_COOKIE)?.value ?? null
+  const value = cookieStore.get(IMPERSONATED_USER_ID_COOKIE)?.value
+  return value || null
 }
 
 export async function getImpersonatedUserName(): Promise<string | null> {

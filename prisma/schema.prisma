@@ -47,6 +47,7 @@ model Company {
   users        User[]
   projects     Project[]
   guestEntries GuestEntry[]
+  userCompanies UserCompany[]
 
   @@index([slug])
   @@index([deletedAt])
@@ -95,8 +96,8 @@ model User {
   image                  String?   @map("user_image")
   preferences            Json?     @default("{}") @map("preferences")
   requiresPasswordReset  Boolean   @default(false) @map("requires_password_reset")
-  companyId              String    @db.Uuid
-  company                Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyId              String?   @db.Uuid
+  company                Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
   createdById            String?   @db.Uuid @map("created_by_id")
   createdAt              DateTime  @default(now()) @map("created_at")
   updatedAt              DateTime  @updatedAt @map("updated_at")
@@ -104,12 +105,29 @@ model User {
 
   projectHistories ProjectHistory[]
   blogPosts        BlogPost[]       @relation("BlogPostAuthor")
+  companies        UserCompany[]
 
   @@index([email])
   @@index([companyId])
   @@index([createdById])
   @@index([deletedAt])
   @@map("users")
+}
+
+model UserCompany {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid @map("user_id")
+  companyId   String    @db.Uuid @map("company_id")
+  permissions String[]  @default([]) @map("permissions")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, companyId])
+  @@index([userId])
+  @@index([companyId])
+  @@map("user_companies")
 }
 
 model LoginAttempt {

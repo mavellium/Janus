@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Edit3, Settings } from 'lucide-react'
 import { db } from '@/lib/prisma'
 import { getPagesByProjectId } from '@/modules/projects/queries/getPagesByProjectId'
-import { formatDate } from '@/lib/utils'
+
 import { EditPageContainer } from '@/components/projects/EditPageContainer'
 import { PublishPageButton } from '@/components/projects/PublishPageButton'
 import { CreatePageModal } from '@/components/projects/CreatePageModal'
@@ -49,10 +49,10 @@ export default async function SitePagesPage({
   const canDelete = hasPermission(sessionWithFreshPerms, 'PAGE_DELETE', 'sites', 'page', impersonating)
 
   return (
-    <div className="p-8 w-full">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="p-6 w-full">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2 text-brand-text">
+          <h1 className="text-2xl font-bold mb-1 text-brand-text">
             Páginas
           </h1>
           <p className="text-sm text-brand-muted">
@@ -67,14 +67,13 @@ export default async function SitePagesPage({
           {pages.map((page) => (
             <div
               key={page.id}
-              className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-2 sm:justify-between hover:bg-brand-btn-light/40 transition"
+              className="px-4 py-3 sm:px-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2 sm:justify-between hover:bg-brand-btn-light/40 transition"
             >
               <div className="flex-1 min-w-0">
-                <h3 className="text-base font-semibold text-brand-text">
+                <h3 className="text-sm font-semibold text-brand-text">
                   {page.name}
                 </h3>
-                <p className="text-xs text-brand-muted mt-1">/{page.slug}</p>
-                <p className="text-xs text-brand-muted mt-2">{formatDate(page.createdAt)}</p>
+                <p className="text-xs text-brand-muted mt-0.5">{page.slug}</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {canBuild && <PublishPageButton pageId={page.id} initialPublished={page.isPublished} />}

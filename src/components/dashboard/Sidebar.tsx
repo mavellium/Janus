@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition, useEffect } from 'react'
+import { useTheme } from '@/components/ThemeContext'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useParams, usePathname } from 'next/navigation'
@@ -26,7 +27,8 @@ interface SidebarProps {
 export function Sidebar({ email, name, image, initialCollapsed, companyName, embedded = false }: SidebarProps) {
   const [collapsedState, setCollapsedState] = useState(embedded ? false : initialCollapsed)
   const collapsed = embedded ? false : collapsedState
-  const [isDark, setIsDark] = useState(false)
+  const { darkMode: isDark, userImage } = useTheme()
+  const resolvedImage = userImage ?? image
   const [blogEnabled, setBlogEnabled] = useState(true)
   const [, startTransition] = useTransition()
   const params = useParams()
@@ -39,21 +41,6 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
     document.documentElement.style.setProperty('--sidebar-width', collapsed ? '80px' : '220px')
   }, [collapsed])
 
-  useEffect(() => {
-    const checkDarkMode = () => {
-      setIsDark(document.documentElement.classList.contains('dark'))
-    }
-
-    checkDarkMode()
-
-    const observer = new MutationObserver(checkDarkMode)
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    })
-
-    return () => observer.disconnect()
-  }, [])
 
   const userName = email.split('@')[0]
 
@@ -174,7 +161,7 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
       >
         <Link
           href={`/${companySlug}/dashboard`}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative', width: '90px', height: '40px' }}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative', width: '115px', height: '50px' }}
           title="Dashboard"
         >
           <Image
@@ -324,7 +311,7 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
               : 'flex items-center gap-3 px-3 py-2'
           )}
         >
-          {image && (image.startsWith('http') || image.startsWith('/')) ? (
+          {resolvedImage && (resolvedImage.startsWith('http') || resolvedImage.startsWith('/')) ? (
             <div
               style={{
                 position: 'relative',
@@ -334,7 +321,7 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
               }}
             >
               <Image
-                src={image}
+                src={resolvedImage}
                 alt={userName}
                 fill
                 sizes="32px"

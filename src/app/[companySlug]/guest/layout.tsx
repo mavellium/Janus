@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { GuestSidebar } from '@/components/guest/GuestSidebar'
 import { MobileNav } from '@/components/dashboard/MobileNav'
-import { ThemeProvider } from '@/components/ThemeProvider'
+import { ThemeProvider } from '@/components/ThemeContext'
 
 export default async function GuestLayout({
   children,
