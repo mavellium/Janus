@@ -7,11 +7,13 @@ import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
 import TextAlign from '@tiptap/extension-text-align'
 import Placeholder from '@tiptap/extension-placeholder'
+import TextStyle from '@tiptap/extension-text-style'
 import { useRef } from 'react'
 import { uploadImage } from '@/modules/upload/actions/uploadImage'
 import {
   Bold, Italic, UnderlineIcon, Heading2, Heading3, List, ListOrdered,
   Link2, ImageIcon, AlignLeft, AlignCenter, AlignRight,
+  AArrowUp, AArrowDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -28,6 +30,7 @@ export function RichEditor({ value, onChange, name = 'body' }: RichEditorProps) 
     extensions: [
       StarterKit,
       Underline,
+      TextStyle,
       Image.configure({ inline: false, allowBase64: false }),
       Link.configure({ openOnClick: false }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
@@ -38,6 +41,9 @@ export function RichEditor({ value, onChange, name = 'body' }: RichEditorProps) 
     editorProps: {
       attributes: {
         class: 'prose prose-sm max-w-none focus:outline-none min-h-[300px] px-4 py-3 text-brand-text',
+      },
+      transformPastedText(text: string) {
+        return text.replace(/\r\n|\r/g, '\n')
       },
     },
   })
@@ -62,6 +68,13 @@ export function RichEditor({ value, onChange, name = 'body' }: RichEditorProps) 
   }
 
   if (!editor) return null
+
+  function adjustFontSize(delta: number) {
+    const current = editor!.getAttributes('textStyle')?.fontSize as string | undefined
+    const currentPx = current ? parseInt(current) : 16
+    const newPx = Math.max(10, Math.min(48, currentPx + delta * 2))
+    editor!.chain().focus().setFontSize(`${newPx}px`).run()
+  }
 
   const toolbarBtn = (active: boolean) =>
     cn(
@@ -96,6 +109,13 @@ export function RichEditor({ value, onChange, name = 'body' }: RichEditorProps) 
         </button>
         <button type="button" title="Lista numerada" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={toolbarBtn(editor.isActive('orderedList'))}>
           <ListOrdered size={14} />
+        </button>
+        <div className="w-px h-4 bg-brand-btn-light mx-1" />
+        <button type="button" title="Aumentar fonte" onClick={() => adjustFontSize(1)} className={toolbarBtn(false)}>
+          <AArrowUp size={14} />
+        </button>
+        <button type="button" title="Diminuir fonte" onClick={() => adjustFontSize(-1)} className={toolbarBtn(false)}>
+          <AArrowDown size={14} />
         </button>
         <div className="w-px h-4 bg-brand-btn-light mx-1" />
         <button type="button" title="Alinhar à esquerda" onClick={() => editor.chain().focus().setTextAlign('left').run()} className={toolbarBtn(editor.isActive({ textAlign: 'left' }))}>
