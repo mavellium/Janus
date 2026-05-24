@@ -7,7 +7,7 @@ import Link from '@tiptap/extension-link'
 import Underline from '@tiptap/extension-underline'
 import TextAlign from '@tiptap/extension-text-align'
 import Placeholder from '@tiptap/extension-placeholder'
-import TextStyle from '@tiptap/extension-text-style'
+import { TextStyleKit } from '@tiptap/extension-text-style'
 import { useRef } from 'react'
 import { uploadImage } from '@/modules/upload/actions/uploadImage'
 import {
@@ -30,7 +30,7 @@ export function RichEditor({ value, onChange, name = 'body' }: RichEditorProps) 
     extensions: [
       StarterKit,
       Underline,
-      TextStyle,
+      TextStyleKit,
       Image.configure({ inline: false, allowBase64: false }),
       Link.configure({ openOnClick: false }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
