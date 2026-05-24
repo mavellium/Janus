@@ -9,7 +9,6 @@ import {
   UserCircle,
   CheckCircle2,
   Clock,
-  Trash2,
   Pencil,
   KeyRound,
   ArrowLeft,
@@ -30,9 +29,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DeleteAlertModal } from "@/components/ui/delete-alert-modal";
 import { PermissionsModal } from "../PermissionsModal";
 import { PermissionsModuleSelector } from "../PermissionsModuleSelector";
+import {
+  AdminDataTable,
+  type ColumnDef,
+  type FilterDef,
+} from "@/components/ui/AdminDataTable";
 
 interface Developer {
   id: string;
@@ -246,147 +249,148 @@ export function AdminDevelopersClient({
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
   const [editTarget, setEditTarget] = useState<Developer | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Developer | null>(null);
   const [permissionsModuleSelector, setPermissionsModuleSelector] =
     useState<Developer | null>(null);
   const [permissionsModal, setPermissionsModal] = useState<{
     user: Developer;
     module: ModuleType;
   } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [viewTarget, setViewTarget] = useState<Developer | null>(null);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
-  const [search, setSearch] = useState("");
+  const [impersonateSearch, setImpersonateSearch] = useState("");
   const [isImpersonating, setIsImpersonating] = useState(false);
 
-  async function handleDelete(id: string) {
-    setIsDeleting(true);
-    await adminDeleteUser(id);
-    setIsDeleting(false);
-    setDeleteTarget(null);
+  async function handleBulkDelete(ids: string[]) {
+    await Promise.all(ids.map((id) => adminDeleteUser(id)));
     router.refresh();
   }
 
+  const columns: ColumnDef<Developer>[] = [
+    {
+      key: "name",
+      label: "Desenvolvedor",
+      render: (dev) => (
+        <button
+          onClick={() => {
+            setViewTarget(dev);
+            setSelectedCompany(null);
+            setImpersonateSearch("");
+          }}
+          className="text-left group"
+        >
+          <p className="text-sm font-medium text-brand-text group-hover:text-brand-primary transition">
+            {dev.name || "—"}
+          </p>
+          <p className="text-xs text-brand-muted">{dev.email}</p>
+        </button>
+      ),
+    },
+    {
+      key: "password",
+      label: "Senha",
+      optional: true,
+      render: (dev) => (
+        <div className="flex items-center gap-1.5">
+          {dev.requiresPasswordReset ? (
+            <>
+              <Clock className="w-4 h-4 text-yellow-600" />
+              <span className="text-xs text-yellow-600 font-medium">
+                Pendente
+              </span>
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="w-4 h-4 text-green-600" />
+              <span className="text-xs text-green-600 font-medium">
+                Redefinida
+              </span>
+            </>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "createdAt",
+      label: "Criado em",
+      optional: true,
+      render: (dev) => (
+        <span className="text-sm text-brand-muted">
+          {new Date(dev.createdAt).toLocaleDateString("pt-BR")}
+        </span>
+      ),
+    },
+  ];
+
+  const filters: FilterDef<Developer>[] = [
+    {
+      key: "passwordStatus",
+      label: "Senha",
+      options: [
+        { value: "", label: "Todas" },
+        { value: "reset", label: "Requer redefinição" },
+        { value: "ok", label: "Normal" },
+      ],
+      predicate: (dev, value) =>
+        value === "reset"
+          ? dev.requiresPasswordReset
+          : value === "ok"
+            ? !dev.requiresPasswordReset
+            : true,
+    },
+  ];
+
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-brand-text">
-            Desenvolvedores
-          </h1>
-          <p className="text-sm text-brand-muted mt-0.5">
-            {developers.length} desenvolvedor
-            {developers.length !== 1 ? "es" : ""} no sistema
-          </p>
-        </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          Novo Desenvolvedor
-        </Button>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-brand-text">Desenvolvedores</h1>
+        <p className="text-sm text-brand-muted mt-0.5">
+          {developers.length} desenvolvedor
+          {developers.length !== 1 ? "es" : ""} no sistema
+        </p>
       </div>
 
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {developers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <Code2 className="w-10 h-10 text-brand-muted opacity-40" />
-            <p className="text-sm text-brand-muted">
-              Nenhum desenvolvedor cadastrado
-            </p>
-          </div>
-        ) : (
-          <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[720px]">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">
-                    Desenvolvedor
-                  </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">
-                    Senha
-                  </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">
-                    Criado em
-                  </th>
-                  <th className="px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide text-right">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {developers.map((dev) => (
-                  <tr
-                    key={dev.id}
-                    className="hover:bg-brand-btn-light/30 transition"
-                  >
-                    <td className="px-5 py-4">
-                      <button
-                        onClick={() => {
-                          setViewTarget(dev);
-                          setSelectedCompany(null);
-                          setSearch("");
-                        }}
-                        className="text-left group"
-                      >
-                        <p className="text-sm font-medium text-brand-text group-hover:text-brand-primary transition">
-                          {dev.name || "—"}
-                        </p>
-                        <p className="text-xs text-brand-muted">{dev.email}</p>
-                      </button>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1.5">
-                        {dev.requiresPasswordReset ? (
-                          <>
-                            <Clock className="w-4 h-4 text-yellow-600" />
-                            <span className="text-xs text-yellow-600 font-medium">
-                              Pendente
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 className="w-4 h-4 text-green-600" />
-                            <span className="text-xs text-green-600 font-medium">
-                              Redefinida
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-brand-muted">
-                      {new Date(dev.createdAt).toLocaleDateString("pt-BR")}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => setEditTarget(dev)}
-                          className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
-                          title="Editar"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setPermissionsModuleSelector(dev)}
-                          className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
-                          title="Permissões"
-                        >
-                          <KeyRound className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(dev)}
-                          className="p-1.5 rounded text-brand-muted hover:text-destructive hover:bg-destructive/10 transition"
-                          title="Excluir"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <AdminDataTable
+        data={developers}
+        columns={columns}
+        getRowId={(d) => d.id}
+        searchPredicate={(d, term) =>
+          (d.name?.toLowerCase().includes(term) ?? false) ||
+          d.email.toLowerCase().includes(term)
+        }
+        filters={filters}
+        onBulkDelete={handleBulkDelete}
+        bulkDeleteDescription="Esta ação excluirá permanentemente os desenvolvedores selecionados e todos os dados associados."
+        renderRowActions={(dev) => (
+          <>
+            <button
+              onClick={() => setEditTarget(dev)}
+              className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
+              title="Editar"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setPermissionsModuleSelector(dev)}
+              className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
+              title="Permissões"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+            </button>
+          </>
         )}
-      </div>
+        searchPlaceholder="Buscar desenvolvedores..."
+        emptyIcon={<Code2 className="w-10 h-10 text-brand-muted opacity-40" />}
+        emptyMessage="Nenhum desenvolvedor cadastrado"
+        newButton={
+          <button
+            onClick={() => setShowCreate(true)}
+            className="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center text-white hover:bg-brand-primary/90 transition shrink-0"
+            title="Novo Desenvolvedor"
+          >
+            <Plus size={16} />
+          </button>
+        }
+      />
 
       {showCreate && (
         <CreateDeveloperModal onClose={() => setShowCreate(false)} />
@@ -421,24 +425,13 @@ export function AdminDevelopersClient({
           initialPermissions={permissionsModal.user.permissions}
           module={permissionsModal.module}
           onBack={() => {
-            const user = permissionsModal.user
-            setPermissionsModal(null)
-            setPermissionsModuleSelector(user)
+            const user = permissionsModal.user;
+            setPermissionsModal(null);
+            setPermissionsModuleSelector(user);
           }}
           onClose={() => setPermissionsModal(null)}
         />
       )}
-
-      {deleteTarget && (
-        <DeleteAlertModal
-          isOpen
-          onClose={() => setDeleteTarget(null)}
-          onConfirm={() => handleDelete(deleteTarget.id)}
-          isDeleting={isDeleting}
-          description={`Esta ação excluirá permanentemente o desenvolvedor "${deleteTarget.name || deleteTarget.email}" e todos os dados associados.`}
-        />
-      )}
-
       {viewTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="w-full max-w-md mx-4 bg-card border border-border rounded-xl shadow-xl flex flex-col max-h-[80vh]">
@@ -452,10 +445,10 @@ export function AdminDevelopersClient({
                 onClick={() => {
                   if (selectedCompany) {
                     setSelectedCompany(null);
-                    setSearch("");
+                    setImpersonateSearch("");
                   } else {
                     setViewTarget(null);
-                    setSearch("");
+                    setImpersonateSearch("");
                   }
                 }}
                 className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition"
@@ -473,8 +466,8 @@ export function AdminDevelopersClient({
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  value={impersonateSearch}
+                  onChange={(e) => setImpersonateSearch(e.target.value)}
                   placeholder={
                     !selectedCompany ? "Buscar empresa..." : "Buscar usuário..."
                   }
@@ -488,7 +481,7 @@ export function AdminDevelopersClient({
               {!selectedCompany &&
                 (() => {
                   const companies = companiesByDev.get(viewTarget.id) ?? [];
-                  const term = search.toLowerCase();
+                  const term = impersonateSearch.toLowerCase();
                   const filtered = companies.filter(
                     (c) =>
                       c.name.toLowerCase().includes(term) ||
@@ -509,7 +502,7 @@ export function AdminDevelopersClient({
                       key={company.id}
                       onClick={() => {
                         setSelectedCompany(company);
-                        setSearch("");
+                        setImpersonateSearch("");
                       }}
                       className="w-full px-5 py-3 flex items-center gap-3 text-left hover:bg-accent transition"
                     >
@@ -531,7 +524,7 @@ export function AdminDevelopersClient({
               {selectedCompany &&
                 (() => {
                   const users = usersByCompany.get(selectedCompany.id) ?? [];
-                  const term = search.toLowerCase();
+                  const term = impersonateSearch.toLowerCase();
                   const filtered = users.filter(
                     (u) =>
                       (u.name?.toLowerCase().includes(term) ?? false) ||

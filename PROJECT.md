@@ -227,6 +227,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/components/ui/alert-dialog.tsx` — Client — AlertDialog primitivos (Radix) com overlay, header, footer, action, cancel
 - `src/components/ui/delete-alert-modal.tsx` — Client — modal reutilizável de confirmação de exclusão; props: isOpen, onClose, onConfirm, title, description, isDeleting
 - `src/components/ui/SlugInput.tsx` — Client — input de slug com validação em tempo real (só a-z, 0-9, hífen); sanitiza automaticamente; feedback visual de erro; suporta controlado e não-controlado
+- `src/components/ui/AdminDataTable.tsx` — Client — tabela genérica `AdminDataTable<T>` reutilizável; props: columns, filters, getRowId, searchPredicate, onBulkDelete, renderRowActions, headerRight; features: busca, filtros com chips, visibilidade/D&D de colunas, multi-select, bulk delete modal (autoFocus Cancel), paginação (10/25/50)
 - `src/components/_archived_builder/*` — **ARQUIVADO** — Low-code builder antigo (não importado em nenhuma rota; excluído do tsconfig)
 - `src/components/users/update-avatar-modal.tsx` — Client — modal com Dialog/Tabs para upload de avatar via arquivo ou URL com preview
 - `src/components/ThemeProvider.tsx` — Client — provedor de tema para dashboard com preferências do usuário
@@ -497,6 +498,10 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 | 2026-05-17 | `src/components/dashboard/ImpersonationBanner.tsx` | FEAT: Suporte a DEV_MODE — novas props isSimulatingDev/impersonatedDev*; toggle handleDevToggle; abre DevPermissionsModal |
 | 2026-05-17 | `src/app/[companySlug]/dashboard/layout.tsx` | FEAT: DEV_MODE — busca nome+permissões do dev impersonado; passa props para ImpersonationBanner |
 | 2026-05-17 | `src/app/dashboard-admin/developers/AdminDevelopersClient.tsx` | FEAT: Botão LayoutDashboard chama viewAsDeveloper(dev.id, dev.company.slug) em vez de Link |
+| 2026-05-24 | `src/components/ui/AdminDataTable.tsx` | REESCRITO: Toolbar unificada com + ícone, SlidersHorizontal, ListFilter, Trash2 sempre-visível, busca flex-1, page size, contagem, paginação — tudo em uma linha; prop `newButton` substituiu `headerRight`; chips de filtros dentro do card com border-b |
+| 2026-05-24 | `src/app/dashboard-admin/companies/AdminCompaniesClient.tsx` | UX: `newButton` ícone + substituído `headerRight`; trash removido de renderRowActions (exclusão apenas via bulk select); `DeleteAlertModal` single-delete removido |
+| 2026-05-24 | `src/app/dashboard-admin/developers/AdminDevelopersClient.tsx` | UX: `newButton` ícone; trash removido de renderRowActions; `DeleteAlertModal`+`deleteTarget`+`isDeleting`+`handleDelete` removidos |
+| 2026-05-24 | `src/app/dashboard-admin/users/AdminUsersClient.tsx` | UX: `newButton` ícone; trash removido de renderRowActions; `DeleteAlertModal`+`deleteTarget`+`isDeleting`+`handleDelete` removidos |
 | 2026-05-17 | `sites/page.tsx`, `landing-pages/page.tsx`, `sites/[siteId]/pages/page.tsx`, `landing-pages/[lpId]/pages/page.tsx` | FEAT: Adicionado else-if VIEW_MODE_DEV com getImpersonatedDevPermissions() |
 | 2026-05-12 | `src/modules/admin/queries/getAdminUsers.ts` | Adicionado campo `requiresPasswordReset` ao select |
 | 2026-05-12 | `src/app/dashboard-admin/users/AdminUsersClient.tsx` | Adicionada coluna "Senha" com status Redefinida/Pendente |

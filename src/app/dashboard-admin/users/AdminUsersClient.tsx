@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
+import { useState, useTransition, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Users,
@@ -9,7 +9,6 @@ import {
   UserCircle,
   CheckCircle2,
   Clock,
-  Trash2,
   Pencil,
   KeyRound,
   X,
@@ -30,7 +29,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DeleteAlertModal } from "@/components/ui/delete-alert-modal";
 import { PermissionsModal } from "../PermissionsModal";
 import { PermissionsModuleSelector } from "../PermissionsModuleSelector";
 import {
@@ -40,6 +38,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AdminDataTable,
+  type ColumnDef,
+  type FilterDef,
+} from "@/components/ui/AdminDataTable";
 
 interface Company {
   id: string;
@@ -359,10 +362,6 @@ function EditUserModal({
 
   const primaryId = linkedIds[0] ?? null;
 
-  useEffect(() => {
-    setCompanies(initialCompanies);
-  }, [initialCompanies]);
-
   function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -484,168 +483,204 @@ export function AdminUsersClient({
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
   const [editTarget, setEditTarget] = useState<User | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [permissionsModuleSelector, setPermissionsModuleSelector] =
     useState<User | null>(null);
   const [permissionsModal, setPermissionsModal] = useState<{
     user: User;
     module: ModuleType;
   } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  async function handleDelete(id: string) {
-    setIsDeleting(true);
-    await adminDeleteUser(id);
-    setIsDeleting(false);
-    setDeleteTarget(null);
+  async function handleBulkDelete(ids: string[]) {
+    await Promise.all(ids.map((id) => adminDeleteUser(id)));
     router.refresh();
   }
 
+  const companySlugs = useMemo(
+    () => [
+      ...new Set(
+        users.map((u) => u.company?.slug).filter((s): s is string => Boolean(s)),
+      ),
+    ],
+    [users],
+  );
+
+  const columns: ColumnDef<User>[] = [
+    {
+      key: "name",
+      label: "Usuário",
+      render: (user) => (
+        <button
+          onClick={async () => {
+            if (user.role !== "DEFAULT") return;
+            if (!user.company) return;
+            const result = await startImpersonation(
+              user.id,
+              user.company.slug,
+              window.location.href,
+            );
+            if (result.ok)
+              window.location.href = `/${user.company.slug}/dashboard`;
+          }}
+          className={`text-left group ${user.role === "DEFAULT" ? "cursor-pointer" : "cursor-default"}`}
+        >
+          <p
+            className={`text-sm font-medium text-brand-text ${user.role === "DEFAULT" ? "group-hover:text-brand-primary transition" : ""}`}
+          >
+            {user.name || "—"}
+          </p>
+          <p className="text-xs text-brand-muted">{user.email}</p>
+        </button>
+      ),
+    },
+    {
+      key: "company",
+      label: "Empresa",
+      optional: true,
+      render: (user) =>
+        user.company ? (
+          <code className="text-xs text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded">
+            {user.company.slug}
+          </code>
+        ) : (
+          <span className="text-xs text-brand-muted">—</span>
+        ),
+    },
+    {
+      key: "role",
+      label: "Cargo",
+      optional: true,
+      render: (user) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brand-btn-light text-brand-text">
+          {ROLE_LABELS[user.role] ?? user.role}
+        </span>
+      ),
+    },
+    {
+      key: "password",
+      label: "Senha",
+      optional: true,
+      render: (user) => (
+        <div className="flex items-center gap-1.5">
+          {user.requiresPasswordReset ? (
+            <>
+              <Clock className="w-4 h-4 text-yellow-600" />
+              <span className="text-xs text-yellow-600 font-medium">
+                Pendente
+              </span>
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="w-4 h-4 text-green-600" />
+              <span className="text-xs text-green-600 font-medium">
+                Redefinida
+              </span>
+            </>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "createdAt",
+      label: "Criado em",
+      optional: true,
+      render: (user) => (
+        <span className="text-sm text-brand-muted">
+          {new Date(user.createdAt).toLocaleDateString("pt-BR")}
+        </span>
+      ),
+    },
+  ];
+
+  const filters: FilterDef<User>[] = [
+    {
+      key: "role",
+      label: "Cargo",
+      options: [
+        { value: "", label: "Todos" },
+        { value: "DEFAULT", label: "Usuário" },
+        { value: "DEVELOPER", label: "Developer" },
+        { value: "ADMIN", label: "Admin" },
+      ],
+      predicate: (user, value) => user.role === value,
+    },
+    {
+      key: "passwordStatus",
+      label: "Senha",
+      options: [
+        { value: "", label: "Todas" },
+        { value: "reset", label: "Requer redefinição" },
+        { value: "ok", label: "Normal" },
+      ],
+      predicate: (user, value) =>
+        value === "reset"
+          ? user.requiresPasswordReset
+          : value === "ok"
+            ? !user.requiresPasswordReset
+            : true,
+    },
+    {
+      key: "company",
+      label: "Empresa",
+      options: [
+        { value: "", label: "Todas" },
+        ...companySlugs.map((s) => ({ value: s, label: s })),
+      ],
+      predicate: (user, value) => user.company?.slug === value,
+    },
+  ];
+
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-brand-text">Usuários</h1>
-          <p className="text-sm text-brand-muted mt-0.5">
-            {users.length} usuário{users.length !== 1 ? "s" : ""} no sistema
-          </p>
-        </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          Novo Usuário
-        </Button>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-brand-text">Usuários</h1>
+        <p className="text-sm text-brand-muted mt-0.5">
+          {users.length} usuário{users.length !== 1 ? "s" : ""} no sistema
+        </p>
       </div>
 
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {users.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <Users className="w-10 h-10 text-brand-muted opacity-40" />
-            <p className="text-sm text-brand-muted">
-              Nenhum usuário cadastrado
-            </p>
-          </div>
-        ) : (
-          <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[720px]">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">
-                    Usuário
-                  </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">
-                    Empresa
-                  </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">
-                    Role
-                  </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">
-                    Senha
-                  </th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide">
-                    Criado em
-                  </th>
-                  <th className="px-5 py-3 text-xs font-semibold text-brand-muted uppercase tracking-wide text-right">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {users.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="hover:bg-brand-btn-light/30 transition"
-                  >
-                    <td className="px-5 py-4">
-                      <button
-                        onClick={async () => {
-                          if (user.role !== "DEFAULT") return;
-                          if (!user.company) return;
-                          const result = await startImpersonation(
-                            user.id,
-                            user.company.slug,
-                            window.location.href,
-                          );
-                          if (result.ok)
-                            window.location.href = `/${user.company.slug}/dashboard`;
-                        }}
-                        className={`text-left group ${user.role === "DEFAULT" ? "cursor-pointer" : "cursor-default"}`}
-                      >
-                        <p
-                          className={`text-sm font-medium text-brand-text ${user.role === "DEFAULT" ? "group-hover:text-brand-primary transition" : ""}`}
-                        >
-                          {user.name || "—"}
-                        </p>
-                        <p className="text-xs text-brand-muted">{user.email}</p>
-                      </button>
-                    </td>
-                    <td className="px-5 py-4">
-                      {user.company ? (
-                        <code className="text-xs text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded">
-                          {user.company.slug}
-                        </code>
-                      ) : (
-                        <span className="text-xs text-brand-muted">—</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-brand-btn-light text-brand-text">
-                        {ROLE_LABELS[user.role] ?? user.role}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1.5">
-                        {user.requiresPasswordReset ? (
-                          <>
-                            <Clock className="w-4 h-4 text-yellow-600" />
-                            <span className="text-xs text-yellow-600 font-medium">
-                              Pendente
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 className="w-4 h-4 text-green-600" />
-                            <span className="text-xs text-green-600 font-medium">
-                              Redefinida
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-brand-muted">
-                      {new Date(user.createdAt).toLocaleDateString("pt-BR")}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => setEditTarget(user)}
-                          className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
-                          title="Editar"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setPermissionsModuleSelector(user)}
-                          className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
-                          title="Permissões"
-                        >
-                          <KeyRound className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(user)}
-                          className="p-1.5 rounded text-brand-muted hover:text-destructive hover:bg-destructive/10 transition"
-                          title="Excluir"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <AdminDataTable
+        data={users}
+        columns={columns}
+        getRowId={(u) => u.id}
+        searchPredicate={(u, term) =>
+          (u.name?.toLowerCase().includes(term) ?? false) ||
+          u.email.toLowerCase().includes(term) ||
+          (u.company?.slug.toLowerCase().includes(term) ?? false)
+        }
+        filters={filters}
+        onBulkDelete={handleBulkDelete}
+        bulkDeleteDescription="Esta ação excluirá permanentemente os usuários selecionados e todos os dados associados."
+        renderRowActions={(user) => (
+          <>
+            <button
+              onClick={() => setEditTarget(user)}
+              className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
+              title="Editar"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setPermissionsModuleSelector(user)}
+              className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
+              title="Permissões"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+            </button>
+          </>
         )}
-      </div>
+        searchPlaceholder="Buscar usuários..."
+        emptyIcon={<Users className="w-10 h-10 text-brand-muted opacity-40" />}
+        emptyMessage="Nenhum usuário cadastrado"
+        newButton={
+          <button
+            onClick={() => setShowCreate(true)}
+            className="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center text-white hover:bg-brand-primary/90 transition shrink-0"
+            title="Novo Usuário"
+          >
+            <Plus size={16} />
+          </button>
+        }
+      />
 
       {showCreate && (
         <CreateUserModal
@@ -686,15 +721,6 @@ export function AdminUsersClient({
             setPermissionsModuleSelector(user);
           }}
           onClose={() => setPermissionsModal(null)}
-        />
-      )}
-      {deleteTarget && (
-        <DeleteAlertModal
-          isOpen
-          onClose={() => setDeleteTarget(null)}
-          onConfirm={() => handleDelete(deleteTarget.id)}
-          isDeleting={isDeleting}
-          description={`Esta ação excluirá permanentemente o usuário "${deleteTarget.name || deleteTarget.email}" e todos os dados associados.`}
         />
       )}
     </div>
