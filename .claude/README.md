@@ -37,18 +37,40 @@
 ## 📝 Módulos Documentados
 
 ### Auth/Permissions (`src/modules/auth/`)
-- **[context/auth/_index.md](context/auth/_index.md)** — Sumário executivo (1min)
-- **[context/auth/domain.md](context/auth/domain.md)** — Roles, cookies, permission constants
-- **[context/auth/actions.md](context/auth/actions.md)** — start/stopImpersonation, checkIpStatus
-- **[context/auth/queries.md](context/auth/queries.md)** — getCompanyUsers, effective permissions
-- **[context/auth/patterns.md](context/auth/patterns.md)** — Sidebar impersonated, Shield/Voltar ao Painel
+- **[context/permissions/_index.md](context/permissions/_index.md)** — Impersonation, RBAC, cookies, login flow
+
+### Users (`src/modules/users/`)
+- **[context/users/_index.md](context/users/_index.md)** — SignIn, multi-empresa, perfil, preferências
+
+### Admin (`src/modules/admin/`)
+- **[context/admin/_index.md](context/admin/_index.md)** — Painel admin: CRUD empresas/users/devs, permissões, logs
+
+### Projects (`src/modules/projects/`)
+- **[context/projects/_index.md](context/projects/_index.md)** — CRUD projetos/páginas, CMS schema/content
+
+### Companies (`src/modules/companies/`)
+- **[context/companies/_index.md](context/companies/_index.md)** — Tenant, webhook, guestMode
 
 ### Blog (`src/modules/blog/`)
-- **[context/blog/_index.md](context/blog/_index.md)** — Sumário executivo (1min)
-- **[context/blog/domain.md](context/blog/domain.md)** — BlogPost, BlogCategory, BlogTag
-- **[context/blog/actions.md](context/blog/actions.md)** — create/update/delete/toggle
-- **[context/blog/queries.md](context/blog/queries.md)** — getBlogPosts, getCategories, getTags
-- **[context/blog/patterns.md](context/blog/patterns.md)** — snippets copy-paste
+- **[context/blog/_index.md](context/blog/_index.md)** — Posts, categorias, tags hierárquicas
+
+### Upload (`src/modules/upload/`)
+- **[context/upload/_index.md](context/upload/_index.md)** — BunnyCDN, image→AVIF, video raw
+
+### Dev (`src/modules/dev/`)
+- **[context/dev/_index.md](context/dev/_index.md)** — Painel developer: empresas, usuários
+
+### Guests (`src/modules/guests/`)
+- **[context/guests/_index.md](context/guests/_index.md)** — Modo convidado: registro, posts, cookie auth
+
+### Scripts (`src/modules/scripts/`)
+- **[context/scripts/_index.md](context/scripts/_index.md)** — SiteScript: HEAD/BODY_END injection
+
+### Backup (`src/scripts/`)
+- **[context/backup/_index.md](context/backup/_index.md)** — pg_dump, daemon cron, restauração CLI
+
+### CMS (Headless)
+- **[context/cms/_index.md](context/cms/_index.md)** — Schema builder, content editor, preview
 
 ---
 
@@ -75,30 +97,30 @@
 
 ```
 .claude/
-├── README.md                  ← Você está aqui
-├── context/cms/
-│   ├── _index.md             ← Sumário CMS (1KB)
-│   ├── overview.md           ← Visão geral (2KB)
-│   ├── data-model.md         ← Prisma Page model (2KB)
-│   ├── mode-legacy.md        ← Fluxo legado (3KB)
-│   ├── mode-advanced.md      ← Fluxo avançado (5KB)
-│   ├── type-inference.md     ← Algoritmo inferType (2KB)
-│   ├── mutations.md          ← setDeep + imutabilidade (3KB)
-│   ├── server-actions.md     ← updatePageContent*, patterns (3KB)
-│   ├── page-loading.md       ← Server components, fetch (2KB)
-│   ├── rules.md              ← ❌/✅ Regras (2KB)
-│   ├── layout.md             ← Containers, overflow (2KB)
-│   ├── permissions.md        ← Read/write access (1KB)
-│   ├── public-api.md         ← /api/v1/content (1KB)
-│   └── changelog.md          ← Histórico (↑ cresce)
+├── README.md                    ← Você está aqui
+├── context/
+│   ├── permissions/_index.md    ← Auth, RBAC, impersonation, cookies
+│   ├── users/_index.md          ← SignIn, multi-empresa, perfil
+│   ├── admin/_index.md          ← Painel admin (CRUD all)
+│   ├── projects/_index.md       ← Projetos + Páginas + CMS actions
+│   ├── companies/_index.md      ← Tenant, webhook, guestMode
+│   ├── blog/_index.md           ← Posts, categorias, tags
+│   ├── upload/_index.md         ← BunnyCDN, AVIF, video
+│   ├── dev/_index.md            ← Painel developer
+│   ├── guests/_index.md         ← Modo convidado
+│   ├── scripts/_index.md        ← SiteScript injection
+│   ├── backup/                  ← pg_dump daemon, restauração CLI
+│   └── cms/                     ← CMS headless (múltiplos arquivos)
+│       ├── _index.md, overview.md, data-model.md
+│       ├── mode-advanced.md, rules.md
+│       └── changelog.md
 └── quick-ref/
-    ├── patterns.md           ← Code snippets (2KB)
-    ├── checklist.md          ← Pre-commit items (1KB)
-    └── glossary.md           ← Terms (1KB)
+    ├── patterns.md              ← Code snippets
+    ├── checklist.md             ← Pre-commit items
+    └── glossary.md              ← Terms
 ```
 
-**Total de contexto para 1ª orientação**: ~10KB (rápido)  
-**Total de contexto ao editar**: ~5KB (fichário específico + patterns)
+**Regra**: Cada módulo tem UM arquivo `_index.md` autocontido. CMS é exceção (mais complexo).
 
 ---
 
@@ -138,6 +160,6 @@ A diretiva em `CLAUDE.md` força:
 
 ---
 
-**Versão**: 2.0 (reorganizado)  
-**Data**: 2026-05-19  
+**Versão**: 3.0 (todos módulos documentados)  
+**Data**: 2026-05-24  
 **Status**: 🟢 Ativo e otimizado para tokens
