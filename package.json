@@ -14,7 +14,10 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
-    "db:seed-test": "npx tsx scripts/seed-test-user.ts"
+    "db:seed-test": "npx tsx scripts/seed-test-user.ts",
+    "backup:daemon": "npx tsx src/scripts/backup-daemon.ts",
+    "backup:now": "npx tsx src/scripts/backup.ts manual",
+    "db:restore": "npx tsx src/scripts/restore.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
@@ -49,6 +52,7 @@
     "lucide-react": "^1.14.0",
     "next": "16.2.4",
     "next-auth": "5.0.0-beta.31",
+    "node-cron": "^4.2.1",
     "pg": "^8.20.0",
     "radix-ui": "^1.4.3",
     "react": "19.2.4",
@@ -66,6 +70,7 @@
     "@testing-library/react": "^16.3.2",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^20",
+    "@types/node-cron": "^3.0.11",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^11.0.0",
