@@ -3,6 +3,7 @@ import * as path from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import * as dotenv from 'dotenv'
+import { pgBin } from './pg-bin'
 
 dotenv.config()
 
@@ -49,7 +50,7 @@ export async function runBackup(type: BackupType): Promise<string> {
   const filename = buildFilename(type)
   const filepath = path.join(BACKUPS_DIR, filename)
 
-  const cmd = `pg_dump --host=${db.host} --port=${db.port} --username=${db.user} --dbname=${db.database} --no-password --format=plain --file="${filepath}"`
+  const cmd = `"${pgBin('pg_dump')}" --host=${db.host} --port=${db.port} --username=${db.user} --dbname=${db.database} --no-password --format=plain --file="${filepath}"`
 
   await execAsync(cmd, {
     env: {

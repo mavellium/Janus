@@ -3,6 +3,7 @@ import * as path from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import * as dotenv from 'dotenv'
+import { pgBin } from './pg-bin'
 
 dotenv.config()
 
@@ -40,10 +41,10 @@ async function runRestore(filePath: string): Promise<void> {
   const env = { ...process.env, PGPASSWORD: db.password }
 
   if (isCustomFormat) {
-    const cmd = `pg_restore --host=${db.host} --port=${db.port} --username=${db.user} --dbname=${db.database} --no-password --clean --if-exists "${resolved}"`
+    const cmd = `"${pgBin('pg_restore')}" --host=${db.host} --port=${db.port} --username=${db.user} --dbname=${db.database} --no-password --clean --if-exists "${resolved}"`
     await execAsync(cmd, { env })
   } else {
-    const cmd = `psql --host=${db.host} --port=${db.port} --username=${db.user} --dbname=${db.database} --no-password --file="${resolved}"`
+    const cmd = `"${pgBin('psql')}" --host=${db.host} --port=${db.port} --username=${db.user} --dbname=${db.database} --no-password --file="${resolved}"`
     await execAsync(cmd, { env })
   }
 }

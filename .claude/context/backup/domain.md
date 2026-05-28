@@ -42,6 +42,23 @@ Define quantos arquivos de cada tipo são mantidos. Hardcoded — para tornar co
 - **Formato gerado:** `plain` SQL (`.sql`) via `pg_dump --format=plain`
 - **Formato custom:** `.dump` — detectado na restauração; usa `pg_restore`
 
+## Utilitário: pgBin (`pg-bin.ts`)
+
+```typescript
+export function pgBin(executable: string): string
+// exemplos: pgBin('pg_dump') → caminho absoluto para o binário
+```
+
+Resolve o caminho dos binários PostgreSQL em qualquer SO:
+
+| Prioridade | Fonte |
+|-----------|-------|
+| 1 | `process.env.PGBIN` + `/{executable}` |
+| 2 (Windows) | Varre `C:\Program Files\PostgreSQL\{versão}\bin\` (versão mais recente primeiro) |
+| 3 | Nome simples (assume PATH — funciona em Linux/macOS) |
+
+**Usado por:** `backup.ts` e `restore.ts`. Necessário no Windows onde o PostgreSQL não adiciona `bin/` ao PATH por padrão. Para forçar um caminho específico, defina `PGBIN=C:\Program Files\PostgreSQL\17\bin` no `.env`.
+
 ## Segurança: Regra Absoluta
 
 `PGPASSWORD` só existe no `env` do processo filho passado a `execAsync`. Nunca aparece em `console.*`, em mensagens de erro, nem na string do comando (`cmd`) — que loga `--no-password`.
