@@ -3,7 +3,7 @@ import * as path from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import * as dotenv from 'dotenv'
-import { pgBin } from './pg-bin'
+import { resolvePgContext, buildPgCommand } from './pg-bin'
 
 dotenv.config()
 
@@ -50,14 +50,20 @@ export async function runBackup(type: BackupType): Promise<string> {
   const filename = buildFilename(type)
   const filepath = path.join(BACKUPS_DIR, filename)
 
-  const cmd = `"${pgBin('pg_dump')}" --host=${db.host} --port=${db.port} --username=${db.user} --dbname=${db.database} --no-password --format=plain --file="${filepath}"`
+  const ctx = resolvePgContext(db.port)
+  const pgHost = ctx.mode === 'docker' ? '127.0.0.1' : db.host
+  const pgPort = ctx.mode === 'docker' ? '5432' : db.port
+  const args = `--host=${pgHost} --port=${pgPort} --username=${db.user} --dbname=${db.database} --no-password --format=plain`
 
-  await execAsync(cmd, {
-    env: {
-      ...process.env,
-      PGPASSWORD: db.password,
-    },
-  })
+  const cmd = buildPgCommand(ctx, 'pg_dump', args)
+  const env = { ...process.env, PGPASSWORD: db.password }
+
+  if (ctx.mode === 'docker') {
+    const { stdout } = await execAsync(cmd, { env, maxBuffer: 512 * 1024 * 1024 })
+    fs.writeFileSync(filepath, stdout, 'utf8')
+  } else {
+    await execAsync(`${cmd} --file="${filepath}"`, { env })
+  }
 
   return filepath
 }

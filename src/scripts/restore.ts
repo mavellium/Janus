@@ -3,7 +3,7 @@ import * as path from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import * as dotenv from 'dotenv'
-import { pgBin } from './pg-bin'
+import { resolvePgContext, buildPgCommand } from './pg-bin'
 
 dotenv.config()
 
@@ -37,14 +37,26 @@ async function runRestore(filePath: string): Promise<void> {
 
   const db = parseConnectionUrl(databaseUrl)
   const isCustomFormat = resolved.endsWith('.dump')
-
+  const ctx = resolvePgContext(db.port)
   const env = { ...process.env, PGPASSWORD: db.password }
 
-  if (isCustomFormat) {
-    const cmd = `"${pgBin('pg_restore')}" --host=${db.host} --port=${db.port} --username=${db.user} --dbname=${db.database} --no-password --clean --if-exists "${resolved}"`
-    await execAsync(cmd, { env })
+  if (ctx.mode === 'docker' && ctx.containerName) {
+    const containerPath = `/tmp/${path.basename(resolved)}`
+    await execAsync(`docker cp "${resolved}" ${ctx.containerName}:${containerPath}`)
+
+    const baseArgs = `--host=127.0.0.1 --port=5432 --username=${db.user} --dbname=${db.database} --no-password`
+    const cmd = isCustomFormat
+      ? buildPgCommand(ctx, 'pg_restore', `${baseArgs} --clean --if-exists "${containerPath}"`)
+      : buildPgCommand(ctx, 'psql', `${baseArgs} --file="${containerPath}"`)
+
+    await execAsync(cmd, { env, maxBuffer: 512 * 1024 * 1024 })
+    await execAsync(`docker exec ${ctx.containerName} rm -f ${containerPath}`)
   } else {
-    const cmd = `"${pgBin('psql')}" --host=${db.host} --port=${db.port} --username=${db.user} --dbname=${db.database} --no-password --file="${resolved}"`
+    const baseArgs = `--host=${db.host} --port=${db.port} --username=${db.user} --dbname=${db.database} --no-password`
+    const cmd = isCustomFormat
+      ? buildPgCommand(ctx, 'pg_restore', `${baseArgs} --clean --if-exists "${resolved}"`)
+      : buildPgCommand(ctx, 'psql', `${baseArgs} --file="${resolved}"`)
+
     await execAsync(cmd, { env })
   }
 }

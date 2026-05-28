@@ -28,3 +28,16 @@
 **Razão:** No Windows o instalador do PostgreSQL não adiciona `bin/` ao PATH do sistema — `pg_dump` não era reconhecido
 
 **Impacto:** Zero para Linux/macOS (fallback para nome simples). No Windows resolve automaticamente sem configuração manual
+
+---
+
+### [2026-05-28] — Suporte a Docker (resolver mismatch de versão)
+
+**Arquivos:**
+- `src/scripts/pg-bin.ts`: reescrito — detecta container Docker pela porta mapeada; exports: `resolvePgContext`, `buildPgCommand`
+- `src/scripts/backup.ts`: modo docker captura stdout do `pg_dump` e salva localmente
+- `src/scripts/restore.ts`: modo docker copia arquivo via `docker cp`, executa no container, remove depois
+
+**Razão:** `pg_dump` local versão 17 não consegue fazer dump de servidor PostgreSQL 18 rodando em container Docker
+
+**Impacto:** Container Docker é automaticamente preferido quando a porta do `DATABASE_URL` está mapeada em algum container em execução

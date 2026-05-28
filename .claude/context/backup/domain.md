@@ -42,22 +42,37 @@ Define quantos arquivos de cada tipo são mantidos. Hardcoded — para tornar co
 - **Formato gerado:** `plain` SQL (`.sql`) via `pg_dump --format=plain`
 - **Formato custom:** `.dump` — detectado na restauração; usa `pg_restore`
 
-## Utilitário: pgBin (`pg-bin.ts`)
+## Utilitário: pg-bin (`pg-bin.ts`)
 
 ```typescript
-export function pgBin(executable: string): string
-// exemplos: pgBin('pg_dump') → caminho absoluto para o binário
+export interface PgExecContext {
+  mode: 'docker' | 'local'
+  containerName?: string  // presente quando mode === 'docker'
+  binPath?: string        // presente quando mode === 'local' e PGBIN definido
+}
+
+export function resolvePgContext(port: string): PgExecContext
+export function buildPgCommand(ctx: PgExecContext, executable: string, args: string): string
 ```
 
-Resolve o caminho dos binários PostgreSQL em qualquer SO:
+`resolvePgContext` determina onde executar os binários pg, por prioridade:
 
-| Prioridade | Fonte |
-|-----------|-------|
-| 1 | `process.env.PGBIN` + `/{executable}` |
-| 2 (Windows) | Varre `C:\Program Files\PostgreSQL\{versão}\bin\` (versão mais recente primeiro) |
-| 3 | Nome simples (assume PATH — funciona em Linux/macOS) |
+| Prioridade | Condição | Resultado |
+|-----------|----------|-----------|
+| 1 | `PGBIN` definido no env | `mode: 'local'` com `binPath` |
+| 2 | Container Docker mapeando a porta do banco | `mode: 'docker'` com `containerName` |
+| 3 | Windows + PG instalado em `Program Files` | `mode: 'local'` com `binPath` local |
+| 4 | Fallback | `mode: 'local'` sem `binPath` (assume PATH) |
 
-**Usado por:** `backup.ts` e `restore.ts`. Necessário no Windows onde o PostgreSQL não adiciona `bin/` ao PATH por padrão. Para forçar um caminho específico, defina `PGBIN=C:\Program Files\PostgreSQL\17\bin` no `.env`.
+`buildPgCommand` monta o comando final:
+- **docker:** `docker exec {container} {executable} {args}`
+- **local:** `"{binPath}/{executable}" {args}` ou `"{executable}" {args}`
+
+**Por que Docker é preferido:** evita mismatch de versão entre o `pg_dump` local e o servidor. O pg dentro do container sempre tem a mesma versão do servidor.
+
+**Modo Docker — backup:** stdout do `pg_dump` é capturado e salvo em arquivo local via `fs.writeFileSync` (buffer máximo: 512MB).
+
+**Modo Docker — restore:** arquivo local é copiado para `/tmp/` dentro do container via `docker cp`, executado com host `127.0.0.1:5432` (porta interna), depois removido.
 
 ## Segurança: Regra Absoluta
 
