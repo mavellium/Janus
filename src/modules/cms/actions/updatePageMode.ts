@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { revalidateSites } from '@/lib/revalidateSites'
 
 interface UpdatePageModeParams {
   pageId: string
@@ -35,6 +36,7 @@ export async function updatePageMode({ pageId, isAdvanced }: UpdatePageModeParam
     })
 
     revalidatePath(`/${page.project.company.slug}/dashboard`)
+    revalidateSites(page.project.company.slug)
 
     return { ok: true }
   } catch (error) {

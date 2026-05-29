@@ -2,6 +2,7 @@
 
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import { revalidateSites } from '@/lib/revalidateSites'
 
 interface TogglePagePublishParams {
   pageId: string
@@ -32,6 +33,8 @@ export async function togglePagePublish({ pageId, isPublished }: TogglePagePubli
       where: { id: pageId },
       data: { isPublished },
     })
+
+    revalidateSites(page.project.company.slug)
 
     return { ok: true, data: updated }
   } catch (error) {

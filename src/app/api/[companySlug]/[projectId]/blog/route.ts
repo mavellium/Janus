@@ -22,6 +22,7 @@ export async function GET(
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '10', 10)))
   const search = searchParams.get('search')?.trim() ?? ''
+  const categoryId = searchParams.get('categoryId')?.trim() ?? ''
   const skip = (page - 1) * limit
 
   const company = await db.company.findUnique({
@@ -47,6 +48,9 @@ export async function GET(
         { subtitle: { contains: search, mode: 'insensitive' as const } },
       ],
     }),
+    ...(categoryId && {
+      categories: { some: { categoryId } },
+    }),
   }
 
   const [total, posts] = await Promise.all([
@@ -58,17 +62,22 @@ export async function GET(
       take: limit,
       select: {
         id: true,
+        slug: true,
         title: true,
         subtitle: true,
+        status: true,
         publishedAt: true,
-        authorName: true,
         coverImageUrl: true,
+        authorName: true,
+        readingTime: true,
         seoTitle: true,
         seoDescription: true,
         seoKeywords: true,
         categories: { select: { category: true } },
         tags: { select: { tag: true } },
         project: { select: { id: true, name: true } },
+        createdAt: true,
+        updatedAt: true,
       },
     }),
   ])

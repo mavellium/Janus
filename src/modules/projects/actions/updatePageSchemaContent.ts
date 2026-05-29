@@ -3,6 +3,7 @@
 import { db } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { revalidateSites } from "@/lib/revalidateSites";
 
 interface UpdatePageSchemaContentParams {
   pageId: string;
@@ -42,6 +43,7 @@ export async function updatePageSchemaContent({
         ? "home"
         : page.slug;
     revalidatePath(`/api/v1/content/${page.project.company.slug}/${pageSlug}`);
+    revalidateSites(page.project.company.slug);
 
     return { ok: true };
   } catch (error) {

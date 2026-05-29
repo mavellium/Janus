@@ -464,8 +464,8 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                   Webhook de Revalidação
                 </h2>
                 <p className="text-sm text-brand-muted">
-                  Quando um artigo do blog for publicado, atualizado ou
-                  excluído, o Janus chamará esta URL para revalidar o cache do
+                  Quando um artigo do blog ou conteúdo de página for salvo ou
+                  publicado, o Janus chamará esta URL para revalidar o cache do
                   seu site.
                 </p>
               </div>

@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { revalidateSites } from '@/lib/revalidateSites'
 
 interface CreatePageParams {
   projectId: string
@@ -71,6 +72,7 @@ export async function createPage({ projectId, name, slug, companySlug, previewUr
 
     revalidatePath(`/${companySlug}/dashboard/sites/${projectId}/pages`)
     revalidatePath(`/${companySlug}/dashboard/landing-pages/${projectId}/pages`)
+    revalidateSites(companySlug)
 
     return { ok: true, data: page }
   } catch (error) {
