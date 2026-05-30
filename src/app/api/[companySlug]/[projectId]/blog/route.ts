@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/prisma'
+import { generateSlug } from '@/lib/slug'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -87,7 +88,7 @@ export async function GET(
       success: true,
       company: companySlug,
       projectId,
-      posts,
+      posts: posts.map((p) => ({ ...p, slug: p.slug ?? generateSlug(p.title) })),
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     },
     {
