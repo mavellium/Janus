@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/prisma";
+import { assertPublicUrl } from "@/lib/ssrf";
 
 export async function GET(
   _req: NextRequest,
@@ -36,9 +37,11 @@ export async function GET(
     }
 
     try {
-      const res = await fetch(project.previewUrl, {
+      const safeUrl = await assertPublicUrl(project.previewUrl);
+      const res = await fetch(safeUrl, {
         headers: { "User-Agent": "Janus-CMS-Checker/1.0", "Cache-Control": "no-cache" },
         cache: "no-store",
+        redirect: "manual",
         signal: AbortSignal.timeout(8000),
       });
 

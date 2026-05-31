@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/prisma'
+import { rateLimit, clientIp, rateLimitHeaders } from '@/lib/rate-limit'
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +17,14 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ companySlug: string }> },
 ) {
+  const rl = rateLimit(`blog:${clientIp(req)}`, 60, 60_000)
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { success: false, error: 'Too many requests' },
+      { status: 429, headers: { ...CORS_HEADERS, ...rateLimitHeaders(rl) } },
+    )
+  }
+
   const { companySlug } = await params
   const { searchParams } = req.nextUrl
 

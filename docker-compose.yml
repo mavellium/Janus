@@ -17,6 +17,12 @@ services:
     volumes:
       - ./.env:/app/.env
     restart: always
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      start_period: 40s
+      retries: 5
     networks:
       - default
       - traefik-public
@@ -27,8 +33,11 @@ services:
       - "traefik.http.routers.janus-prod.entrypoints=websecure"
       - "traefik.http.routers.janus-prod.tls.certresolver=myresolver"
       - "traefik.http.services.janus-prod.loadbalancer.server.port=3000"
+      - "traefik.http.services.janus-prod.loadbalancer.healthcheck.path=/login"
+      - "traefik.http.services.janus-prod.loadbalancer.healthcheck.interval=10s"
     depends_on:
-      - janus-db
+      janus-db:
+        condition: service_healthy
 
   janus-db:
     image: postgres:15-alpine
@@ -42,6 +51,11 @@ services:
       - janus-prod-db-data:/var/lib/postgresql/data
     ports:
       - "5440:5432" # Porta externa ajustada para evitar conflitos
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U janus_admin -d janus_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - default
 
@@ -63,6 +77,12 @@ services:
     volumes:
       - ./.env.test:/app/.env
     restart: always
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      start_period: 40s
+      retries: 5
     networks:
       - default
       - traefik-public
@@ -73,8 +93,11 @@ services:
       - "traefik.http.routers.janus-test.entrypoints=websecure"
       - "traefik.http.routers.janus-test.tls.certresolver=myresolver"
       - "traefik.http.services.janus-test.loadbalancer.server.port=3000"
+      - "traefik.http.services.janus-test.loadbalancer.healthcheck.path=/login"
+      - "traefik.http.services.janus-test.loadbalancer.healthcheck.interval=10s"
     depends_on:
-      - janus-db-test
+      janus-db-test:
+        condition: service_healthy
 
   janus-db-test:
     image: postgres:15-alpine
@@ -88,6 +111,11 @@ services:
       - janus-test-db-data:/var/lib/postgresql/data
     ports:
       - "5441:5432" # Porta externa ajustada para evitar conflitos
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U janus_tester -d janus_db_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - default
 

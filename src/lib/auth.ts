@@ -14,7 +14,12 @@ const credentialsSchema = z.object({
 
 const getClientIp = async () => {
   const headersList = await headers();
-  return headersList.get("x-forwarded-for") || "unknown";
+  const forwarded = headersList.get("x-forwarded-for");
+  if (forwarded) {
+    const first = forwarded.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  return headersList.get("x-real-ip") || "unknown";
 };
 
 const isIpBlocked = async (ip: string) => {

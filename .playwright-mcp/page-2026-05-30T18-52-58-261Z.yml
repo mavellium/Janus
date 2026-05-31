@@ -1,0 +1,18 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e7]: J
+      - heading "Entrar no Janus" [level=1] [ref=e8]
+      - paragraph [ref=e9]: Bem-vindo de volta.
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12]: Email
+        - textbox "Email" [ref=e13]:
+          - /placeholder: seu@email.com
+      - generic [ref=e14]:
+        - generic [ref=e15]: Senha
+        - textbox "Senha" [ref=e16]:
+          - /placeholder: ••••••••
+      - button "Entrar" [ref=e17] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e23] [cursor=pointer]:
+    - img [ref=e24]

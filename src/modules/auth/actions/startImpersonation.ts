@@ -24,7 +24,14 @@ export async function startImpersonation(
 
   const targetUser = await db.user.findUnique({
     where: { id: targetUserId, deletedAt: null },
-    select: { id: true, name: true, email: true, role: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      company: { select: { slug: true } },
+      companies: { select: { company: { select: { slug: true } } } },
+    },
   });
 
   if (!targetUser) {
@@ -36,6 +43,20 @@ export async function startImpersonation(
       ok: false as const,
       error: "Não é possível inspecionar um usuário administrador",
     };
+  }
+
+  if (role === "DEVELOPER") {
+    const targetSlugs = new Set<string>();
+    if (targetUser.company?.slug) targetSlugs.add(targetUser.company.slug);
+    for (const link of targetUser.companies) {
+      if (link.company?.slug) targetSlugs.add(link.company.slug);
+    }
+    if (!targetSlugs.has(companySlug)) {
+      return {
+        ok: false as const,
+        error: "Usuário não pertence a esta empresa",
+      };
+    }
   }
 
   const displayName = targetUser.name ?? targetUser.email;

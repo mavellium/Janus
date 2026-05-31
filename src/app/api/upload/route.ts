@@ -1,11 +1,68 @@
+import { cookies } from 'next/headers'
+import { auth } from '@/lib/auth'
+import { db } from '@/lib/prisma'
+
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024
+const MAX_VIDEO_BYTES = 200 * 1024 * 1024
+
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/avif',
+  'image/gif',
+  'image/heic',
+  'image/heif',
+])
+const ALLOWED_VIDEO_TYPES = new Set(['video/mp4', 'video/quicktime', 'video/webm'])
+
+const EXTENSION_BY_TYPE: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/avif': 'avif',
+  'image/gif': 'gif',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov',
+  'video/webm': 'webm',
+}
+
+async function isAuthorized(): Promise<boolean> {
+  const session = await auth()
+  if (session?.user?.id) return true
+
+  const cookieStore = await cookies()
+  const guestId = cookieStore.get('guest_entry_id')?.value
+  if (!guestId) return false
+
+  const guest = await db.guestEntry.findUnique({ where: { id: guestId }, select: { id: true } })
+  return !!guest
+}
+
 export async function POST(request: Request) {
   try {
+    if (!(await isAuthorized())) {
+      return Response.json({ ok: false, error: 'Não autorizado' }, { status: 401 })
+    }
+
     const formData = await request.formData()
-    const file = formData.get('file') as File
-    const mediaType = formData.get('mediaType') as string
+    const file = formData.get('file') as File | null
+    const mediaType = formData.get('mediaType') === 'VIDEO' ? 'VIDEO' : 'IMAGE'
 
     if (!file) {
       return Response.json({ ok: false, error: 'Nenhum arquivo selecionado' }, { status: 400 })
+    }
+
+    const allowedTypes = mediaType === 'VIDEO' ? ALLOWED_VIDEO_TYPES : ALLOWED_IMAGE_TYPES
+    if (!allowedTypes.has(file.type)) {
+      return Response.json({ ok: false, error: 'Tipo de arquivo não permitido' }, { status: 415 })
+    }
+
+    const maxBytes = mediaType === 'VIDEO' ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES
+    if (file.size > maxBytes) {
+      return Response.json({ ok: false, error: 'Arquivo excede o tamanho máximo' }, { status: 413 })
     }
 
     const bunnyHost = process.env.BUNNY_HOST
@@ -18,8 +75,8 @@ export async function POST(request: Request) {
     }
 
     const buffer = await file.arrayBuffer()
-    const extension = file.name.split('.').pop() || (mediaType === 'VIDEO' ? 'mp4' : 'jpg')
-    const fileName = `uid-${Date.now()}.${extension}`
+    const extension = EXTENSION_BY_TYPE[file.type] ?? (mediaType === 'VIDEO' ? 'mp4' : 'jpg')
+    const fileName = `uid-${Date.now()}-${crypto.randomUUID()}.${extension}`
     const path = `guest-posts/${fileName}`
 
     const controller = new AbortController()

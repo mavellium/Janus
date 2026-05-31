@@ -1,0 +1,108 @@
+- generic [active] [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e23] [cursor=pointer]:
+    - img [ref=e24]
+  - alert [ref=e27]: Admin Dashboard
+  - generic [ref=e28]:
+    - banner [ref=e29]:
+      - button "Abrir menu" [ref=e30] [cursor=pointer]:
+        - img [ref=e31]
+      - link "Início" [ref=e32] [cursor=pointer]:
+        - /url: /dashboard-admin
+        - img "Janus" [ref=e33]
+    - main [ref=e34]:
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - heading "Admin Panel" [level=1] [ref=e37]
+          - paragraph [ref=e38]: Visão global do sistema
+        - generic [ref=e39]:
+          - link "Usuários 3" [ref=e40] [cursor=pointer]:
+            - /url: /dashboard-admin/users
+            - generic [ref=e42]:
+              - generic [ref=e43]:
+                - generic [ref=e44]: Usuários
+                - img [ref=e45]
+              - paragraph [ref=e50]: "3"
+          - link "Desenvolvedores 3" [ref=e51] [cursor=pointer]:
+            - /url: /dashboard-admin/developers
+            - generic [ref=e53]:
+              - generic [ref=e54]:
+                - generic [ref=e55]: Desenvolvedores
+                - img [ref=e56]
+              - paragraph [ref=e60]: "3"
+          - link "Empresas 6" [ref=e61] [cursor=pointer]:
+            - /url: /dashboard-admin/companies
+            - generic [ref=e63]:
+              - generic [ref=e64]:
+                - generic [ref=e65]: Empresas
+                - img [ref=e66]
+              - paragraph [ref=e70]: "6"
+          - link "IPs Bloqueados 0" [ref=e71] [cursor=pointer]:
+            - /url: /dashboard-admin/logs
+            - generic [ref=e73]:
+              - generic [ref=e74]:
+                - generic [ref=e75]: IPs Bloqueados
+                - img [ref=e76]
+              - paragraph [ref=e78]: "0"
+        - generic [ref=e79]:
+          - generic [ref=e80]:
+            - generic [ref=e81]:
+              - heading "Últimas Empresas" [level=2] [ref=e82]
+              - link "Ver todas" [ref=e83] [cursor=pointer]:
+                - /url: /dashboard-admin/companies
+            - list [ref=e84]:
+              - listitem [ref=e85]:
+                - generic [ref=e86]:
+                  - paragraph [ref=e87]: teste 90
+                  - code [ref=e88]: ee
+                - generic [ref=e89]: 17/05/2026
+              - listitem [ref=e90]:
+                - generic [ref=e91]:
+                  - paragraph [ref=e92]: "1231231231233"
+                  - code [ref=e93]: eee
+                - generic [ref=e94]: 17/05/2026
+              - listitem [ref=e95]:
+                - generic [ref=e96]:
+                  - paragraph [ref=e97]: teste
+                  - code [ref=e98]: testee
+                - generic [ref=e99]: 17/05/2026
+              - listitem [ref=e100]:
+                - generic [ref=e101]:
+                  - paragraph [ref=e102]: "123123"
+                  - code [ref=e103]: teste-company
+                - generic [ref=e104]: 12/05/2026
+              - listitem [ref=e105]:
+                - generic [ref=e106]:
+                  - paragraph [ref=e107]: Test Company
+                  - code [ref=e108]: test-company
+                - generic [ref=e109]: 09/05/2026
+          - generic [ref=e110]:
+            - generic [ref=e111]:
+              - heading "Últimos Usuários" [level=2] [ref=e112]
+              - link "Ver todos" [ref=e113] [cursor=pointer]:
+                - /url: /dashboard-admin/users
+            - list [ref=e114]:
+              - listitem [ref=e115]:
+                - generic [ref=e116]:
+                  - paragraph [ref=e117]: e3@gmail.com
+                  - paragraph [ref=e118]: e3@gmail.com
+                - generic [ref=e119]: 24/05/2026
+              - listitem [ref=e120]:
+                - generic [ref=e121]:
+                  - paragraph [ref=e122]: teste
+                  - paragraph [ref=e123]: e2@gmail.com
+                - generic [ref=e124]: 24/05/2026
+              - listitem [ref=e125]:
+                - generic [ref=e126]:
+                  - paragraph [ref=e127]: teste2@gmail.com
+                  - paragraph [ref=e128]: teste2@gmail.com
+                - generic [ref=e129]: 19/05/2026
+              - listitem [ref=e130]:
+                - generic [ref=e131]:
+                  - paragraph [ref=e132]: eeeee
+                  - paragraph [ref=e133]: eee@gmail.com
+                - generic [ref=e134]: 17/05/2026
+              - listitem [ref=e135]:
+                - generic [ref=e136]:
+                  - paragraph [ref=e137]: eee
+                  - paragraph [ref=e138]: teste11@gmail.com
+                - generic [ref=e139]: 17/05/2026

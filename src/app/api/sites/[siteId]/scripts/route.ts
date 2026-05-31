@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/prisma'
+import { rateLimit, clientIp, rateLimitHeaders } from '@/lib/rate-limit'
 
 export const revalidate = 60
 
@@ -7,6 +8,14 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ siteId: string }> },
 ) {
+  const limit = rateLimit(`scripts:${clientIp(_req)}`, 120, 60_000)
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { ok: false, error: 'Too many requests' },
+      { status: 429, headers: rateLimitHeaders(limit) },
+    )
+  }
+
   const { siteId } = await params
 
   try {

@@ -4,7 +4,10 @@
       "Bash(npm run *)",
       "Bash(npx next *)",
       "Bash(npx eslint *)",
-      "Bash(pnpm typecheck *)"
+      "Bash(pnpm typecheck *)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_fill_form"
     ]
   }
 }
