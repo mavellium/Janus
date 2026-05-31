@@ -37,10 +37,11 @@ Define quantos arquivos de cada tipo são mantidos. Hardcoded — para tornar co
 
 ## Nomenclatura de Arquivos
 
-- **Padrão:** `janus-{type}-{ISO com `:` e `.` trocados por `-`}.sql`
-- **Exemplo:** `janus-daily-2026-05-25T02-00-00-000Z.sql`
-- **Formato gerado:** `plain` SQL (`.sql`) via `pg_dump --format=plain`
-- **Formato custom:** `.dump` — detectado na restauração; usa `pg_restore`
+- **Padrão:** `janus-{type}-{ISO com `:` e `.` trocados por `-`}.sql.gz`
+- **Exemplo:** `janus-daily-2026-05-25T02-00-00-000Z.sql.gz`
+- **Formato gerado:** `plain` SQL via `pg_dump --format=plain`, comprimido em streaming com gzip nível 1 (`.sql.gz`)
+- **Pipeline:** `pg_dump (stdout) → createGzip({level:1}) → createWriteStream`. Em modo docker o `pg_dump` roda com `nice -n 19` + `ionice -c3` (guard `command -v ionice`). Sem buffer em memória.
+- **Legado/compat:** `.sql` (sem compressão) e `.dump` (custom) continuam restauráveis
 
 ## Utilitário: pg-bin (`pg-bin.ts`)
 
@@ -70,7 +71,7 @@ export function buildPgCommand(ctx: PgExecContext, executable: string, args: str
 
 **Por que Docker é preferido:** evita mismatch de versão entre o `pg_dump` local e o servidor. O pg dentro do container sempre tem a mesma versão do servidor.
 
-**Modo Docker — backup:** stdout do `pg_dump` é capturado e salvo em arquivo local via `fs.writeFileSync` (buffer máximo: 512MB).
+**Modo Docker — backup:** stdout do `pg_dump` (rodado com `nice`/`ionice` dentro do container) é transmitido em streaming por `createGzip({level:1})` direto para `createWriteStream` — sem buffer em memória.
 
 **Modo Docker — restore:** arquivo local é copiado para `/tmp/` dentro do container via `docker cp`, executado com host `127.0.0.1:5432` (porta interna), depois removido.
 

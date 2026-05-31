@@ -2,6 +2,8 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { createGunzip } from 'zlib'
+import { pipeline } from 'stream/promises'
 import * as dotenv from 'dotenv'
 import { resolvePgContext, buildPgCommand } from './pg-bin'
 
@@ -37,6 +39,7 @@ async function runRestore(filePath: string): Promise<void> {
 
   const db = parseConnectionUrl(databaseUrl)
   const isCustomFormat = resolved.endsWith('.dump')
+  const isGzip = resolved.endsWith('.gz')
   const ctx = resolvePgContext(db.port)
   const env = { ...process.env, PGPASSWORD: db.password }
 
@@ -45,19 +48,39 @@ async function runRestore(filePath: string): Promise<void> {
     await execAsync(`docker cp "${resolved}" ${ctx.containerName}:${containerPath}`)
 
     const baseArgs = `--host=127.0.0.1 --port=5432 --username=${db.user} --dbname=${db.database} --no-password`
-    const cmd = isCustomFormat
-      ? buildPgCommand(ctx, 'pg_restore', `${baseArgs} --clean --if-exists "${containerPath}"`)
-      : buildPgCommand(ctx, 'psql', `${baseArgs} --file="${containerPath}"`)
+    let inner: string
+    if (isCustomFormat) {
+      inner = `pg_restore ${baseArgs} --clean --if-exists "${containerPath}"`
+    } else if (isGzip) {
+      inner = `gunzip -c "${containerPath}" | psql ${baseArgs}`
+    } else {
+      inner = `psql ${baseArgs} --file="${containerPath}"`
+    }
 
-    await execAsync(cmd, { env, maxBuffer: 512 * 1024 * 1024 })
+    await execAsync(`docker exec ${ctx.containerName} sh -c '${inner}'`, {
+      env,
+      maxBuffer: 512 * 1024 * 1024,
+    })
     await execAsync(`docker exec ${ctx.containerName} rm -f ${containerPath}`)
   } else {
     const baseArgs = `--host=${db.host} --port=${db.port} --username=${db.user} --dbname=${db.database} --no-password`
-    const cmd = isCustomFormat
-      ? buildPgCommand(ctx, 'pg_restore', `${baseArgs} --clean --if-exists "${resolved}"`)
-      : buildPgCommand(ctx, 'psql', `${baseArgs} --file="${resolved}"`)
 
-    await execAsync(cmd, { env })
+    if (isCustomFormat) {
+      await execAsync(
+        buildPgCommand(ctx, 'pg_restore', `${baseArgs} --clean --if-exists "${resolved}"`),
+        { env },
+      )
+    } else if (isGzip) {
+      const tmp = resolved.replace(/\.gz$/, '')
+      await pipeline(fs.createReadStream(resolved), createGunzip(), fs.createWriteStream(tmp))
+      try {
+        await execAsync(buildPgCommand(ctx, 'psql', `${baseArgs} --file="${tmp}"`), { env })
+      } finally {
+        if (fs.existsSync(tmp)) fs.unlinkSync(tmp)
+      }
+    } else {
+      await execAsync(buildPgCommand(ctx, 'psql', `${baseArgs} --file="${resolved}"`), { env })
+    }
   }
 }
 

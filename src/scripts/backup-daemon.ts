@@ -18,7 +18,11 @@ function cleanOldBackups(type: BackupType): void {
   const prefix = `janus-${type}-`
   const files = fs
     .readdirSync(BACKUPS_DIR)
-    .filter((f) => f.startsWith(prefix) && f.endsWith('.sql'))
+    .filter(
+      (f) =>
+        f.startsWith(prefix) &&
+        (f.endsWith('.sql.gz') || f.endsWith('.sql') || f.endsWith('.dump')),
+    )
     .map((f) => ({ name: f, mtime: fs.statSync(path.join(BACKUPS_DIR, f)).mtime }))
     .sort((a, b) => b.mtime.getTime() - a.mtime.getTime())
 
@@ -30,14 +34,20 @@ function cleanOldBackups(type: BackupType): void {
 }
 
 async function executeBackup(type: BackupType): Promise<void> {
+  const start = Date.now()
   try {
     console.log(`[${new Date().toISOString()}] Iniciando backup ${type}...`)
     const filepath = await runBackup(type)
-    console.log(`[${new Date().toISOString()}] Backup ${type} concluído: ${filepath}`)
+    const sizeMb = (fs.statSync(filepath).size / 1024 / 1024).toFixed(2)
+    const seconds = ((Date.now() - start) / 1000).toFixed(1)
+    console.log(
+      `[${new Date().toISOString()}] Backup ${type} concluído em ${seconds}s (${sizeMb} MB): ${filepath}`,
+    )
     cleanOldBackups(type)
   } catch (err) {
+    const seconds = ((Date.now() - start) / 1000).toFixed(1)
     console.error(
-      `[${new Date().toISOString()}] Erro no backup ${type}:`,
+      `[${new Date().toISOString()}] Erro no backup ${type} após ${seconds}s:`,
       err instanceof Error ? err.message : String(err),
     )
   }
@@ -46,7 +56,11 @@ async function executeBackup(type: BackupType): Promise<void> {
 async function main() {
   console.log(`[${new Date().toISOString()}] Backup daemon iniciado`)
 
-  await executeBackup('manual')
+  if (process.env.BACKUP_ON_BOOT === 'false') {
+    console.log(`[${new Date().toISOString()}] Backup no boot desativado (BACKUP_ON_BOOT=false)`)
+  } else {
+    await executeBackup('manual')
+  }
 
   cron.schedule('0 2 * * *', () => void executeBackup('daily'))
   cron.schedule('0 3 * * 0', () => void executeBackup('weekly'))

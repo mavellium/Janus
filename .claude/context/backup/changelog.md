@@ -4,6 +4,19 @@
 
 ---
 
+### [2026-05-31] — Otimização de CPU/RAM (streaming + gzip -1 + nice/ionice)
+
+**Arquivos:**
+- `src/scripts/backup.ts`: `runBackup` reescrito — `execAsync`(buffer 512MB) + `writeFileSync` substituídos por pipeline em streaming `pg_dump (stdout) → createGzip({level:1}) → createWriteStream`. `pg_dump` em modo docker agora roda com `nice -n 19` e `ionice -c3` (guard `command -v ionice`). Arquivo gerado passa a `.sql.gz`. Erro de `pg_dump` agora propaga código + stderr; arquivo parcial é removido.
+- `src/scripts/backup-daemon.ts`: `cleanOldBackups` reconhece `.sql.gz`/`.sql`/`.dump`; log com duração e tamanho; backup no boot desativável via `BACKUP_ON_BOOT=false`.
+- `src/scripts/restore.ts`: restauração retrocompatível — detecta `.gz` (docker: `gunzip -c | psql`; local: descomprime via zlib em temp e `psql --file`), mantém `.sql` e `.dump`.
+
+**Razão:** Pico de CPU/lentidão durante backup numa VPS de 2 vCPU. Causa raiz: dump inteiro bufferizado em RAM (até 512MB) → swap → I/O satura e serviços param. Secundário: `pg_dump` sem prioridade competindo com a aplicação.
+
+**Impacto:** RAM do processo de backup passa a constante (streaming). `pg_dump` cede CPU/IO ao app (nice/ionice). Backups menores em disco (gzip -1). Formato muda para `.sql.gz` — backups `.sql` antigos continuam restauráveis. Detalhes em `BACKUP_AUDIT.md` (raiz).
+
+---
+
 ### [2026-05-25] — Implementação inicial
 
 **Arquivos:**

@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/prisma'
-<<<<<<< HEAD
 import { rateLimit, clientIp, rateLimitHeaders } from '@/lib/rate-limit'
-=======
 import { generateSlug } from '@/lib/slug'
->>>>>>> 4b12d5983e350563d11afbe419fe28dea4d160f7
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',

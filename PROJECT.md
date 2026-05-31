@@ -404,6 +404,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 | Data       | Arquivo                                       | O que foi feito                                            |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
+| 2026-05-31 | `src/scripts/backup.ts`, `src/scripts/backup-daemon.ts`, `src/scripts/restore.ts`, `BACKUP_AUDIT.md` | PERF: backup em streaming `pg_dump → gzip(level 1)` (remove buffer 512MB/RAM→swap); `nice -n 19`/`ionice -c3` no pg_dump (docker); saída `.sql.gz`; restore retrocompatível; logs de duração/tamanho; `BACKUP_ON_BOOT` opcional |
+| 2026-05-31 | `src/app/api/[companySlug]/[projectId]/blog/route.ts`, `package.json` | FIX: resolvido merge conflict (imports rate-limit + slug); instalado `@tiptap/extension-text-style`; build volta a passar |
 | 2026-05-24 | `prisma/schema.prisma`, `prisma/migrations/20260524*` | FEAT: `companyId` em User agora nullable (String?); FK `ON DELETE SET NULL`; tabela `UserCompany` para vínculo many-to-many user↔company |
 | 2026-05-24 | `src/modules/admin/actions/adminCreateUser.ts` | REFACTOR: Aceita `linkedCompanyIds[]` via FormData; cria vínculos `UserCompany` em transação; `companyId` primary = primeiro da lista |
 | 2026-05-24 | `src/modules/admin/actions/adminEditUser.ts` | FEAT: Atualiza empresas vinculadas via deleteMany+createMany em transação; sincroniza `companyId` primário |

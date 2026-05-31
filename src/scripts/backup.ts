@@ -1,13 +1,12 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { exec } from 'child_process'
-import { promisify } from 'util'
+import { spawn } from 'child_process'
+import { createGzip } from 'zlib'
+import { pipeline } from 'stream/promises'
 import * as dotenv from 'dotenv'
 import { resolvePgContext, buildPgCommand } from './pg-bin'
 
 dotenv.config()
-
-const execAsync = promisify(exec)
 
 const BACKUPS_DIR = path.resolve(process.cwd(), 'backups')
 
@@ -34,7 +33,18 @@ function parseConnectionUrl(url: string): DBConfig {
 
 function buildFilename(type: BackupType): string {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-  return `janus-${type}-${timestamp}.sql`
+  return `janus-${type}-${timestamp}.sql.gz`
+}
+
+function buildDumpCommand(
+  ctx: ReturnType<typeof resolvePgContext>,
+  args: string,
+): string {
+  if (ctx.mode === 'docker' && ctx.containerName) {
+    const inner = `if command -v ionice >/dev/null 2>&1; then exec nice -n 19 ionice -c3 pg_dump ${args}; else exec nice -n 19 pg_dump ${args}; fi`
+    return `docker exec ${ctx.containerName} sh -c '${inner}'`
+  }
+  return buildPgCommand(ctx, 'pg_dump', args)
 }
 
 export async function runBackup(type: BackupType): Promise<string> {
@@ -55,14 +65,32 @@ export async function runBackup(type: BackupType): Promise<string> {
   const pgPort = ctx.mode === 'docker' ? '5432' : db.port
   const args = `--host=${pgHost} --port=${pgPort} --username=${db.user} --dbname=${db.database} --no-password --format=plain`
 
-  const cmd = buildPgCommand(ctx, 'pg_dump', args)
+  const cmd = buildDumpCommand(ctx, args)
   const env = { ...process.env, PGPASSWORD: db.password }
 
-  if (ctx.mode === 'docker') {
-    const { stdout } = await execAsync(cmd, { env, maxBuffer: 512 * 1024 * 1024 })
-    fs.writeFileSync(filepath, stdout, 'utf8')
-  } else {
-    await execAsync(`${cmd} --file="${filepath}"`, { env })
+  const child = spawn(cmd, { shell: true, env })
+
+  let stderr = ''
+  child.stderr.on('data', (chunk) => {
+    stderr += chunk.toString()
+  })
+
+  const dumpExit = new Promise<void>((resolve, reject) => {
+    child.on('error', reject)
+    child.on('close', (code) => {
+      if (code === 0) resolve()
+      else reject(new Error(`pg_dump falhou (código ${code}): ${stderr.trim()}`))
+    })
+  })
+
+  const gzip = createGzip({ level: 1 })
+  const output = fs.createWriteStream(filepath)
+
+  try {
+    await Promise.all([pipeline(child.stdout, gzip, output), dumpExit])
+  } catch (err) {
+    if (fs.existsSync(filepath)) fs.unlinkSync(filepath)
+    throw err
   }
 
   return filepath
