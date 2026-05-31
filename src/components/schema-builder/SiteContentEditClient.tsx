@@ -282,11 +282,11 @@ export function SiteContentEditClient({
           contentData: pendingContentRef.current || {},
         });
       }
-      setReloadKey((prev) => prev + 1);
+      setReloadKey(Date.now());
     });
   };
 
-  const handleReload = () => setReloadKey((prev) => prev + 1);
+  const handleReload = () => setReloadKey(Date.now());
 
   function getSectionKey(uiKey: string): string {
     const config = effectiveUiSchema[uiKey];
@@ -436,7 +436,7 @@ export function SiteContentEditClient({
           <IframePreview
             key={reloadKey}
             ref={iframeRef}
-            url={reloadKey > 0 ? `${previewUrl}?v=${reloadKey}` : previewUrl}
+            url={reloadKey > 0 ? `${previewUrl}?t=${reloadKey}` : previewUrl}
           />
         </div>
 
@@ -562,7 +562,7 @@ export function SiteContentEditClient({
         <IframePreview
           key={reloadKey}
           ref={iframeRef}
-          url={reloadKey > 0 ? `${previewUrl}?v=${reloadKey}` : previewUrl}
+          url={reloadKey > 0 ? `${previewUrl}?t=${reloadKey}` : previewUrl}
         />
       </div>
     </div>

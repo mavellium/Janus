@@ -8,6 +8,8 @@ const CORS_HEADERS = {
   'Access-Control-Max-Age': '86400',
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS })
 }
@@ -30,9 +32,11 @@ export async function GET(
     )
   }
 
+  const lookupWhere = UUID_RE.test(postId) ? { id: postId } : { slug: postId }
+
   const post = await db.blogPost.findFirst({
     where: {
-      id: postId,
+      ...lookupWhere,
       projectId,
       status: 'PUBLISHED',
       publishedAt: { not: null, lte: new Date() },
@@ -40,6 +44,8 @@ export async function GET(
     },
     select: {
       id: true,
+      slug: true,
+      readingTime: true,
       title: true,
       subtitle: true,
       publishedAt: true,

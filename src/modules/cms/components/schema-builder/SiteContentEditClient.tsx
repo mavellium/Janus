@@ -39,11 +39,11 @@ export function SiteContentEditClient({
       : {}
 
   const handleSave = () => {
-    setReloadKey((prev) => prev + 1)
+    setReloadKey(Date.now())
   }
 
   const handleReload = () => {
-    setReloadKey((prev) => prev + 1)
+    setReloadKey(Date.now())
   }
 
   const handleContentChange = useCallback(
@@ -121,7 +121,7 @@ export function SiteContentEditClient({
       </div>
 
       <div className="w-full lg:w-2/3 min-h-[60vh] lg:min-h-0 lg:h-full relative">
-        <IframePreview key={reloadKey} ref={iframeRef} url={previewUrl} />
+        <IframePreview key={reloadKey} ref={iframeRef} url={reloadKey > 0 ? `${previewUrl}?t=${reloadKey}` : previewUrl} />
       </div>
     </div>
   )

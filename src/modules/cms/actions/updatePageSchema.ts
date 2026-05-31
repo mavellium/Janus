@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { revalidateSites } from '@/lib/revalidateSites'
 
 interface UpdatePageSchemaParams {
   pageId: string
@@ -47,6 +48,7 @@ export async function updatePageSchema({ pageId, schemaJson }: UpdatePageSchemaP
 
     const pageSlug = (page.slug ?? '').trim() === '/' || !(page.slug ?? '').trim() ? 'home' : page.slug
     revalidatePath(`/api/v1/content/${page.project.company.slug}/${pageSlug}`)
+    revalidateSites(page.project.company.slug)
 
     return { ok: true }
   } catch (error) {

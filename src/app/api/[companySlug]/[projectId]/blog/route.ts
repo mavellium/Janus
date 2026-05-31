@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/prisma'
+<<<<<<< HEAD
 import { rateLimit, clientIp, rateLimitHeaders } from '@/lib/rate-limit'
+=======
+import { generateSlug } from '@/lib/slug'
+>>>>>>> 4b12d5983e350563d11afbe419fe28dea4d160f7
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -31,6 +35,7 @@ export async function GET(
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '10', 10)))
   const search = searchParams.get('search')?.trim() ?? ''
+  const categoryId = searchParams.get('categoryId')?.trim() ?? ''
   const skip = (page - 1) * limit
 
   const company = await db.company.findUnique({
@@ -56,6 +61,9 @@ export async function GET(
         { subtitle: { contains: search, mode: 'insensitive' as const } },
       ],
     }),
+    ...(categoryId && {
+      categories: { some: { categoryId } },
+    }),
   }
 
   const [total, posts] = await Promise.all([
@@ -67,17 +75,22 @@ export async function GET(
       take: limit,
       select: {
         id: true,
+        slug: true,
         title: true,
         subtitle: true,
+        status: true,
         publishedAt: true,
-        authorName: true,
         coverImageUrl: true,
+        authorName: true,
+        readingTime: true,
         seoTitle: true,
         seoDescription: true,
         seoKeywords: true,
         categories: { select: { category: true } },
         tags: { select: { tag: true } },
         project: { select: { id: true, name: true } },
+        createdAt: true,
+        updatedAt: true,
       },
     }),
   ])
@@ -87,7 +100,7 @@ export async function GET(
       success: true,
       company: companySlug,
       projectId,
-      posts,
+      posts: posts.map((p) => ({ ...p, slug: p.slug ?? generateSlug(p.title) })),
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     },
     {
