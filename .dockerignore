@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.github
+backups
+*.log
+.env
+.env.*
+Dockerfile
+.dockerignore
+README.md
+.claude
+BACKUP_AUDIT.md
+PROJECT.md
+WORKFLOW.MD

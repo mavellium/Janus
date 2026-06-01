@@ -1,11 +1,13 @@
 FROM node:20-alpine AS base
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
 
 # 1. Dependências
 FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm install
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # 2. Build
 FROM base AS builder
@@ -14,13 +16,13 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # ---> O PULO DO GATO: Gerar os tipos do Prisma ANTES do Next.js compilar <---
-RUN npx prisma generate
+RUN pnpm exec prisma generate
 
 # Injeção da URL da API (Janus utiliza NEXT_PUBLIC_URL_API conforme o padrão)
 ARG NEXT_PUBLIC_URL_API
 ENV NEXT_PUBLIC_URL_API=$NEXT_PUBLIC_URL_API
 
-RUN npm run build
+RUN pnpm run build
 
 # 3. Runner (Produção)
 FROM base AS runner
