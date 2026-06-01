@@ -1,5 +1,7 @@
 FROM node:20-alpine AS base
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
 # 1. Dependências
@@ -7,7 +9,8 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --reporter=append-only
 
 # 2. Build
 FROM base AS builder
