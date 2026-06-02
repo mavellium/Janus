@@ -65,12 +65,15 @@ journalctl -u janus-backup.service -n 30 --no-pager
 
 ```bash
 sudo systemd-run --scope \
-  -p CPUQuota=50% -p MemoryMax=512M -p Nice=19 \
+  -p CPUQuota=50% -p MemoryMax=512M \
   --working-directory=/var/www/janus/Janus \
   /usr/local/bin/node node_modules/tsx/dist/cli.mjs src/scripts/backup.ts manual
 
 ls -lh backups/        # deve aparecer um janus-manual-*.sql.gz
 ```
+
+> `systemd-run --scope` não aceita `-p Nice=`; o `pg_dump` já roda com
+> `nice -19`/`ionice` embutidos, então não é necessário aqui.
 
 Em paralelo, em outro terminal, confirme que o teto segura:
 ```bash
