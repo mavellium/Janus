@@ -6,12 +6,13 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/var/www/janus/Janus
-ExecStart=/bin/bash -lc 'exec pnpm backup:daemon'
+Environment=BACKUP_ON_BOOT=false
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/local/bin/node /var/www/janus/Janus/node_modules/.bin/tsx src/scripts/backup-daemon.ts
 Restart=on-failure
 RestartSec=30
-Environment=BACKUP_ON_BOOT=false
 
-# ---- Teto DURO de recursos (cgroup cobre node + gzip + pg_dump) ----
+# ---- Teto DURO de recursos (cgroup cobre node + gzip) ----
 CPUQuota=50%
 CPUWeight=10
 MemoryMax=512M
