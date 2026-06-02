@@ -4,6 +4,29 @@
 
 ---
 
+### [2026-06-02] — Política de retenção: daily 3, sem weekly
+
+**Arquivos:**
+- `src/scripts/backup.ts`: `BackupType` removido `'weekly'` (agora `manual | daily | monthly`)
+- `src/scripts/backup-daemon.ts`: `RETENTION.daily` 7→3, removido `weekly`; cron semanal (`0 3 * * 0`) removido — restam daily 02:00 e monthly dia 1 04:00
+
+**Razão:** Pedido do usuário — manter 3 backups diários rotativos (mais novo sobrescreve o mais antigo) + 3 mensais; semanal desnecessário.
+
+**Impacto:** `cleanOldBackups('daily')` mantém os 3 mais recentes por mtime, apaga o resto. Arquivos `janus-weekly-*` antigos não são mais gerados nem rotacionados (apagar manualmente se existirem).
+
+---
+
+### [2026-06-02] — Fix: pg_dump via spawn argv (Windows + quoting)
+
+**Arquivos:**
+- `src/scripts/backup.ts`: `spawn(cmd, {shell:true})` + `sh -c '...'` (aspas simples, quebra no cmd.exe do Windows) substituído por `spawn(command, args[])` sem shell; nice/ionice preservados via `sh -c '... "$@"'` como arg único do `docker`.
+
+**Razão:** `pnpm backup:now` no Windows falhava com "não pode encontrar o caminho" — cmd.exe não entende aspas simples.
+
+**Impacto:** Backup funciona em Windows e Linux. Verificado: `.sql.gz` íntegro (magic 1f 8b).
+
+---
+
 ### [2026-05-31] — Otimização de CPU/RAM (streaming + gzip -1 + nice/ionice)
 
 **Arquivos:**

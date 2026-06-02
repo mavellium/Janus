@@ -7,8 +7,7 @@ const BACKUPS_DIR = path.resolve(process.cwd(), 'backups')
 
 const RETENTION: Record<BackupType, number> = {
   manual: 10,
-  daily: 7,
-  weekly: 4,
+  daily: 3,
   monthly: 3,
 }
 
@@ -63,10 +62,9 @@ async function main() {
   }
 
   cron.schedule('0 2 * * *', () => void executeBackup('daily'))
-  cron.schedule('0 3 * * 0', () => void executeBackup('weekly'))
   cron.schedule('0 4 1 * *', () => void executeBackup('monthly'))
 
-  console.log(`[${new Date().toISOString()}] Agendamentos registrados: diário 02:00, semanal dom 03:00, mensal dia 1 04:00`)
+  console.log(`[${new Date().toISOString()}] Agendamentos registrados: diário 02:00 (mantém 3), mensal dia 1 04:00 (mantém 3)`)
 }
 
 main().catch((err) => {

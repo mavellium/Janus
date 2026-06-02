@@ -3,7 +3,7 @@
 ## Type: BackupType
 
 ```typescript
-export type BackupType = 'manual' | 'daily' | 'weekly' | 'monthly'
+export type BackupType = 'manual' | 'daily' | 'monthly'
 ```
 
 Determina o prefixo do arquivo gerado e a política de retenção aplicada na rotação.
@@ -27,8 +27,7 @@ Extraída de `DATABASE_URL` via `new URL()`. Usada para montar os argumentos dos
 ```typescript
 const RETENTION: Record<BackupType, number> = {
   manual:  10,
-  daily:    7,
-  weekly:   4,
+  daily:    3,
   monthly:  3,
 }
 ```

@@ -10,7 +10,7 @@ dotenv.config()
 
 const BACKUPS_DIR = path.resolve(process.cwd(), 'backups')
 
-export type BackupType = 'manual' | 'daily' | 'weekly' | 'monthly'
+export type BackupType = 'manual' | 'daily' | 'monthly'
 
 interface DBConfig {
   host: string

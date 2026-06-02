@@ -47,12 +47,11 @@
 
 | Cron | Tipo | Horário |
 |------|------|---------|
-| `0 2 * * *` | `daily` | Todo dia 02:00 |
-| `0 3 * * 0` | `weekly` | Domingo 03:00 |
-| `0 4 1 * *` | `monthly` | Dia 1 de cada mês 04:00 |
+| `0 2 * * *` | `daily` | Todo dia 02:00 (mantém 3) |
+| `0 4 1 * *` | `monthly` | Dia 1 de cada mês 04:00 (mantém 3) |
 
 Sequência de boot do daemon:
 1. Log `Backup daemon iniciado`
-2. `await executeBackup('manual')` — **bloqueante**, executa antes de registrar os crons
-3. `cron.schedule(...)` × 3
-4. Log confirmando os 3 agendamentos
+2. `await executeBackup('manual')` — **bloqueante**, executa antes de registrar os crons (pulável via `BACKUP_ON_BOOT=false`)
+3. `cron.schedule(...)` × 2
+4. Log confirmando os 2 agendamentos
