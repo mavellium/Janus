@@ -1,0 +1,28 @@
+[Unit]
+Description=Janus Backup Daemon (pg_dump agendado + rotacao)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/janus/Janus
+ExecStart=/bin/bash -lc 'exec pnpm backup:daemon'
+Restart=on-failure
+RestartSec=30
+Environment=BACKUP_ON_BOOT=false
+
+# ---- Teto DURO de recursos (cgroup cobre node + gzip + pg_dump) ----
+CPUQuota=50%
+CPUWeight=10
+MemoryMax=512M
+MemoryHigh=384M
+Nice=19
+IOSchedulingClass=idle
+IOWeight=10
+
+# ---- Hardening basico ----
+NoNewPrivileges=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
