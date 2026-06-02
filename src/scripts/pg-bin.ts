@@ -47,6 +47,10 @@ export function resolvePgContext(port: string): PgExecContext {
     return { mode: 'local', binPath: process.env.PGBIN }
   }
 
+  if (process.env.BACKUP_PG_CONTAINER) {
+    return { mode: 'docker', containerName: process.env.BACKUP_PG_CONTAINER }
+  }
+
   const container = findDockerContainerByPort(port)
   if (container) {
     return { mode: 'docker', containerName: container }

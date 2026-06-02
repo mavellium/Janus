@@ -60,9 +60,14 @@ export function buildPgCommand(ctx: PgExecContext, executable: string, args: str
 | Prioridade | Condição | Resultado |
 |-----------|----------|-----------|
 | 1 | `PGBIN` definido no env | `mode: 'local'` com `binPath` |
-| 2 | Container Docker mapeando a porta do banco | `mode: 'docker'` com `containerName` |
-| 3 | Windows + PG instalado em `Program Files` | `mode: 'local'` com `binPath` local |
-| 4 | Fallback | `mode: 'local'` sem `binPath` (assume PATH) |
+| 2 | `BACKUP_PG_CONTAINER` definido no env | `mode: 'docker'` com esse container (nome explícito) |
+| 3 | Container Docker mapeando a porta do banco | `mode: 'docker'` com `containerName` |
+| 4 | Windows + PG instalado em `Program Files` | `mode: 'local'` com `binPath` local |
+| 5 | Fallback | `mode: 'local'` sem `binPath` (assume PATH) |
+
+> **`BACKUP_PG_CONTAINER` é obrigatório em hosts com múltiplos Postgres.** A
+> detecção por porta (prio 3) pode pegar o container errado se outro projeto
+> mapear a mesma porta. Em produção, fixe o nome (ex.: `janus-db-prod`).
 
 `buildPgCommand` monta o comando final:
 - **docker:** `docker exec {container} {executable} {args}`

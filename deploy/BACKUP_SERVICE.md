@@ -64,9 +64,10 @@ journalctl -u janus-backup.service -n 30 --no-pager
 ## 5. Testar um backup AGORA (sem esperar 02:00) sob o mesmo teto
 
 ```bash
-sudo systemd-run --scope \
+sudo BACKUP_PG_CONTAINER=janus-db-prod systemd-run --scope \
   -p CPUQuota=50% -p MemoryMax=512M \
   --working-directory=/var/www/janus/Janus \
+  --setenv=BACKUP_PG_CONTAINER=janus-db-prod \
   /usr/local/bin/node node_modules/tsx/dist/cli.mjs src/scripts/backup.ts manual
 
 ls -lh backups/        # deve aparecer um janus-manual-*.sql.gz
@@ -89,6 +90,12 @@ sudo systemctl daemon-reload && sudo systemctl restart janus-backup.service
 
 ## Notas
 
+- **`BACKUP_PG_CONTAINER=janus-db-prod`** (no `.service`): fixa QUAL container
+  Postgres dumpar. Obrigatório neste host, que tem vários Postgres — a detecção
+  automática por porta pegaria o container errado (o `DATABASE_URL` usa
+  `janus-db:5432`, e a porta 5432 do host é de outro projeto). Sempre que o teste
+  manual rodar fora do service, exporte antes:
+  `export BACKUP_PG_CONTAINER=janus-db-prod`
 - `BACKUP_ON_BOOT=false`: não dispara dump pesado a cada restart/reboot do
   service. Remova a linha se quiser backup no boot.
 - **`pg_dump` x teto duro:** o dump roda dentro do container `janus-db-prod`

@@ -4,6 +4,18 @@
 
 ---
 
+### [2026-06-02] — BACKUP_PG_CONTAINER: alvo explícito (corrige banco errado)
+
+**Arquivos:**
+- `src/scripts/pg-bin.ts`: `resolvePgContext` ganha prioridade 2 — se `BACKUP_PG_CONTAINER` definido, usa esse container direto (pula detecção por porta)
+- `deploy/janus-backup.service`: `Environment=BACKUP_PG_CONTAINER=janus-db-prod`
+
+**Razão:** A VPS tem ~8 containers Postgres. A detecção por porta pegava o container errado — `DATABASE_URL` usa `janus-db:5432` e a porta 5432 do host é de outro projeto (`nairim-postgres`) → `role "janus_admin" does not exist`. Risco real de dumpar o banco errado.
+
+**Impacto:** Em produção o backup mira `janus-db-prod` por nome. Detecção por porta vira fallback. `PGBIN` continua prioridade máxima.
+
+---
+
 ### [2026-06-02] — Política de retenção: daily 3, sem weekly
 
 **Arquivos:**
