@@ -404,6 +404,8 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 | Data       | Arquivo                                       | O que foi feito                                            |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
+| 2026-06-02 | `src/scripts/backup-daemon.ts`, `src/scripts/backup.ts` | CONFIG: retenção daily 7→3, removido weekly (tipo + cron); restam daily 02:00 (3) e monthly dia 1 (3) |
+| 2026-06-02 | `src/scripts/backup.ts` | FIX: pg_dump via `spawn(command,args[])` sem shell — corrige quebra no Windows (cmd.exe não entende aspas simples do `sh -c '...'`) |
 | 2026-05-31 | `Dockerfile`, `.dockerignore`, `package.json` | BUILD: Docker migrado de npm para pnpm — corepack + `pnpm@10.33.3` pinado; `pnpm install --frozen-lockfile` (usa pnpm-lock.yaml, antes ignorado); `pnpm exec prisma generate` + `pnpm run build`; novo `.dockerignore` evita host node_modules sobrescrever o do estágio deps |
 | 2026-05-31 | `src/scripts/backup.ts`, `src/scripts/backup-daemon.ts`, `src/scripts/restore.ts`, `BACKUP_AUDIT.md` | PERF: backup em streaming `pg_dump → gzip(level 1)` (remove buffer 512MB/RAM→swap); `nice -n 19`/`ionice -c3` no pg_dump (docker); saída `.sql.gz`; restore retrocompatível; logs de duração/tamanho; `BACKUP_ON_BOOT` opcional |
 | 2026-05-31 | `src/app/api/[companySlug]/[projectId]/blog/route.ts`, `package.json` | FIX: resolvido merge conflict (imports rate-limit + slug); instalado `@tiptap/extension-text-style`; build volta a passar |
