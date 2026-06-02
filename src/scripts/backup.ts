@@ -4,7 +4,7 @@ import { spawn } from 'child_process'
 import { createGzip } from 'zlib'
 import { pipeline } from 'stream/promises'
 import * as dotenv from 'dotenv'
-import { resolvePgContext, buildPgCommand } from './pg-bin'
+import { resolvePgContext } from './pg-bin'
 
 dotenv.config()
 
@@ -36,15 +36,22 @@ function buildFilename(type: BackupType): string {
   return `janus-${type}-${timestamp}.sql.gz`
 }
 
-function buildDumpCommand(
+function buildDumpSpawn(
   ctx: ReturnType<typeof resolvePgContext>,
-  args: string,
-): string {
+  pgArgs: string[],
+): { command: string; args: string[] } {
   if (ctx.mode === 'docker' && ctx.containerName) {
-    const inner = `if command -v ionice >/dev/null 2>&1; then exec nice -n 19 ionice -c3 pg_dump ${args}; else exec nice -n 19 pg_dump ${args}; fi`
-    return `docker exec ${ctx.containerName} sh -c '${inner}'`
+    const inner =
+      'if command -v ionice >/dev/null 2>&1; then exec nice -n 19 ionice -c3 pg_dump "$@"; else exec nice -n 19 pg_dump "$@"; fi'
+    return {
+      command: 'docker',
+      args: ['exec', ctx.containerName, 'sh', '-c', inner, 'sh', ...pgArgs],
+    }
   }
-  return buildPgCommand(ctx, 'pg_dump', args)
+  const bin = ctx.binPath
+    ? path.join(ctx.binPath, process.platform === 'win32' ? 'pg_dump.exe' : 'pg_dump')
+    : 'pg_dump'
+  return { command: bin, args: pgArgs }
 }
 
 export async function runBackup(type: BackupType): Promise<string> {
@@ -63,12 +70,19 @@ export async function runBackup(type: BackupType): Promise<string> {
   const ctx = resolvePgContext(db.port)
   const pgHost = ctx.mode === 'docker' ? '127.0.0.1' : db.host
   const pgPort = ctx.mode === 'docker' ? '5432' : db.port
-  const args = `--host=${pgHost} --port=${pgPort} --username=${db.user} --dbname=${db.database} --no-password --format=plain`
+  const pgArgs = [
+    `--host=${pgHost}`,
+    `--port=${pgPort}`,
+    `--username=${db.user}`,
+    `--dbname=${db.database}`,
+    '--no-password',
+    '--format=plain',
+  ]
 
-  const cmd = buildDumpCommand(ctx, args)
+  const { command, args } = buildDumpSpawn(ctx, pgArgs)
   const env = { ...process.env, PGPASSWORD: db.password }
 
-  const child = spawn(cmd, { shell: true, env })
+  const child = spawn(command, args, { env })
 
   let stderr = ''
   child.stderr.on('data', (chunk) => {
