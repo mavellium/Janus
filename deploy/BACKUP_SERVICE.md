@@ -67,7 +67,7 @@ journalctl -u janus-backup.service -n 30 --no-pager
 sudo systemd-run --scope \
   -p CPUQuota=50% -p MemoryMax=512M -p Nice=19 \
   --working-directory=/var/www/janus/Janus \
-  /usr/local/bin/node node_modules/.bin/tsx src/scripts/backup.ts manual
+  /usr/local/bin/node node_modules/tsx/dist/cli.mjs src/scripts/backup.ts manual
 
 ls -lh backups/        # deve aparecer um janus-manual-*.sql.gz
 ```
