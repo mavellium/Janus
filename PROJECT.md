@@ -233,6 +233,16 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/components/ThemeProvider.tsx` — Client — provedor de tema para dashboard com preferências do usuário
 - `src/components/GlobalThemeProvider.tsx` — Client — provedor global de tema com sincronização periódica + troca de favicon (favicon.png claro / favicon-white.png escuro)
 - `src/components/ThemeScript.tsx` — Client — aplica classe dark no HTML e observa mudanças para atualizar favicon dinamicamente
+- `src/components/analytics/KpiCard.tsx` — Server — card de métrica (label, valor formatado pt-BR, ícone lucide)
+- `src/components/analytics/AnalyticsAreaChart.tsx` — Client — gráfico de área recharts (views/visitors), cores via var(--brand-*), responsivo/dark
+- `src/components/analytics/Ga4SetupForm.tsx` — Client — empty state com input do Property ID + useActionState (escopo projeto: `companySlug` + `projectId` obrigatórios), aceita `onSuccess` callback, router.refresh ao salvar
+- `src/components/analytics/AnalyticsPanel.tsx` — Client — orquestra a página de resultados por projeto: empty state (sem propertyId) → form; senão fetch em `/api/analytics`, botão "Alterar" para trocar o Property ID, FunnelCard + KpiCards + EventConversionsCard + AreaChart + ChannelConversionTable + TrafficSourceTable + TopPagesTable
+- `src/components/analytics/FunnelCard.tsx` — Server — funil Visitantes→Engajados→Convertidos (7d vs 7d anteriores): badge de variação %, "% do total", drop-off entre etapas
+- `src/components/analytics/EventConversionsCard.tsx` — Client — lista de eventos/conversões (7d) com toggle "Mais conversões/Menos conversões/A→Z" e barra proporcional
+- `src/components/analytics/ChannelConversionTable.tsx`, `TrafficSourceTable.tsx`, `TopPagesTable.tsx` — Server — wrappers do `AnalyticsDataTable` para canais (taxa de conversão), origem/mídia e páginas mais acessadas (30d)
+- `src/components/analytics/AnalyticsDataTable.tsx` — Client — tabela genérica reutilizável com sort por coluna (clique no cabeçalho), usada pelas 3 tabelas acima
+- `src/components/analytics/MetricBar.tsx` — Server — célula com barra proporcional (mini progress bar) + valor formatado, usada nas tabelas
+- `src/components/analytics/CompanyAnalyticsOverview.tsx` — Server — panorama geral da empresa: **soma de todos os projetos com GA4** (sem campo de ID, sem form, sem botão); KpiCards + AreaChart; empty state informativo se nenhum projeto configurado
 
 ---
 
@@ -295,15 +305,25 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **User** (`users`) — id (UUID), email (unique), password (text), role (**DEFAULT/ADMIN/DEVELOPER**), image (String?), preferences (Json? default {}), **companyId (UUID?, nullable fk→companies SET NULL)**, **createdById (UUID?, id do criador)**, requiresPasswordReset (bool), permissions (String[]), createdAt, updatedAt, deletedAt
 - **UserCompany** (`user_companies`) — id (UUID), userId (fk→users CASCADE), companyId (fk→companies CASCADE), permissions (String[]), createdAt | @@unique([userId, companyId])
 - **LoginAttempt** (`login_attempts`) — id (UUID), ip (string, indexed), email (string optional), createdAt
-- **Project** (`projects`) — id (UUID), companyId (UUID, fk→companies **CASCADE**), name (string), type (LANDING_PAGE|INSTITUTIONAL), **previewUrl (String?, nullable)**, isActive (bool), deletedBy, deletionReason, deletedAt, createdAt, updatedAt
+- **Project** (`projects`) — id (UUID), companyId (UUID, fk→companies **CASCADE**), name (string), type (LANDING_PAGE|INSTITUTIONAL), **previewUrl (String?, nullable)**, **ga4PropertyId (String?, Property ID do GA4 do projeto)**, isActive (bool), deletedBy, deletionReason, deletedAt, createdAt, updatedAt
 - **Page** (`pages`) — id (UUID), projectId (UUID, fk→projects **CASCADE**), name, slug (unique per project), content (Json, legacy), **schemaData (Json, default {}, headless schema)**, **contentData (Json, default {}, valores preenchidos)**, isPublished (bool, default false), createdAt, updatedAt, deletedAt
 - **SiteScript** (`site_scripts`) — id (UUID), name, code (Text), position (HEAD|BODY_END enum), isActive (bool default true), projectId (UUID, fk→projects CASCADE), createdAt, updatedAt
 - **ProjectHistory** (`project_histories`) — id (UUID), projectId (UUID, fk→projects **CASCADE**), userId (UUID, fk→users **CASCADE**), previousState (Json?), newState (Json?), version (Int), createdAt
 
 ---
 
+## Módulos
+
+### analytics
+- **Actions:** `updateProjectGa4.ts` — salva `ga4PropertyId` no Project (Zod, auth por slug, revalida)
+- **Queries:** `getProjectGa4.ts` — projeto (id/name/ga4PropertyId) autorizado por slug | `getAnalyticsData.ts` — relatório completo GA4 de 1 propertyId (`FullAnalyticsReport`) | `getCompanyAnalytics.ts` — panorama da empresa: **soma a série de TODOS os projetos** com GA4 (sites + landing pages); sem propertyId master; KPIs simples
+- **`AnalyticsPanel`** (escopo projeto) é **Client Component** — busca `GET /api/analytics?propertyId=` via `useEffect`; Property ID + botão "Alterar" + form de setup visíveis **apenas para ADMIN/DEVELOPER** (via prop `userRole`); usuários comuns veem só os dados
+- **`/dashboard/results`** (panorama geral) **não tem campo de ID nem botão para ninguém** — apenas soma automática de todos os projetos com GA4 configurado
+- **GA4 client** usa `batchRunReports` (1 chamada de rede, 6 relatórios): série diária 30d, funil 7d (dateRange `current_range`/`previous_range`), eventos/conversões 7d, canais 30d, origem/mídia 30d, páginas 30d
+
 ## Lib / Utilitários
 
+- `src/lib/analytics/ga4-client.ts` — `BetaAnalyticsDataClient` via Service Account (env GA4_*); `getAnalyticsMetrics(propertyId, start, end)` retorna totais + série diária (usado pelo panorama da empresa); `getFullAnalyticsReport(propertyId)` retorna `{ metrics, funnel, events, channels, sources, pages }` via `batchRunReports` (usado na página de resultados por projeto)
 - `src/lib/prisma.ts` — singleton do PrismaClient com `accelerateUrl` (Prisma 7, export `db`)
 - `src/lib/auth.config.ts` — NextAuthConfig base: authorized callback protege `/first-access`, `/no-company`, `/select-company` (login obrigatório); rota raiz e `/login` redirecionam para `/no-company` quando `slug` é nulo; middleware reforça separação de roles
 - `src/lib/auth.ts` — NextAuth v5: CredentialsProvider + PrismaAdapter + JWT strategy
@@ -404,6 +424,10 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 | Data       | Arquivo                                       | O que foi feito                                            |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
+| 2026-06-19 | `src/lib/analytics/ga4-client.ts` | FIX: GA4 retornava 502 — funil com `dimensions:[dateRange]` quebrava (GA4 já adiciona auto com dateRanges nomeados); `batchRunReports` limitado a 5 requests → split em 2 batches paralelos (5+1) |
+| 2026-06-19 | `prisma/schema.prisma`, `migrations/20260619000000_remove_company_ga4_property_id`, `src/modules/analytics/queries/getCompanyAnalytics.ts`, `src/components/analytics/CompanyAnalyticsOverview.tsx`, `src/components/analytics/AnalyticsPanel.tsx`, `Ga4SetupForm.tsx`, páginas analytics (sites+lp+results); **removido** `updateCompanyGa4.ts` | REFACTOR: `/dashboard/results` é só soma de TODOS os projetos (sem campo de ID, sem botão, para qualquer role); removida coluna `Company.ga4PropertyId` + action + escopo company do form; Property ID/botão "Alterar"/setup nas páginas por projeto agora **só para ADMIN/DEVELOPER** (prop `userRole`) |
+| 2026-06-18 | `src/lib/analytics/ga4-client.ts`, `src/modules/analytics/queries/getAnalyticsData.ts`, `src/app/api/analytics/route.ts`, `src/components/analytics/AnalyticsPanel.tsx` (Client), novos `FunnelCard.tsx`, `EventConversionsCard.tsx`, `ChannelConversionTable.tsx`, `TrafficSourceTable.tsx`, `TopPagesTable.tsx`, `AnalyticsDataTable.tsx`, `MetricBar.tsx` | FEAT: Resultados/Analytics GA4 expandido (escopo projeto) — `getFullAnalyticsReport` via `batchRunReports` (1 round-trip, 6 relatórios); funil Visitantes→Engajados→Convertidos (7d vs 7d anteriores) com drop-off; conversões por evento (sort); canais com taxa de conversão; origem/mídia; páginas mais acessadas (todas sortáveis); botão "Alterar" para trocar o Property ID sem reload |
+| 2026-06-02 | `prisma/schema.prisma`, `migrations/20260602000000_add_ga4_property_id`, `src/lib/analytics/ga4-client.ts`, `src/modules/analytics/*`, `src/components/analytics/*`, `src/app/api/analytics/route.ts`, páginas analytics (sites+lp), `/dashboard/results` e home da empresa | FEAT: Resultados/Analytics GA4 (v1) — `ga4PropertyId` em Company/Project; cliente GA4 (Service Account); rota GET /api/analytics; actions p/ salvar Property ID; KPIs + gráfico de área (recharts) responsivo/dark; dashboard específico e geral com empty state |
 | 2026-06-02 | `src/scripts/backup-daemon.ts`, `src/scripts/backup.ts` | CONFIG: retenção daily 7→3, removido weekly (tipo + cron); restam daily 02:00 (3) e monthly dia 1 (3) |
 | 2026-06-02 | `src/scripts/backup.ts` | FIX: pg_dump via `spawn(command,args[])` sem shell — corrige quebra no Windows (cmd.exe não entende aspas simples do `sh -c '...'`) |
 | 2026-05-31 | `Dockerfile`, `.dockerignore`, `package.json` | BUILD: Docker migrado de npm para pnpm — corepack + `pnpm@10.33.3` pinado; `pnpm install --frozen-lockfile` (usa pnpm-lock.yaml, antes ignorado); `pnpm exec prisma generate` + `pnpm run build`; novo `.dockerignore` evita host node_modules sobrescrever o do estágio deps |

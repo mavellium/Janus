@@ -69,6 +69,9 @@
 ### Backup (`src/scripts/`)
 - **[context/backup/_index.md](context/backup/_index.md)** — pg_dump, daemon cron, restauração CLI
 
+### Analytics (`src/modules/analytics/` + `src/lib/analytics/`)
+- **[context/analytics/_index.md](context/analytics/_index.md)** — GA4 Data API, dashboards de Resultados (projeto + panorama), funil/eventos/canais/páginas
+
 ### CMS (Headless)
 - **[context/cms/_index.md](context/cms/_index.md)** — Schema builder, content editor, preview
 

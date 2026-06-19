@@ -149,6 +149,7 @@ model Project {
   previewUrl         String?      @map("preview_url")
   cmsSyncScriptUrl   String?      @map("cms_sync_script_url")
   cmsEnabled         Boolean      @default(false) @map("cms_enabled")
+  ga4PropertyId      String?      @map("ga4_property_id")
   isActive           Boolean      @default(true) @map("is_active")
   blogEnabled        Boolean      @default(false) @map("blog_enabled")
   deletedBy       String?      @map("deleted_by")

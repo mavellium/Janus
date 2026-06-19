@@ -19,6 +19,7 @@ export default async function DashboardPage({
 
   const company = await db.company.findUnique({
     where: { slug: companySlug, deletedAt: null },
+    select: { id: true },
   })
   if (!company) redirect('/login')
 
