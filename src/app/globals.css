@@ -92,6 +92,15 @@
   to { opacity: 0; }
 }
 
+@keyframes releaseCardIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.release-card-in {
+  animation: releaseCardIn 400ms ease-out both;
+}
+
 .sidebar-link:hover {
   background-color: var(--sidebar-hover-bg) !important;
   color: var(--sidebar-hover-text) !important;

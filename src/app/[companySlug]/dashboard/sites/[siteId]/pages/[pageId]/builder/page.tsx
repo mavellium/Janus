@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/prisma";
 import { SchemaBuilderEditor } from "@/components/schema-builder/SchemaBuilderEditor";
 import { headers } from "next/headers";
-import { checkPermission, isPrivilegedRole } from "@/lib/auth/permissions";
+import { checkPermission, isEffectivePrivilegedRole } from "@/lib/auth/permissions";
 import { unstable_noStore } from "next/cache";
 
 export const metadata = { title: "Construir — Janus" };
@@ -52,6 +52,7 @@ export default async function SiteSchemaBuilderPage({
   });
   if (!page) redirect(`/${companySlug}/dashboard/sites/${siteId}/pages`);
 
+  const canViewEndpoint = await isEffectivePrivilegedRole(session.user.role);
   const headersList = await headers();
   const host = headersList.get("host");
   const protocol = host?.includes("localhost") ? "http" : "https";
@@ -75,7 +76,7 @@ export default async function SiteSchemaBuilderPage({
       initialCmsEnabled={project.cmsEnabled}
       initialCmsSyncScriptUrl={project.cmsSyncScriptUrl ?? null}
       sitePreviewUrl={project.previewUrl ?? null}
-      canViewEndpoint={isPrivilegedRole(session.user.role)}
+      canViewEndpoint={canViewEndpoint}
     />
   );
 }

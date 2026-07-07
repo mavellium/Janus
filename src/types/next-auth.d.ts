@@ -5,6 +5,7 @@ export interface UserPreferences {
   sidebar_collapsed?: boolean
   theme?: 'light' | 'dark'
   darkMode?: boolean
+  notifications_last_seen_at?: string
 }
 
 declare module 'next-auth' {

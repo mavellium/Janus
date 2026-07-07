@@ -10,7 +10,7 @@ import { getBlogPostVersions } from '@/modules/blog/queries/getBlogPostVersions'
 import { getBlogComments } from '@/modules/blog/queries/getBlogComments'
 import { PostEditorClient } from '@/components/blog/PostEditorClient'
 import { ApiEndpointBanner } from '@/components/blog/ApiEndpointBanner'
-import { isPrivilegedRole } from '@/lib/auth/permissions'
+import { isEffectivePrivilegedRole } from '@/lib/auth/permissions'
 
 export const metadata = { title: 'Editar Artigo — Janus' }
 
@@ -47,7 +47,7 @@ export default async function LpEditPostPage({
 
   const basePath = `/${companySlug}/dashboard/landing-pages/${lpId}`
 
-  const isDeveloperOrAdmin = isPrivilegedRole(session.user.role)
+  const isDeveloperOrAdmin = await isEffectivePrivilegedRole(session.user.role)
   const headersList = await headers()
   const host = headersList.get('host') ?? 'localhost:3000'
   const proto = headersList.get('x-forwarded-proto') ?? (host.includes('localhost') ? 'http' : 'https')

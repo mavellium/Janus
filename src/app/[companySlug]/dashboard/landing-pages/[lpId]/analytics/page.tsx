@@ -2,6 +2,7 @@ import { unstable_noStore as noStore } from 'next/cache'
 import { notFound, redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getProjectGa4 } from '@/modules/analytics/queries/getProjectGa4'
+import { getEffectiveRole } from '@/lib/auth/permissions'
 import { AnalyticsPanel } from '@/components/analytics/AnalyticsPanel'
 
 export const metadata = { title: 'Resultados — Janus' }
@@ -20,6 +21,8 @@ export default async function LandingPageAnalyticsPage({
   const project = await getProjectGa4(lpId, companySlug)
   if (!project) notFound()
 
+  const effectiveRole = await getEffectiveRole(session.user.role)
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 w-full">
       <div className="mb-8">
@@ -33,7 +36,7 @@ export default async function LandingPageAnalyticsPage({
         companySlug={companySlug}
         propertyId={project.ga4PropertyId}
         projectId={project.id}
-        userRole={session.user.role}
+        userRole={effectiveRole ?? undefined}
       />
     </div>
   )

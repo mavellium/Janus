@@ -6,7 +6,7 @@ import { getBlogCategories } from '@/modules/blog/queries/getBlogCategories'
 import { CategoriesClient } from '@/components/blog/CategoriesClient'
 import { BlogManagementHeader } from '@/components/blog/BlogManagementHeader'
 import { ApiEndpointBanner } from '@/components/blog/ApiEndpointBanner'
-import { isPrivilegedRole } from '@/lib/auth/permissions'
+import { isEffectivePrivilegedRole } from '@/lib/auth/permissions'
 
 export const metadata = { title: 'Categorias — Janus' }
 
@@ -27,7 +27,7 @@ export default async function LpBlogCategoriesPage({
   const categories = await getBlogCategories(lpId)
   const basePath = `/${companySlug}/dashboard/landing-pages/${lpId}`
 
-  const isDeveloperOrAdmin = isPrivilegedRole(session.user.role)
+  const isDeveloperOrAdmin = await isEffectivePrivilegedRole(session.user.role)
   const headersList = await headers()
   const host = headersList.get('host') ?? 'localhost:3000'
   const proto = headersList.get('x-forwarded-proto') ?? (host.includes('localhost') ? 'http' : 'https')

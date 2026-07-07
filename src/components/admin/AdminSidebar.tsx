@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Building2, Users, Settings, LogOut,
-  PanelLeftClose, PanelLeftOpen, UserCircle, Code2, Shield,
+  PanelLeftClose, PanelLeftOpen, UserCircle, Code2, Shield, Bell,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
@@ -15,9 +15,11 @@ interface AdminSidebarProps {
   email: string
   image?: string | null
   embedded?: boolean
+  currentVersion?: string | null
+  unreadNotifications?: number
 }
 
-export function AdminSidebar({ email, image, embedded = false }: AdminSidebarProps) {
+export function AdminSidebar({ email, image, embedded = false, currentVersion = null, unreadNotifications = 0 }: AdminSidebarProps) {
   const [collapsedState, setCollapsedState] = useState(false)
   const collapsed = embedded ? false : collapsedState
   const [isDark, setIsDark] = useState(false)
@@ -49,6 +51,7 @@ export function AdminSidebar({ email, image, embedded = false }: AdminSidebarPro
     { label: 'Desenvolvedores', href: '/dashboard-admin/developers', icon: Code2 },
     { label: 'Usuários', href: '/dashboard-admin/users', icon: Users },
     { label: 'Logs', href: '/dashboard-admin/logs', icon: Shield },
+    { label: 'Notificações', href: '/dashboard-admin/notifications', icon: Bell },
     { label: 'Configurações', href: '/dashboard-admin/settings', icon: Settings },
   ]
 
@@ -141,7 +144,14 @@ export function AdminSidebar({ email, image, embedded = false }: AdminSidebarPro
         )}
         {NAV_ITEMS.map(({ label, href, icon: Icon }) => (
           <Link key={href} href={href} title={collapsed ? label : undefined} className={itemClass(href)}>
-            <Icon size={16} className="flex-shrink-0" />
+            <span className="relative flex-shrink-0">
+              <Icon size={16} />
+              {unreadNotifications > 0 && href.endsWith('/notifications') && (
+                <span className="absolute -top-2 -right-2.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                </span>
+              )}
+            </span>
             {collapsed
               ? <span className="text-[10px] text-center leading-tight line-clamp-2 w-full">{label}</span>
               : <span>{label}</span>
@@ -198,6 +208,16 @@ export function AdminSidebar({ email, image, embedded = false }: AdminSidebarPro
             : <span>Sair</span>
           }
         </button>
+
+        {currentVersion && (
+          <Link
+            href="/dashboard-admin/notifications"
+            title="Ver notas de versão"
+            className="block text-center text-[10px] text-sidebar-icon opacity-60 hover:opacity-100 transition-opacity"
+          >
+            {collapsed ? currentVersion : `Versão: ${currentVersion}`}
+          </Link>
+        )}
       </div>
     </aside>
   )

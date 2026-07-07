@@ -5,7 +5,7 @@ import { db } from '@/lib/prisma'
 import { getScriptsByProjectId } from '@/modules/scripts/queries/getScriptsByProjectId'
 import { ScriptsClient } from '@/components/scripts/ScriptsClient'
 import { ApiEndpointBanner } from '@/components/blog/ApiEndpointBanner'
-import { isPrivilegedRole } from '@/lib/auth/permissions'
+import { isEffectivePrivilegedRole } from '@/lib/auth/permissions'
 
 export const metadata = { title: 'Scripts — Janus' }
 
@@ -30,7 +30,7 @@ export default async function ScriptsPage({
 
   const scripts = await getScriptsByProjectId(siteId)
 
-  const isDeveloperOrAdmin = isPrivilegedRole(session.user.role)
+  const isDeveloperOrAdmin = await isEffectivePrivilegedRole(session.user.role)
   const headersList = await headers()
   const host = headersList.get('host') ?? 'localhost:3000'
   const proto = headersList.get('x-forwarded-proto') ?? (host.includes('localhost') ? 'http' : 'https')

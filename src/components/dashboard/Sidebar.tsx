@@ -22,9 +22,11 @@ interface SidebarProps {
   initialCollapsed: boolean
   companyName?: string
   embedded?: boolean
+  currentVersion?: string | null
+  unreadNotifications?: number
 }
 
-export function Sidebar({ email, name, image, initialCollapsed, companyName, embedded = false }: SidebarProps) {
+export function Sidebar({ email, name, image, initialCollapsed, companyName, embedded = false, currentVersion = null, unreadNotifications = 0 }: SidebarProps) {
   const [collapsedState, setCollapsedState] = useState(embedded ? false : initialCollapsed)
   const collapsed = embedded ? false : collapsedState
   const { darkMode: isDark, userImage } = useTheme()
@@ -269,16 +271,24 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
       </nav>
 
       <div style={{ padding: '8px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        <button
+        <Link
+          href={`/${companySlug}/dashboard/notifications`}
           title={collapsed ? 'Notificações' : undefined}
-          className={utilItemClasses()}
+          className={utilItemClasses(pathname.includes('/notifications'))}
         >
-          <Bell size={16} className="flex-shrink-0" />
+          <span className="relative flex-shrink-0">
+            <Bell size={16} />
+            {unreadNotifications > 0 && (
+              <span className="absolute -top-2 -right-2.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                {unreadNotifications > 9 ? '9+' : unreadNotifications}
+              </span>
+            )}
+          </span>
           {collapsed
             ? <span className="text-[10px] text-center leading-tight w-full">Alertas</span>
             : <span>Notificações</span>
           }
-        </button>
+        </Link>
         <Link
           href={`/${companySlug}/dashboard/settings`}
           title={collapsed ? 'Configurações' : undefined}
@@ -367,6 +377,16 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
             : <span>Sair</span>
           }
         </button>
+
+        {currentVersion && (
+          <Link
+            href={`/${companySlug}/dashboard/notifications`}
+            title="Ver notas de versão"
+            className="block text-center text-[10px] text-sidebar-icon opacity-60 hover:opacity-100 transition-opacity"
+          >
+            {collapsed ? currentVersion : `Versão: ${currentVersion}`}
+          </Link>
+        )}
       </div>
     </aside>
   )

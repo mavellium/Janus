@@ -4,6 +4,18 @@
 
 ---
 
+### [2026-07-06] — Fix: banner de API não some durante impersonação de usuário comum
+
+**Arquivos:**
+- `src/lib/auth/permissions.ts`: novos helpers `getEffectiveRole()` (resolve o role do usuário impersonado via cookie; senão o real) e `isEffectivePrivilegedRole()`
+- 6 páginas de blog (posts/tags/categories × sites/LP) + 2 edit pages: `isDeveloperOrAdmin` agora usa `await isEffectivePrivilegedRole(session.user.role)` em vez de `isPrivilegedRole(session.user.role)`
+
+**Razão:** ADMIN/DEVELOPER impersonando um usuário comum continuava vendo o `ApiEndpointBanner` (conteúdo dev-only), pois a checagem usava o role real da sessão e ignorava o cookie de impersonação.
+
+**Impacto:** Durante impersonação, a visibilidade do banner segue o role do usuário impersonado (some para usuário comum; permanece se o alvo for DEVELOPER). Sem impersonação, comportamento inalterado — banner segue visível para ADMIN/DEVELOPER independente de viewMode.
+
+---
+
 ### [2026-06-27] — Editor Fase 5 (final): biblioteca de mídia + comentários editoriais
 
 **Arquivos:**

@@ -16,6 +16,19 @@
 
 ---
 
+### [2026-07-06] — Fix: `canViewEndpoint` no builder ignora impersonação
+
+**Arquivos**:
+- `src/lib/auth/permissions.ts`: novos helpers `getEffectiveRole()` / `isEffectivePrivilegedRole()` (consideram o cookie de impersonação)
+- `src/app/[companySlug]/dashboard/sites/[siteId]/pages/[pageId]/builder/page.tsx`: `canViewEndpoint` calculado com `await isEffectivePrivilegedRole(session.user.role)`
+- `src/app/[companySlug]/dashboard/landing-pages/[lpId]/pages/[pageId]/builder/page.tsx`: idem
+
+**Razão**: ADMIN/DEVELOPER impersonando usuário comum continuava vendo os endpoints (página e seção) no builder, pois `canViewEndpoint` usava o role real da sessão.
+
+**Impacto**: Durante impersonação, os endpoints do builder seguem o role do usuário impersonado. Sem impersonação, nada muda. `checkPermission('PAGE_BUILD')` já tratava impersonação; agora a visibilidade de endpoint também.
+
+---
+
 ### [2026-06-27] — Feat: sub-endpoints por seção na API pública (avançado + padrão)
 
 **Arquivos**:

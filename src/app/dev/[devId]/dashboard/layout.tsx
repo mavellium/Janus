@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/components/ThemeContext'
 import { db } from '@/lib/prisma'
 import type { UserPreferences } from '@/types/next-auth'
 import Link from 'next/link'
+import { getCurrentVersion, countUnreadReleases } from '@/modules/notifications/queries/getReleases'
 
 export default async function DevDashboardLayout({
   children,
@@ -39,6 +40,9 @@ export default async function DevDashboardLayout({
 
   const prefs = (user?.preferences ?? {}) as UserPreferences
 
+  const currentVersion = await getCurrentVersion()
+  const unreadNotifications = await countUnreadReleases(session.user.id)
+
   return (
     <ThemeProvider darkMode={prefs.darkMode}>
       <div className="h-screen flex bg-brand-bg">
@@ -46,12 +50,16 @@ export default async function DevDashboardLayout({
           email={session.user.email ?? ''}
           image={user?.image ?? null}
           devId={devId}
+          currentVersion={currentVersion}
+          unreadNotifications={unreadNotifications}
         />
         <MobileNav logoHref={`/dev/${devId}/dashboard`}>
           <DevSidebar
             email={session.user.email ?? ''}
             image={user?.image ?? null}
             devId={devId}
+            currentVersion={currentVersion}
+            unreadNotifications={unreadNotifications}
             embedded
           />
         </MobileNav>

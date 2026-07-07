@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Building2, Users, Settings, LogOut,
-  PanelLeftClose, PanelLeftOpen, UserCircle,
+  PanelLeftClose, PanelLeftOpen, UserCircle, Bell,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
@@ -16,9 +16,11 @@ interface DevSidebarProps {
   image?: string | null
   devId: string
   embedded?: boolean
+  currentVersion?: string | null
+  unreadNotifications?: number
 }
 
-export function DevSidebar({ email, image, devId, embedded = false }: DevSidebarProps) {
+export function DevSidebar({ email, image, devId, embedded = false, currentVersion = null, unreadNotifications = 0 }: DevSidebarProps) {
   const [collapsedState, setCollapsedState] = useState(false)
   const collapsed = embedded ? false : collapsedState
   const [isDark, setIsDark] = useState(false)
@@ -48,6 +50,7 @@ export function DevSidebar({ email, image, devId, embedded = false }: DevSidebar
     { label: 'Dashboard', href: `/dev/${devId}/dashboard`, icon: LayoutDashboard },
     { label: 'Empresas', href: `/dev/${devId}/dashboard/companies`, icon: Building2 },
     { label: 'Usuários', href: `/dev/${devId}/dashboard/users`, icon: Users },
+    { label: 'Notificações', href: `/dev/${devId}/dashboard/notifications`, icon: Bell },
     { label: 'Configurações', href: `/dev/${devId}/dashboard/settings`, icon: Settings },
   ]
 
@@ -140,7 +143,14 @@ export function DevSidebar({ email, image, devId, embedded = false }: DevSidebar
         )}
         {NAV_ITEMS.map(({ label, href, icon: Icon }) => (
           <Link key={href} href={href} title={collapsed ? label : undefined} className={itemClass(href)}>
-            <Icon size={16} className="flex-shrink-0" />
+            <span className="relative flex-shrink-0">
+              <Icon size={16} />
+              {unreadNotifications > 0 && href.endsWith('/notifications') && (
+                <span className="absolute -top-2 -right-2.5 min-w-4 h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                </span>
+              )}
+            </span>
             {collapsed
               ? <span className="text-[10px] text-center leading-tight line-clamp-2 w-full">{label}</span>
               : <span>{label}</span>
@@ -197,6 +207,16 @@ export function DevSidebar({ email, image, devId, embedded = false }: DevSidebar
             : <span>Sair</span>
           }
         </button>
+
+        {currentVersion && (
+          <Link
+            href={`/dev/${devId}/dashboard/notifications`}
+            title="Ver notas de versão"
+            className="block text-center text-[10px] text-sidebar-icon opacity-60 hover:opacity-100 transition-opacity"
+          >
+            {collapsed ? currentVersion : `Versão: ${currentVersion}`}
+          </Link>
+        )}
       </div>
     </aside>
   )

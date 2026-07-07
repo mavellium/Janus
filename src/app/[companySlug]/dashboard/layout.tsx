@@ -14,6 +14,10 @@ import {
 } from "@/lib/auth/permissions";
 import { getCompanyUsers } from "@/modules/auth/queries/getCompanyUsers";
 import { getUserCompanies } from "@/modules/users/queries/getUserCompanies";
+import {
+  getCurrentVersion,
+  countUnreadReleases,
+} from "@/modules/notifications/queries/getReleases";
 import { CompanySwitcher } from "@/components/dashboard/CompanySwitcher";
 
 export default async function DashboardLayout({
@@ -103,6 +107,9 @@ export default async function DashboardLayout({
   const adminReturnPath =
     role === "ADMIN" ? "/dashboard-admin" : `/dev/${session.user.id}/dashboard`;
 
+  const currentVersion = await getCurrentVersion();
+  const unreadNotifications = await countUnreadReleases(session.user.id);
+
   return (
     <ThemeProvider
       darkMode={prefs.darkMode}
@@ -127,6 +134,8 @@ export default async function DashboardLayout({
           }
           initialCollapsed={prefs.sidebar_collapsed ?? false}
           companyName={company.name}
+          currentVersion={currentVersion}
+          unreadNotifications={unreadNotifications}
         />
         <MobileNav logoHref={`/${companySlug}/dashboard`}>
           <Sidebar
@@ -145,6 +154,8 @@ export default async function DashboardLayout({
             }
             initialCollapsed={false}
             companyName={company.name}
+            currentVersion={currentVersion}
+            unreadNotifications={unreadNotifications}
             embedded
           />
         </MobileNav>

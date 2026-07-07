@@ -5,6 +5,7 @@ import { MobileNav } from '@/components/dashboard/MobileNav'
 import { ThemeProvider } from '@/components/ThemeContext'
 import { db } from '@/lib/prisma'
 import type { UserPreferences } from '@/types/next-auth'
+import { getCurrentVersion, countUnreadReleases } from '@/modules/notifications/queries/getReleases'
 
 export default async function AdminLayout({
   children,
@@ -23,17 +24,24 @@ export default async function AdminLayout({
 
   const prefs = (user?.preferences ?? {}) as UserPreferences
 
+  const currentVersion = await getCurrentVersion()
+  const unreadNotifications = await countUnreadReleases(session.user.id)
+
   return (
     <ThemeProvider darkMode={prefs.darkMode}>
       <div className="h-screen flex bg-brand-bg">
         <AdminSidebar
           email={session.user.email ?? ''}
           image={user?.image ?? null}
+          currentVersion={currentVersion}
+          unreadNotifications={unreadNotifications}
         />
         <MobileNav logoHref="/dashboard-admin">
           <AdminSidebar
             email={session.user.email ?? ''}
             image={user?.image ?? null}
+            currentVersion={currentVersion}
+            unreadNotifications={unreadNotifications}
             embedded
           />
         </MobileNav>

@@ -190,3 +190,21 @@ export async function checkPermission(
 export function isPrivilegedRole(role?: string | null): boolean {
   return role === 'ADMIN' || role === 'DEVELOPER'
 }
+
+export async function getEffectiveRole(realRole?: string | null): Promise<string | null> {
+  const impersonatedId = await getImpersonatedUserId()
+
+  if (impersonatedId) {
+    const target = await db.user.findUnique({
+      where: { id: impersonatedId, deletedAt: null },
+      select: { role: true },
+    })
+    return target?.role ?? null
+  }
+
+  return realRole ?? null
+}
+
+export async function isEffectivePrivilegedRole(realRole?: string | null): Promise<boolean> {
+  return isPrivilegedRole(await getEffectiveRole(realRole))
+}
