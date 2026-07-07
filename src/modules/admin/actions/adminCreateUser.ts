@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { hash } from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { ALL_PERMISSIONS } from "@/lib/auth/permissions";
+import { logAudit, omitSensitive } from "@/lib/audit-logger";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -51,7 +52,7 @@ export async function adminCreateUser(
   const hashedPassword = await hash(parsed.data.password, 10);
   const permissions = parsed.data.role === "ADMIN" ? ALL_PERMISSIONS : [];
 
-  await db.$transaction(async (tx) => {
+  const created = await db.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
         name: parsed.data.name,
@@ -71,6 +72,16 @@ export async function adminCreateUser(
         skipDuplicates: true,
       });
     }
+
+    return user;
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "User",
+    entityId: created.id,
+    newData: omitSensitive(created),
   });
 
   revalidatePath("/dashboard-admin/users");

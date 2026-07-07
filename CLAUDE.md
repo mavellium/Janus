@@ -60,6 +60,16 @@ Quando implementar um **novo módulo** (domain, actions, queries), execute a ski
 - ✅ Renomeou ou deletou arquivo
 - ❌ NÃO registrar: apenas mudanças de format/lint, testes isolados, ou comentários
 
+# 🛡️ Auditoria de Eventos (Audit Logs — Obrigatório)
+
+**REGRA ABSOLUTA**: Toda Server Action que executa uma mutação de dado crítico (criar, editar, excluir ou restaurar registros de `User`, `Project`/Sites, `Page` e demais entidades sensíveis) DEVE registrar a operação chamando `logAudit()` de `@/lib/audit-logger`.
+
+**Fluxo obrigatório**: capture o estado anterior com `findUnique` (para UPDATE/DELETE) → execute a mutação no Prisma → chame `logAudit({ userId, action, entity, entityId, oldData, newData })` → `revalidatePath()`.
+
+- `entity` deve ser o nome do model em PascalCase (`'User'`, `'Project'`, `'Page'`). Para suportar reversão, registre a entidade no mapa `ENTITY_DELEGATES` em `src/modules/admin/actions/revertAuditAction.ts`.
+- Use `omitSensitive()` para remover `password` e segredos de `oldData`/`newData`.
+- **Antes de implementar ou alterar qualquer fluxo de auditoria/reversão, consulte `.claude/janus_audit_architecture.md`** e atualize seu Changelog ao final.
+
 # 🔒 Regra de Manutenção do CMS e Blog (Skill Obrigatória)
 
 Sempre que for instruído a trabalhar no **CMS** ou no **Blog**, consulte os respectivos arquivos de arquitetura antes de propor qualquer código:

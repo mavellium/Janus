@@ -5,6 +5,9 @@ import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { revalidateSites } from '@/lib/revalidateSites'
+import { sanitizeArticleHtml } from '@/lib/sanitize-html'
+import { readingTimeFromHtml } from '@/lib/reading-time'
+import { logAudit } from '@/lib/audit-logger'
 
 const schema = z.object({
   projectId: z.string().uuid(),
@@ -63,6 +66,8 @@ export async function createBlogPost(_: unknown, formData: FormData) {
   const { tagIds: ids, categoryIds: catIds, projectId, companySlug, slug, authorId, status, ...rest } = parsed.data
   const resolvedSlug = slug ? slugify(slug) : slugify(rest.title)
   const publishedAt = status === 'PUBLISHED' ? new Date() : null
+  const cleanBody = sanitizeArticleHtml(rest.body)
+  const readingTime = readingTimeFromHtml(cleanBody) || null
 
   try {
     const company = await db.company.findUnique({
@@ -88,6 +93,8 @@ export async function createBlogPost(_: unknown, formData: FormData) {
     const post = await db.blogPost.create({
       data: {
         ...rest,
+        body: cleanBody,
+        readingTime,
         slug: resolvedSlug,
         status,
         publishedAt,
@@ -98,6 +105,14 @@ export async function createBlogPost(_: unknown, formData: FormData) {
         tags: ids.length > 0 ? { create: ids.map((tagId) => ({ tagId })) } : undefined,
       },
     })
+    await logAudit({
+      userId: session.user.id,
+      action: 'CREATE',
+      entity: 'BlogPost',
+      entityId: post.id,
+      newData: post,
+    })
+
     revalidatePath(`/${companySlug}/dashboard`)
     revalidateSites(companySlug)
     return { ok: true as const, data: post }

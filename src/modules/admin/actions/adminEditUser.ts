@@ -5,6 +5,7 @@ import { db } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { hash } from "bcryptjs";
 import { revalidatePath } from "next/cache";
+import { logAudit, omitSensitive } from "@/lib/audit-logger";
 
 const schema = z.object({
   id: z.string().uuid(),
@@ -49,6 +50,8 @@ export async function adminEditUser(
     return { ok: false, error: "E-mail já está em uso." };
   }
 
+  const before = await db.user.findUnique({ where: { id: parsed.data.id } });
+
   const data: Record<string, unknown> = {
     name: parsed.data.name,
     email: parsed.data.email,
@@ -75,6 +78,17 @@ export async function adminEditUser(
         skipDuplicates: true,
       });
     }
+  });
+
+  const after = await db.user.findUnique({ where: { id: parsed.data.id } });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "UPDATE",
+    entity: "User",
+    entityId: parsed.data.id,
+    oldData: omitSensitive(before),
+    newData: omitSensitive(after),
   });
 
   revalidatePath("/dashboard-admin/users");

@@ -2,6 +2,7 @@
 
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import { logAudit } from '@/lib/audit-logger'
 
 interface CreateProjectParams {
   name: string
@@ -47,6 +48,14 @@ export async function createProject({
         content: { nodes: [], globalSettings: {} },
         projectId: project.id,
       },
+    })
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'CREATE',
+      entity: 'Project',
+      entityId: project.id,
+      newData: project,
     })
 
     return { ok: true, data: { projectId: project.id, pageId: homePage.id } }

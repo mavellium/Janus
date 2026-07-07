@@ -16,6 +16,25 @@
 
 ---
 
+### [2026-06-27] — Feat: sub-endpoints por seção na API pública (avançado + padrão)
+
+**Arquivos**:
+- `src/lib/cms-sections.ts` (novo) + `.spec.ts`: resolver puro — `getPageData` (avançado→schemaData / padrão→contentData), `resolveSectionsRoot` (desembrulha `content`), `listSections`, `getSection` (suporta dot-path), `pageMode`
+- `src/modules/cms/queries/findPublishedPage.ts` (novo): busca da página publicada (empresa+projeto ativos)
+- `src/lib/cms-public.ts` (novo): CORS + rate-limit + helpers de resposta compartilhados
+- `src/app/api/v1/content/[companySlug]/[pageSlug]/route.ts`: refatorado p/ usar os helpers; payload ganhou `mode`
+- `.../sections/route.ts` (novo): lista de seções
+- `.../sections/[sectionKey]/route.ts` (novo): seção individual
+- `src/components/schema-builder/SchemaBuilderEditor.tsx`: barra "Endpoint da página" (geral) agora aparece nos DOIS modos (antes só no padrão); + endpoint da seção — no avançado, barra "Endpoint da seção" no header da seção selecionada (`${apiUrl}/sections/${getSectionKey(sel)}` + copiar); no padrão, botão de copiar endpoint por seção na aba Estrutura (`${apiUrl}/sections/${section.id}`)
+- **[fix segurança/UX] Todos os endpoints no builder agora atrás da prop `canViewEndpoint` — só ADMIN/DEVELOPER veem** (antes usuário padrão com `PAGE_BUILD` via). As 2 builder pages passam `isPrivilegedRole(session.user.role)`. (Banners de API do Blog e Scripts já eram gated por `isDeveloperOrAdmin`.)
+- `.claude/context/cms/endpoints.md` (novo): doc dos 3 endpoints p/ o desenvolvedor
+
+**Razão**: além do endpoint da página inteira (que já existia), o dev pediu um sub-endpoint por seção, válido tanto no bloco avançado quanto no padrão.
+
+**Impacto**: `GET .../sections` lista as seções; `GET .../sections/{key}` devolve só aquela seção. Seção = chave de topo dos dados (ou de dentro de `content` no avançado; do `contentData` no padrão, com `label` vindo do `schemaData`). Endpoint geral é retrocompatível (só somou `mode`).
+
+---
+
 ### [2026-05-23] — Feat: Seleção bidirecional sincronizada iframe↔CMS + Live Preview + Scripts Dinâmicos
 
 **Arquivos**:

@@ -72,6 +72,9 @@
 ### Analytics (`src/modules/analytics/` + `src/lib/analytics/`)
 - **[context/analytics/_index.md](context/analytics/_index.md)** — GA4 Data API, dashboards de Resultados (projeto + panorama), funil/eventos/canais/páginas
 
+### Audit (`src/lib/audit-logger.ts` + `src/modules/admin/`)
+- **[context/audit/_index.md](context/audit/_index.md)** — Audit Logs com reversão (Undo): `logAudit`, `revertAuditAction`, diff Monaco; model `AuditLog`
+
 ### CMS (Headless)
 - **[context/cms/_index.md](context/cms/_index.md)** — Schema builder, content editor, preview
 

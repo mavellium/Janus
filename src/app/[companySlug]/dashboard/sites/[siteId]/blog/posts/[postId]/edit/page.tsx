@@ -6,6 +6,8 @@ import { getBlogPost } from '@/modules/blog/queries/getBlogPost'
 import { getBlogCategories } from '@/modules/blog/queries/getBlogCategories'
 import { getBlogTags } from '@/modules/blog/queries/getBlogTags'
 import { getCompanyUsers } from '@/modules/blog/queries/getCompanyUsers'
+import { getBlogPostVersions } from '@/modules/blog/queries/getBlogPostVersions'
+import { getBlogComments } from '@/modules/blog/queries/getBlogComments'
 import { PostEditorClient } from '@/components/blog/PostEditorClient'
 import { ApiEndpointBanner } from '@/components/blog/ApiEndpointBanner'
 import { isPrivilegedRole } from '@/lib/auth/permissions'
@@ -26,12 +28,15 @@ export default async function SiteEditPostPage({
   })
   if (!company) redirect('/login')
 
-  const [post, categories, tags, companyUsers] = await Promise.all([
-    getBlogPost(postId),
-    getBlogCategories(siteId),
-    getBlogTags(siteId),
-    getCompanyUsers(company.id),
-  ])
+  const [post, categories, tags, companyUsers, versions, comments] =
+    await Promise.all([
+      getBlogPost(postId),
+      getBlogCategories(siteId),
+      getBlogTags(siteId),
+      getCompanyUsers(company.id),
+      getBlogPostVersions(postId),
+      getBlogComments(postId),
+    ])
 
   if (!post || post.projectId !== siteId) redirect(`/${companySlug}/dashboard/sites/${siteId}/blog/posts`)
 
@@ -62,6 +67,8 @@ export default async function SiteEditPostPage({
         categories={categories}
         tags={tags}
         companyUsers={companyUsers}
+        versions={versions}
+        comments={comments}
         post={post}
       />
     </>

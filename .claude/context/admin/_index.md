@@ -32,6 +32,7 @@ Painel administrativo global (`/dashboard-admin`). CRUD de empresas, usuários, 
 | `updateUserPermissions` | ADMIN/DEV | Recebe `{ userId, permissions: string[] }`; persiste no User.permissions |
 | `toggleGuestMode` | ADMIN | Liga/desliga `guestModeEnabled` na Company |
 | `unblockIp` | ADMIN | Deleta LoginAttempts do IP |
+| `revertAuditAction` | ADMIN | Motor de Undo de Audit Logs (UPDATE/DELETE) — ver módulo `audit` |
 
 ## Queries (`src/modules/admin/queries/`)
 
@@ -43,6 +44,7 @@ Painel administrativo global (`/dashboard-admin`). CRUD de empresas, usuários, 
 | `getAdminStats()` | totalUsers, totalCompanies, totalProjects, recentActivity |
 | `getBlockedIps()` | IPs com 3+ tentativas na última hora |
 | `getLoginLogs()` | Últimas 100 tentativas de login |
+| `getAuditLogs(limit)` | Eventos de auditoria + `user` — ver módulo `audit` |
 
 ## Páginas (`src/app/dashboard-admin/`)
 
@@ -52,8 +54,9 @@ Painel administrativo global (`/dashboard-admin`). CRUD de empresas, usuários, 
 | `/dashboard-admin/companies` | `AdminCompaniesClient` — CRUD + "Acessar Painel" (enterPrivilegedMode) |
 | `/dashboard-admin/users` | `AdminUsersClient` — tabela + CompanyMultiSelect + PasswordField + PermissionsModal |
 | `/dashboard-admin/developers` | `AdminDevelopersClient` — tabela + PermissionsModal |
-| `/dashboard-admin/guests` | `AdminGuestsClient` — tabela de GuestEntry com posts |
-| `/dashboard-admin/logs` | `AdminLogsClient` — Tabs: IPs Bloqueados + Tentativas |
+| `/dashboard-admin/companies/[companyId]/guests` | `AdminCompanyGuestsClient` — convidados **por empresa** (acessado via ícone na linha da empresa; sem mais aba no sidebar) |
+| `/dashboard-admin/guests` | redireciona p/ `/dashboard-admin/companies` (lista global removida do nav) |
+| `/dashboard-admin/logs` | `AdminLogsClient` — Tabs: Auditoria de Eventos (módulo `audit`) + IPs Bloqueados + Tentativas |
 | `/dashboard-admin/settings` | Reutiliza DevSettingsClient |
 
 ## Componentes Compartilhados

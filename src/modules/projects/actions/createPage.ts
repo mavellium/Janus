@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 interface CreatePageParams {
   projectId: string
@@ -67,6 +68,14 @@ export async function createPage({ projectId, name, slug, companySlug, previewUr
         contentData: {},
         previewUrl: previewUrl || null,
       },
+    })
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'CREATE',
+      entity: 'Page',
+      entityId: page.id,
+      newData: page,
     })
 
     revalidatePath(`/${companySlug}/dashboard/sites/${projectId}/pages`)

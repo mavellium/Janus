@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { db } from '@/lib/prisma'
 import { SchemaBuilderEditor } from '@/components/schema-builder/SchemaBuilderEditor'
 import { headers } from 'next/headers'
-import { checkPermission } from '@/lib/auth/permissions'
+import { checkPermission, isPrivilegedRole } from '@/lib/auth/permissions'
 import { unstable_noStore } from 'next/cache'
 
 export const metadata = { title: 'Construir — Janus' }
@@ -57,6 +57,7 @@ export default async function LandingPageSchemaBuilderPage({
       initialPublished={page.isPublished}
       previewHref={`/${companySlug}/dashboard/landing-pages/${lpId}/pages/${pageId}/edit`}
       apiUrl={apiUrl}
+      canViewEndpoint={isPrivilegedRole(session.user.role)}
     />
   )
 }

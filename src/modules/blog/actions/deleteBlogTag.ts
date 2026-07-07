@@ -3,16 +3,27 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 export async function deleteBlogTag(id: string) {
   const session = await auth()
   if (!session?.user?.id) return { ok: false, error: 'Não autenticado' }
 
   try {
+    const before = await db.blogTag.findUnique({ where: { id } })
     await db.$transaction([
       db.blogTag.updateMany({ where: { parentId: id }, data: { parentId: null } }),
       db.blogTag.delete({ where: { id } }),
     ])
+    if (before) {
+      await logAudit({
+        userId: session.user.id,
+        action: 'DELETE',
+        entity: 'BlogTag',
+        entityId: id,
+        oldData: before,
+      })
+    }
     revalidatePath('/', 'layout')
     return { ok: true }
   } catch {

@@ -5,6 +5,7 @@ import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { generateSlug } from '@/lib/slug'
+import { logAudit } from '@/lib/audit-logger'
 
 const schema = z.object({
   id: z.string().uuid(),
@@ -39,9 +40,18 @@ export async function updateBlogCategory(_: unknown, formData: FormData) {
   const slug = generateSlug(name)
 
   try {
+    const before = await db.blogCategory.findUnique({ where: { id } })
     const category = await db.blogCategory.update({
       where: { id },
       data: { name, description, imageUrl, slug, parentId: parentId ?? null, seoTitle, seoDescription, seoKeywords, isActive },
+    })
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE',
+      entity: 'BlogCategory',
+      entityId: id,
+      oldData: before,
+      newData: category,
     })
     revalidatePath('/', 'layout')
     return { ok: true, data: category }

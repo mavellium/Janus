@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Shield, AlertTriangle, Loader2, Clock } from 'lucide-react'
+import { Shield, AlertTriangle, Loader2, Clock, ScrollText } from 'lucide-react'
 import { unblockIp } from '@/modules/admin/actions/unblockIp'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { ToastContainer } from '@/components/ui/toast-container'
+import { AuditLogsTable, type AuditLogRow } from './AuditLogsTable'
 
 interface LoginLog {
   id: string
@@ -25,9 +26,11 @@ interface BlockedIp {
 export function AdminLogsClient({
   logs,
   blockedIps,
+  auditLogs,
 }: {
   logs: LoginLog[]
   blockedIps: BlockedIp[]
+  auditLogs: AuditLogRow[]
 }) {
   const [unblocking, setUnblocking] = useState<string | null>(null)
   const [localBlockedIps, setLocalBlockedIps] = useState(blockedIps)
@@ -49,16 +52,23 @@ export function AdminLogsClient({
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-brand-text">Logs de Segurança</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-brand-text">
+          Auditoria &amp; Segurança
+        </h1>
         <p className="text-sm text-brand-muted mt-1">
-          Tentativas de login e IPs bloqueados por atividade suspeita
+          Eventos de auditoria com reversão, tentativas de login e IPs
+          bloqueados
         </p>
       </div>
 
-      <Tabs defaultValue="blocked">
+      <Tabs defaultValue="audit">
         <TabsList className="mb-4">
+          <TabsTrigger value="audit" className="flex items-center gap-2">
+            <ScrollText className="w-3.5 h-3.5" />
+            Auditoria de Eventos
+          </TabsTrigger>
           <TabsTrigger value="blocked" className="flex items-center gap-2">
             <AlertTriangle className="w-3.5 h-3.5" />
             IPs Bloqueados
@@ -73,6 +83,10 @@ export function AdminLogsClient({
             Tentativas Recentes
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="audit">
+          <AuditLogsTable logs={auditLogs} />
+        </TabsContent>
 
         <TabsContent value="blocked">
           <div className="bg-card border border-border rounded-xl overflow-hidden">

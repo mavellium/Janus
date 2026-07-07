@@ -178,8 +178,10 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
   - `getAdminUsers.ts` — usuários com role DEFAULT/ADMIN, inclui company
   - `getAdminDevelopers.ts` — usuários com role DEVELOPER, inclui company (slug)
   - `getBlockedIps.ts` — IPs com 3+ tentativas na última hora, agrupados com contagem e emails
+  - `getAuditLogs.ts` — lista eventos de auditoria (limit param) com `user` (id/name/email); exporta `AuditLogWithUser`
 - **Actions:**
   - `unblockIp.ts` — remove bloqueio de um IP (admin-only)
+  - `revertAuditAction.ts` — motor de Undo (admin-only); reverte UPDATE/DELETE a partir de `oldData` (update se registro existe / create se hard-deletado); trata P2002/P2003/P2025/P2011; gera log `RESTORE`
   - `adminCreateCompany.ts` — cria empresa; verifica role ADMIN
   - `adminEditCompany.ts` — edita empresa; verifica role ADMIN; valida conflito de slug
   - `adminDeleteCompany.ts` — **hard delete** em cascata de empresa; verifica role ADMIN; apaga tudo via DB cascade
@@ -262,7 +264,9 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/app/dashboard-admin/companies/page.tsx` + `AdminCompaniesClient.tsx` — CRUD completo de empresas (criar/editar/soft-delete)
 - `src/app/dashboard-admin/users/page.tsx` + `AdminUsersClient.tsx` — tabela de usuários DEFAULT/ADMIN + modal criar/editar com `CompanyMultiSelect` (busca + criação rápida + badge principal) + `PasswordField`
 - `src/app/dashboard-admin/developers/page.tsx` + `AdminDevelopersClient.tsx` — tabela de DEVELOPERs + modal de criação com role DEVELOPER
-- `src/app/dashboard-admin/logs/page.tsx` + `AdminLogsClient.tsx` — Tabs: IPs Bloqueados (com botão Desbloquear) + Tentativas Recentes
+- `src/app/dashboard-admin/logs/page.tsx` + `AdminLogsClient.tsx` — Tabs: **Auditoria de Eventos** (default) + IPs Bloqueados (Desbloquear) + Tentativas Recentes
+- `src/app/dashboard-admin/logs/AuditLogsTable.tsx` — Client — Data Table de auditoria (via `AdminDataTable`); badges por ação, filtros (ação/entidade), botão Ver (diff) e Desfazer (só UPDATE/DELETE)
+- `src/app/dashboard-admin/logs/AuditDiffViewer.tsx` — Client — Sheet lateral com Monaco `DiffEditor` (read-only) comparando `oldData`×`newData`
 - `src/app/dashboard-admin/settings/page.tsx` — configurações do admin; reutiliza DevSettingsClient
 - `src/app/(auth)/login/page.tsx` — tela de login (Server Component)
 - `src/app/(auth)/no-company/page.tsx` — Client — bloqueio elegante para usuário sem empresa; botão "Voltar" chama `signOut({ callbackUrl: '/login' })`
@@ -309,6 +313,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **Page** (`pages`) — id (UUID), projectId (UUID, fk→projects **CASCADE**), name, slug (unique per project), content (Json, legacy), **schemaData (Json, default {}, headless schema)**, **contentData (Json, default {}, valores preenchidos)**, isPublished (bool, default false), createdAt, updatedAt, deletedAt
 - **SiteScript** (`site_scripts`) — id (UUID), name, code (Text), position (HEAD|BODY_END enum), isActive (bool default true), projectId (UUID, fk→projects CASCADE), createdAt, updatedAt
 - **ProjectHistory** (`project_histories`) — id (UUID), projectId (UUID, fk→projects **CASCADE**), userId (UUID, fk→users **CASCADE**), previousState (Json?), newState (Json?), version (Int), createdAt
+- **AuditLog** (`audit_logs`) — id (UUID), userId (UUID, fk→users **CASCADE**), action (enum `AuditAction`: CREATE|UPDATE|DELETE|RESTORE), entity (string, PascalCase do model), entityId (string), oldData (Json?), newData (Json?), createdAt | índices: userId, entity, entityId, action, createdAt
 
 ---
 
@@ -325,9 +330,14 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 - `src/lib/analytics/ga4-client.ts` — `BetaAnalyticsDataClient` via Service Account (env GA4_*); `getAnalyticsMetrics(propertyId, start, end)` retorna totais + série diária (usado pelo panorama da empresa); `getFullAnalyticsReport(propertyId)` retorna `{ metrics, funnel, events, channels, sources, pages }` via `batchRunReports` (usado na página de resultados por projeto)
 - `src/lib/prisma.ts` — singleton do PrismaClient com `accelerateUrl` (Prisma 7, export `db`)
+- `src/lib/audit-logger.ts` — `logAudit({ userId, action, entity, entityId, oldData, newData })` (nunca lança; serializa via JSON) + `omitSensitive()` (remove `password`); base do motor de Audit Logs. Doc: `.claude/janus_audit_architecture.md`
 - `src/lib/auth.config.ts` — NextAuthConfig base: authorized callback protege `/first-access`, `/no-company`, `/select-company` (login obrigatório); rota raiz e `/login` redirecionam para `/no-company` quando `slug` é nulo; middleware reforça separação de roles
 - `src/lib/auth.ts` — NextAuth v5: CredentialsProvider + PrismaAdapter + JWT strategy
 - `src/lib/utils.ts` — `cn`, `formatCurrency` (BRL), `formatDate` (pt-BR)
+- `src/lib/sanitize-html.ts` — `sanitizeArticleHtml(html)`: higieniza HTML do blog (allowlist + nofollow/target em links externos) via `sanitize-html`; usado nas actions de blog
+- `src/lib/reading-time.ts` — `countWords`, `readingMinutes` (200 wpm), `readingTimeFromHtml`; usado nas actions de blog e no rodapé do RichEditor
+- `src/lib/cms-sections.ts` — resolver puro de seções do CMS (`getPageData`/`pageMode`/`listSections`/`getSection`); usado pelos endpoints públicos por seção
+- `src/lib/cms-public.ts` — CORS + rate-limit + helpers de resposta JSON compartilhados pela API pública `/api/v1/content`
 
 ---
 
@@ -424,6 +434,17 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 | Data       | Arquivo                                       | O que foi feito                                            |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
+| 2026-06-27 | `AdminSidebar.tsx`, `AdminCompaniesClient.tsx`, `dashboard-admin/guests/page.tsx`, `SchemaBuilderEditor.tsx`, 2 builder pages | Convidados sai do nav admin → acessível por empresa (link sempre visível na linha); `/dashboard-admin/guests` redireciona p/ companies. Endpoints do builder CMS gated por `canViewEndpoint` (ADMIN/DEVELOPER) — usuário padrão não vê |
+| 2026-06-27 | `src/lib/audit-logger.ts`, `getAuditLogs.ts`, `revertAuditAction.ts`, 9 actions do blog (`create/update/deleteBlogPost/Category/Tag`), `AuditLogsTable.tsx` | FEAT(audit): blog auditado (BlogPost/BlogCategory/BlogTag, reversível); retenção 60 dias (`pruneAuditLogs` em `logAudit` + `getAuditLogs` filtra cutoff); filtros admin Entidade/Área/Período |
+| 2026-06-27 | `src/lib/cms-sections.ts`+`cms-public.ts` (novos), `src/modules/cms/queries/findPublishedPage.ts` (novo), `api/v1/content/.../route.ts`, `.../sections/route.ts` + `.../sections/[sectionKey]/route.ts` (novos) | FEAT(cms): sub-endpoints por seção na API pública (lista + seção individual), válidos no bloco avançado e padrão; endpoint geral refatorado (+`mode`); doc em `.claude/context/cms/endpoints.md` |
+| 2026-06-27 | `prisma/schema.prisma` (+`MediaAsset`/`BlogComment`/migration), `uploadBlogMedia/listProjectMedia/createBlogComment/toggleResolveBlogComment/deleteBlogComment` (novos), `getProjectMedia/getBlogComments` (novos), `MediaLibrarySheet/BlogCommentsSheet.tsx` (novos), `RichEditor.tsx`, `PostEditorClient.tsx`, 2 edit pages | FEAT(blog editor fase 5 final): biblioteca de mídia por projeto (registra uploads, galeria reutilizável) + comentários editoriais (criar/resolver/excluir) |
+| 2026-06-27 | `prisma/schema.prisma` (+`BlogPostVersion`/migration), `restoreBlogPostVersion.ts`/`autosaveBlogPost.ts`/`getBlogPostVersions.ts` (novos), `updateBlogPost.ts`, `src/lib/seo-checklist.ts` (novo), `BlogVersionsSheet/BlogPreviewSheet/BlogSeoChecklist.tsx` (novos), `PostEditorClient.tsx`, 2 edit pages | FEAT(blog editor fase 4): histórico de versões + restaurar, autosave de rascunho (debounce), preview do artigo, checklist SEO ao vivo |
+| 2026-06-27 | `src/components/blog/extensions/SlashCommand.tsx` (novo), `src/components/blog/ResizableImage.tsx`, `src/components/blog/RichEditor.tsx`, `src/lib/sanitize-html.ts` | FEAT(blog editor fase 3): slash menu (/), bubble + floating menu, drag handle, sumário/TOC, imagem com alinhamento/alt/legenda (figure), upload por colar/arrastar; sanitizer + figure |
+| 2026-06-27 | `src/components/blog/RichEditor.tsx`, `src/components/blog/extensions/Callout.ts` (novo), `src/lib/sanitize-html.ts` | FEAT(blog editor fase 2): blocos — código c/ highlight (lowlight), tabela (TableKit + controles), checklist (TaskList), embed YouTube, callout (node custom), divisor; sanitizer preserva os blocos; TipTap unificado em 3.27.1 |
+| 2026-06-27 | `src/lib/sanitize-html.ts` (novo), `src/lib/reading-time.ts` (novo), `createBlogPost.ts`, `updateBlogPost.ts`, `RichEditor.tsx` | FEAT(blog editor fase 1): sanitização XSS do `body` no servidor (sanitize-html, allowlist + nofollow em links externos); `readingTime` autoritativo calculado no save; rodapé de palavras/tempo de leitura no editor; testes de unidade |
+| 2026-06-27 | `src/components/blog/RichEditor.tsx`, `src/components/blog/ResizableImage.tsx` (novo) | FEAT: RichEditor v2 — toolbar reativa via `useEditorState`, hierarquia H1–H6, color picker de fonte e de fundo (Color/BackgroundColor do text-style), imagem redimensionável por arraste estilo WordPress (NodeView React com alças nos cantos); saída HTML, sem deps novas |
+| 2026-06-27 | `src/components/blog/RichEditor.tsx` | REFACTOR: editor WYSIWYG do blog estilo Word — dropdown hierarquia P/H1–H4 (SEO), bold/itálico/sublinhado/tachado, 4 alinhamentos, listas, link (popover), blockquote, imagem, undo/redo; toolbar sticky + scroll interno; corrige extensões duplicadas (StarterKit v3 já traz Underline/Link); saída HTML via `getHTML()` |
+| 2026-06-27 | `prisma/schema.prisma`, `migrations/20260627000000_add_audit_logs`, `src/lib/audit-logger.ts`, `src/modules/admin/queries/getAuditLogs.ts`, `src/modules/admin/actions/revertAuditAction.ts`, `src/app/dashboard-admin/logs/*`, actions de User/Project/Page | FEAT: Audit Logs com reversão (Undo) — model `AuditLog` + enum `AuditAction`; `logAudit()` instrumentado em adminCreate/Edit/DeleteUser, create/update/softDeleteProject, create/updatePage; painel admin com Data Table (badges, filtros), diff Monaco em Sheet e botão Desfazer (UPDATE/DELETE); `revertAuditAction` restaura `oldData` (update se existe / create se hard-deletado) e gera log `RESTORE` |
 | 2026-06-19 | `src/lib/analytics/ga4-client.ts` | FIX: GA4 retornava 502 — funil com `dimensions:[dateRange]` quebrava (GA4 já adiciona auto com dateRanges nomeados); `batchRunReports` limitado a 5 requests → split em 2 batches paralelos (5+1) |
 | 2026-06-19 | `prisma/schema.prisma`, `migrations/20260619000000_remove_company_ga4_property_id`, `src/modules/analytics/queries/getCompanyAnalytics.ts`, `src/components/analytics/CompanyAnalyticsOverview.tsx`, `src/components/analytics/AnalyticsPanel.tsx`, `Ga4SetupForm.tsx`, páginas analytics (sites+lp+results); **removido** `updateCompanyGa4.ts` | REFACTOR: `/dashboard/results` é só soma de TODOS os projetos (sem campo de ID, sem botão, para qualquer role); removida coluna `Company.ga4PropertyId` + action + escopo company do form; Property ID/botão "Alterar"/setup nas páginas por projeto agora **só para ADMIN/DEVELOPER** (prop `userRole`) |
 | 2026-06-18 | `src/lib/analytics/ga4-client.ts`, `src/modules/analytics/queries/getAnalyticsData.ts`, `src/app/api/analytics/route.ts`, `src/components/analytics/AnalyticsPanel.tsx` (Client), novos `FunnelCard.tsx`, `EventConversionsCard.tsx`, `ChannelConversionTable.tsx`, `TrafficSourceTable.tsx`, `TopPagesTable.tsx`, `AnalyticsDataTable.tsx`, `MetricBar.tsx` | FEAT: Resultados/Analytics GA4 expandido (escopo projeto) — `getFullAnalyticsReport` via `batchRunReports` (1 round-trip, 6 relatórios); funil Visitantes→Engajados→Convertidos (7d vs 7d anteriores) com drop-off; conversões por evento (sort); canais com taxa de conversão; origem/mídia; páginas mais acessadas (todas sortáveis); botão "Alterar" para trocar o Property ID sem reload |

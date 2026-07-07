@@ -5,6 +5,9 @@ import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { revalidateSites } from '@/lib/revalidateSites'
+import { sanitizeArticleHtml } from '@/lib/sanitize-html'
+import { readingTimeFromHtml } from '@/lib/reading-time'
+import { logAudit } from '@/lib/audit-logger'
 
 const schema = z.object({
   id: z.string().uuid(),
@@ -64,6 +67,8 @@ export async function updateBlogPost(_: unknown, formData: FormData) {
 
   const { id, tagIds: ids, categoryIds: catIds, companySlug, projectId, slug, authorId, status, ...rest } = parsed.data
   const resolvedSlug = slug ? slugify(slug) : slugify(rest.title)
+  const cleanBody = sanitizeArticleHtml(rest.body)
+  const readingTime = readingTimeFromHtml(cleanBody) || null
 
   try {
     const company = await db.company.findUnique({
@@ -83,6 +88,37 @@ export async function updateBlogPost(_: unknown, formData: FormData) {
       return { ok: false as const, error: 'Artigo não encontrado' }
     }
 
+    const contentChanged =
+      existing.body !== cleanBody || existing.title !== rest.title
+    if (contentChanged) {
+      await db.blogPostVersion.create({
+        data: {
+          postId: id,
+          title: existing.title,
+          subtitle: existing.subtitle,
+          body: existing.body,
+          coverImageUrl: existing.coverImageUrl,
+          seoTitle: existing.seoTitle,
+          seoDescription: existing.seoDescription,
+          seoKeywords: existing.seoKeywords,
+          readingTime: existing.readingTime,
+          createdById: session.user.id,
+          createdByName: session.user.email ?? null,
+        },
+      })
+      const stale = await db.blogPostVersion.findMany({
+        where: { postId: id },
+        orderBy: { createdAt: 'desc' },
+        skip: 30,
+        select: { id: true },
+      })
+      if (stale.length > 0) {
+        await db.blogPostVersion.deleteMany({
+          where: { id: { in: stale.map((v) => v.id) } },
+        })
+      }
+    }
+
     const publishedAt =
       status === 'PUBLISHED' ? (existing.publishedAt ?? new Date()) : existing.publishedAt
 
@@ -96,6 +132,8 @@ export async function updateBlogPost(_: unknown, formData: FormData) {
       where: { id },
       data: {
         ...rest,
+        body: cleanBody,
+        readingTime,
         slug: resolvedSlug,
         status,
         publishedAt,
@@ -111,6 +149,15 @@ export async function updateBlogPost(_: unknown, formData: FormData) {
         },
       },
     })
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE',
+      entity: 'BlogPost',
+      entityId: id,
+      oldData: { ...existing, project: undefined },
+      newData: updated,
+    })
+
     revalidatePath(`/${companySlug}/dashboard`)
     revalidateSites(companySlug)
     return { ok: true as const, data: updated }

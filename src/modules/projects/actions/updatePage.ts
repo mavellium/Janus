@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 interface UpdatePageParams {
   pageId: string
@@ -45,6 +46,15 @@ export async function updatePage({
     const updated = await db.page.update({
       where: { id: pageId },
       data: { name, slug, previewUrl: previewUrl || null },
+    })
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE',
+      entity: 'Page',
+      entityId: pageId,
+      oldData: { ...page, project: undefined },
+      newData: updated,
     })
 
     const basePath = page.project.type === 'LANDING_PAGE'

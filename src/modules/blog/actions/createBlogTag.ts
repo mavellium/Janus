@@ -5,6 +5,7 @@ import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { generateSlug } from '@/lib/slug'
+import { logAudit } from '@/lib/audit-logger'
 
 const schema = z.object({
   projectId: z.string().uuid(),
@@ -42,6 +43,13 @@ export async function createBlogTag(_: unknown, formData: FormData) {
   try {
     const tag = await db.blogTag.create({
       data: { projectId, name, description, imageUrl, slug, parentId, seoTitle, seoDescription, seoKeywords, isActive },
+    })
+    await logAudit({
+      userId: session.user.id,
+      action: 'CREATE',
+      entity: 'BlogTag',
+      entityId: tag.id,
+      newData: tag,
     })
     revalidatePath('/', 'layout')
     return { ok: true, data: tag }

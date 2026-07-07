@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 interface UpdateProjectParams {
   projectId: string
@@ -55,6 +56,15 @@ export async function updateProject({
         ...(blogEnabled !== undefined && { blogEnabled }),
         ...(cmsEnabled !== undefined && { cmsEnabled }),
       },
+    })
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE',
+      entity: 'Project',
+      entityId: projectId,
+      oldData: project,
+      newData: updated,
     })
 
     revalidatePath(`/${companySlug}/dashboard/sites`)

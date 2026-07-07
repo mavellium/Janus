@@ -313,15 +313,13 @@ export function AdminCompaniesClient({
         bulkDeleteDescription="Esta ação excluirá permanentemente as empresas selecionadas e todos os projetos, páginas e usuários associados."
         renderRowActions={(company) => (
           <>
-            {company.guestModeEnabled && (
-              <Link
-                href={`/dashboard-admin/companies/${company.id}/guests`}
-                className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
-                title="Gerenciar convidados"
-              >
-                <UsersRound className="w-3.5 h-3.5" />
-              </Link>
-            )}
+            <Link
+              href={`/dashboard-admin/companies/${company.id}/guests`}
+              className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
+              title="Gerenciar convidados"
+            >
+              <UsersRound className="w-3.5 h-3.5" />
+            </Link>
             <button
               onClick={() => setModal({ mode: "edit", company })}
               className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"

@@ -9,9 +9,16 @@ import { RichEditor } from '@/components/blog/RichEditor'
 import { createBlogPost } from '@/modules/blog/actions/createBlogPost'
 import { updateBlogPost } from '@/modules/blog/actions/updateBlogPost'
 import { uploadImage } from '@/modules/upload/actions/uploadImage'
-import { Loader2, ImageIcon, X, ArrowLeft } from 'lucide-react'
+import { Loader2, ImageIcon, X, ArrowLeft, Check } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { autosaveBlogPost } from '@/modules/blog/actions/autosaveBlogPost'
+import { BlogVersionsSheet } from '@/components/blog/BlogVersionsSheet'
+import { BlogPreviewSheet } from '@/components/blog/BlogPreviewSheet'
+import { BlogSeoChecklist } from '@/components/blog/BlogSeoChecklist'
+import { BlogCommentsSheet } from '@/components/blog/BlogCommentsSheet'
+import type { BlogPostVersionItem } from '@/modules/blog/queries/getBlogPostVersions'
+import type { BlogCommentItem } from '@/modules/blog/queries/getBlogComments'
 
 interface CategoryItem {
   id: string
@@ -50,6 +57,8 @@ interface PostEditorClientProps {
   categories: CategoryItem[]
   tags: TagItem[]
   companyUsers: CompanyUser[]
+  versions?: BlogPostVersionItem[]
+  comments?: BlogCommentItem[]
   post?: {
     id: string
     title: string
@@ -75,6 +84,8 @@ export function PostEditorClient({
   categories,
   tags,
   companyUsers,
+  versions = [],
+  comments = [],
   post,
 }: PostEditorClientProps) {
   const router = useRouter()
@@ -89,6 +100,14 @@ export function PostEditorClient({
 
   const [status, setStatus] = useState<'DRAFT' | 'PUBLISHED'>(post?.status ?? 'DRAFT')
   const [selectedAuthorId, setSelectedAuthorId] = useState(post?.authorId ?? '')
+
+  const [title, setTitle] = useState(post?.title ?? '')
+  const [subtitle, setSubtitle] = useState(post?.subtitle ?? '')
+  const [seoTitle, setSeoTitle] = useState(post?.seoTitle ?? '')
+  const [seoDescription, setSeoDescription] = useState(post?.seoDescription ?? '')
+  const [seoKeywords, setSeoKeywords] = useState(post?.seoKeywords ?? '')
+  const [autosaveState, setAutosaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const autosaveMountRef = useRef(true)
 
   const initRootCatIds =
     post?.categories.filter((pc) => pc.category.parentId === null).map((pc) => pc.category.id) ?? []
@@ -112,6 +131,44 @@ export function PostEditorClient({
       }
     }
   }, [state, post, basePath, router])
+
+  useEffect(() => {
+    if (!post) return
+    if (autosaveMountRef.current) {
+      autosaveMountRef.current = false
+      return
+    }
+    setAutosaveState('saving')
+    const timer = setTimeout(async () => {
+      const formData = new FormData()
+      formData.set('id', post.id)
+      formData.set('companySlug', companySlug)
+      formData.set('projectId', projectId)
+      formData.set('title', title)
+      formData.set('subtitle', subtitle)
+      formData.set('status', status)
+      formData.set('body', body)
+      formData.set('coverImageUrl', coverImageUrl ?? '')
+      formData.set('seoTitle', seoTitle)
+      formData.set('seoDescription', seoDescription)
+      formData.set('seoKeywords', seoKeywords)
+      const result = await autosaveBlogPost(formData)
+      setAutosaveState(result.ok ? 'saved' : 'idle')
+    }, 2500)
+    return () => clearTimeout(timer)
+  }, [
+    post,
+    companySlug,
+    projectId,
+    title,
+    subtitle,
+    status,
+    body,
+    coverImageUrl,
+    seoTitle,
+    seoDescription,
+    seoKeywords,
+  ])
 
   async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -167,10 +224,35 @@ export function PostEditorClient({
             </h1>
           </div>
         </div>
-        <Button form="post-form" type="submit" disabled={isPending} className="gap-2">
-          {isPending && <Loader2 size={14} className="animate-spin" />}
-          {post ? 'Atualizar Post' : 'Criar Post'}
-        </Button>
+        <div className="flex items-center gap-2">
+          {post && autosaveState !== 'idle' && (
+            <span className="flex items-center gap-1 text-xs text-brand-muted">
+              {autosaveState === 'saving' ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Check size={12} />
+                  Salvo automaticamente
+                </>
+              )}
+            </span>
+          )}
+          <BlogPreviewSheet
+            title={title}
+            subtitle={subtitle}
+            coverImageUrl={coverImageUrl}
+            body={body}
+          />
+          {post && <BlogCommentsSheet postId={post.id} comments={comments} />}
+          {post && <BlogVersionsSheet versions={versions} />}
+          <Button form="post-form" type="submit" disabled={isPending} className="gap-2">
+            {isPending && <Loader2 size={14} className="animate-spin" />}
+            {post ? 'Atualizar Post' : 'Criar Post'}
+          </Button>
+        </div>
       </div>
 
       <form id="post-form" action={formAction} className="flex-1 overflow-hidden">
@@ -203,7 +285,8 @@ export function PostEditorClient({
               <Input
                 name="title"
                 required
-                defaultValue={post?.title}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 placeholder="Título do artigo"
                 className="text-lg font-medium h-11"
               />
@@ -216,7 +299,8 @@ export function PostEditorClient({
                 <Label className="text-xs">Subtítulo</Label>
                 <Input
                   name="subtitle"
-                  defaultValue={post?.subtitle ?? ''}
+                  value={subtitle}
+                  onChange={(e) => setSubtitle(e.target.value)}
                   placeholder="Descreva o subtítulo deste artigo"
                   className="text-sm"
                 />
@@ -224,7 +308,12 @@ export function PostEditorClient({
 
               <div className="flex flex-col gap-1.5">
                 <Label className="text-xs">Corpo do Artigo</Label>
-                <RichEditor value={body} onChange={setBody} name="body-editor" />
+                <RichEditor
+                  value={body}
+                  onChange={setBody}
+                  name="body-editor"
+                  projectId={projectId}
+                />
               </div>
             </div>
           </div>
@@ -394,11 +483,20 @@ export function PostEditorClient({
               <div className="border-t border-border pt-5 flex flex-col gap-4">
                 <p className="text-xs font-semibold text-brand-muted uppercase tracking-widest">SEO e Descoberta</p>
 
+                <BlogSeoChecklist
+                  title={title}
+                  seoTitle={seoTitle}
+                  seoDescription={seoDescription}
+                  seoKeywords={seoKeywords}
+                  body={body}
+                />
+
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-xs">Título</Label>
                   <Input
                     name="seoTitle"
-                    defaultValue={post?.seoTitle ?? ''}
+                    value={seoTitle}
+                    onChange={(e) => setSeoTitle(e.target.value)}
                     placeholder="(Opcional)"
                     className="text-sm"
                   />
@@ -408,7 +506,8 @@ export function PostEditorClient({
                   <Label className="text-xs">Descrição</Label>
                   <textarea
                     name="seoDescription"
-                    defaultValue={post?.seoDescription ?? ''}
+                    value={seoDescription}
+                    onChange={(e) => setSeoDescription(e.target.value)}
                     placeholder="(Opcional)"
                     rows={3}
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
@@ -419,7 +518,8 @@ export function PostEditorClient({
                   <Label className="text-xs">Palavras Chave</Label>
                   <Input
                     name="seoKeywords"
-                    defaultValue={post?.seoKeywords ?? ''}
+                    value={seoKeywords}
+                    onChange={(e) => setSeoKeywords(e.target.value)}
                     placeholder="(Opcional)"
                     className="text-sm"
                   />
