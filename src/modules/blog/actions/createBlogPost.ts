@@ -25,7 +25,14 @@ const schema = z.object({
   seoTitle: z.string().optional(),
   seoDescription: z.string().optional(),
   seoKeywords: z.string().optional(),
+  publishedAt: z.string().optional(),
 })
+
+function parsePublishedAt(value?: string): Date | null {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
 
 function slugify(text: string): string {
   return text
@@ -60,12 +67,24 @@ export async function createBlogPost(_: unknown, formData: FormData) {
     seoTitle: formData.get('seoTitle') || undefined,
     seoDescription: formData.get('seoDescription') || undefined,
     seoKeywords: formData.get('seoKeywords') || undefined,
+    publishedAt: formData.get('publishedAt') || undefined,
   })
   if (!parsed.success) return { ok: false as const, error: 'Dados inválidos' }
 
-  const { tagIds: ids, categoryIds: catIds, projectId, companySlug, slug, authorId, status, ...rest } = parsed.data
+  const {
+    tagIds: ids,
+    categoryIds: catIds,
+    projectId,
+    companySlug,
+    slug,
+    authorId,
+    status,
+    publishedAt: publishedAtInput,
+    ...rest
+  } = parsed.data
   const resolvedSlug = slug ? slugify(slug) : slugify(rest.title)
-  const publishedAt = status === 'PUBLISHED' ? new Date() : null
+  const scheduledAt = parsePublishedAt(publishedAtInput)
+  const publishedAt = status === 'PUBLISHED' ? (scheduledAt ?? new Date()) : null
   const cleanBody = sanitizeArticleHtml(rest.body)
   const readingTime = readingTimeFromHtml(cleanBody) || null
 

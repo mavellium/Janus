@@ -26,7 +26,14 @@ const schema = z.object({
   seoTitle: z.string().optional(),
   seoDescription: z.string().optional(),
   seoKeywords: z.string().optional(),
+  publishedAt: z.string().optional(),
 })
+
+function parsePublishedAt(value?: string): Date | null {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
 
 function slugify(text: string): string {
   return text
@@ -62,11 +69,24 @@ export async function updateBlogPost(_: unknown, formData: FormData) {
     seoTitle: formData.get('seoTitle') || undefined,
     seoDescription: formData.get('seoDescription') || undefined,
     seoKeywords: formData.get('seoKeywords') || undefined,
+    publishedAt: formData.get('publishedAt') || undefined,
   })
   if (!parsed.success) return { ok: false as const, error: 'Dados inválidos' }
 
-  const { id, tagIds: ids, categoryIds: catIds, companySlug, projectId, slug, authorId, status, ...rest } = parsed.data
+  const {
+    id,
+    tagIds: ids,
+    categoryIds: catIds,
+    companySlug,
+    projectId,
+    slug,
+    authorId,
+    status,
+    publishedAt: publishedAtInput,
+    ...rest
+  } = parsed.data
   const resolvedSlug = slug ? slugify(slug) : slugify(rest.title)
+  const scheduledAt = parsePublishedAt(publishedAtInput)
   const cleanBody = sanitizeArticleHtml(rest.body)
   const readingTime = readingTimeFromHtml(cleanBody) || null
 
@@ -120,7 +140,9 @@ export async function updateBlogPost(_: unknown, formData: FormData) {
     }
 
     const publishedAt =
-      status === 'PUBLISHED' ? (existing.publishedAt ?? new Date()) : existing.publishedAt
+      status === 'PUBLISHED'
+        ? (scheduledAt ?? existing.publishedAt ?? new Date())
+        : existing.publishedAt
 
     let authorName = existing.authorName
     if (authorId) {

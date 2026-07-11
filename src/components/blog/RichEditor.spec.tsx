@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { RichEditor } from './RichEditor'
 
 vi.mock('@/modules/upload/actions/uploadImage', () => ({
@@ -19,7 +19,7 @@ describe('RichEditor', () => {
     render(<RichEditor value="<p>conteudo</p>" onChange={() => {}} />)
 
     await waitFor(() => {
-      expect(screen.getByTitle('Negrito')).toBeTruthy()
+      expect(screen.getByTitle('Negrito (Ctrl+B)')).toBeTruthy()
     })
 
     expect(screen.getByLabelText('Estilo do texto')).toBeTruthy()
@@ -32,13 +32,23 @@ describe('RichEditor', () => {
     render(<RichEditor value="<p>conteudo</p>" onChange={() => {}} />)
 
     await waitFor(() => {
-      expect(screen.getByTitle('Bloco de código')).toBeTruthy()
+      expect(screen.getByTitle('Checklist')).toBeTruthy()
     })
 
-    expect(screen.getByTitle('Checklist')).toBeTruthy()
-    expect(screen.getByTitle('Inserir tabela')).toBeTruthy()
-    expect(screen.getByTitle('Inserir vídeo do YouTube')).toBeTruthy()
-    expect(screen.getByTitle('Aviso (callout)')).toBeTruthy()
-    expect(screen.getByTitle('Divisor')).toBeTruthy()
+    fireEvent.click(screen.getByTitle('Inserir bloco'))
+
+    expect(screen.getByText('Bloco de código')).toBeTruthy()
+    expect(screen.getByText('Aviso (callout)')).toBeTruthy()
+    expect(screen.getByText('Tabela')).toBeTruthy()
+    expect(screen.getByText('Vídeo do YouTube')).toBeTruthy()
+    expect(screen.getByText('Divisor')).toBeTruthy()
+  })
+
+  it('shows a link control in the toolbar', async () => {
+    render(<RichEditor value="<p>conteudo</p>" onChange={() => {}} />)
+
+    await waitFor(() => {
+      expect(screen.getAllByTitle('Inserir link').length).toBeGreaterThan(0)
+    })
   })
 })

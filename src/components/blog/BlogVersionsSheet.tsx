@@ -17,10 +17,22 @@ import type { BlogPostVersionItem } from '@/modules/blog/queries/getBlogPostVers
 import { useToast } from '@/hooks/use-toast'
 import { ToastContainer } from '@/components/ui/toast-container'
 
+interface RestoredPostData {
+  title: string
+  subtitle: string | null
+  body: string
+  coverImageUrl: string | null
+  seoTitle: string | null
+  seoDescription: string | null
+  seoKeywords: string | null
+}
+
 export function BlogVersionsSheet({
   versions,
+  onRestored,
 }: {
   versions: BlogPostVersionItem[]
+  onRestored: (data: RestoredPostData) => void
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -35,6 +47,7 @@ export function BlogVersionsSheet({
       if (result.ok) {
         toast({ message: 'Versão restaurada com sucesso', type: 'success' })
         setOpen(false)
+        onRestored(result.data)
         router.refresh()
       } else {
         toast({ message: result.error || 'Erro ao restaurar', type: 'error' })

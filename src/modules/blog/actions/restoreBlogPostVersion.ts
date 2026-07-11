@@ -39,7 +39,7 @@ export async function restoreBlogPostVersion(versionId: string) {
       },
     })
 
-    await db.blogPost.update({
+    const restored = await db.blogPost.update({
       where: { id: post.id },
       data: {
         title: version.title,
@@ -55,7 +55,18 @@ export async function restoreBlogPostVersion(versionId: string) {
 
     revalidatePath(`/${company.slug}/dashboard`)
     revalidateSites(company.slug)
-    return { ok: true as const }
+    return {
+      ok: true as const,
+      data: {
+        title: restored.title,
+        subtitle: restored.subtitle,
+        body: restored.body,
+        coverImageUrl: restored.coverImageUrl,
+        seoTitle: restored.seoTitle,
+        seoDescription: restored.seoDescription,
+        seoKeywords: restored.seoKeywords,
+      },
+    }
   } catch {
     return { ok: false as const, error: 'Erro ao restaurar versão' }
   }

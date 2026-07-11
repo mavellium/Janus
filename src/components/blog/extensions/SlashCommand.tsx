@@ -11,7 +11,6 @@ import { Extension, type Range } from '@tiptap/core'
 import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion'
 import { ReactRenderer, type Editor } from '@tiptap/react'
 import {
-  Heading1,
   Heading2,
   Heading3,
   List,
@@ -33,11 +32,6 @@ interface SlashItem {
 }
 
 const SLASH_ITEMS: SlashItem[] = [
-  {
-    title: 'Título 1',
-    icon: Heading1,
-    run: (e, r) => e.chain().focus().deleteRange(r).setHeading({ level: 1 }).run(),
-  },
   {
     title: 'Título 2',
     icon: Heading2,

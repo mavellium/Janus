@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  useEffect,
   useRef,
   useState,
   useCallback,
@@ -54,6 +55,7 @@ import {
   Redo2,
   Loader2,
   Check,
+  Plus,
 } from 'lucide-react'
 import { uploadImage } from '@/modules/upload/actions/uploadImage'
 import { cn } from '@/lib/utils'
@@ -69,6 +71,7 @@ interface RichEditorProps {
   onChange: (value: string) => void
   name?: string
   projectId?: string
+  className?: string
 }
 
 type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6
@@ -467,18 +470,206 @@ function ColorControl({
   )
 }
 
+function LinkControl({ editor, active }: { editor: Editor; active: boolean }) {
+  const [open, setOpen] = useState(false)
+  const [url, setUrl] = useState('')
+
+  function openPopover() {
+    const previous = (editor.getAttributes('link').href as string | undefined) ?? ''
+    setUrl(previous)
+    setOpen((prev) => !prev)
+  }
+
+  function apply() {
+    const trimmed = url.trim()
+    if (trimmed === '') {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run()
+    } else {
+      const href = /^(https?:\/\/|mailto:|tel:)/i.test(trimmed) ? trimmed : `https://${trimmed}`
+      editor.chain().focus().extendMarkRange('link').setLink({ href }).run()
+    }
+    setOpen(false)
+    setUrl('')
+  }
+
+  function remove() {
+    editor.chain().focus().extendMarkRange('link').unsetLink().run()
+    setOpen(false)
+    setUrl('')
+  }
+
+  return (
+    <div className="relative">
+      <ToolbarButton title="Inserir link" active={active || open} onClick={openPopover}>
+        <Link2 size={15} />
+      </ToolbarButton>
+      {open && (
+        <div className="absolute left-0 top-full z-20 mt-1 flex items-center gap-1 rounded-lg border border-border bg-card p-1.5 shadow-lg">
+          <input
+            autoFocus
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                apply()
+              }
+              if (e.key === 'Escape') setOpen(false)
+            }}
+            placeholder="https://exemplo.com"
+            className="h-8 w-48 rounded-md border border-border bg-background px-2 text-xs text-brand-text outline-none focus:ring-1 focus:ring-ring"
+          />
+          <button type="button" title="Aplicar link" aria-label="Aplicar link" onClick={apply} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-primary text-white transition hover:bg-brand-hover">
+            <Check size={15} />
+          </button>
+          <button type="button" title="Remover link" aria-label="Remover link" onClick={remove} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-brand-muted transition hover:bg-brand-btn-light hover:text-destructive">
+            <Unlink size={15} />
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InsertMenu({
+  editor,
+  isCodeBlock,
+  isCallout,
+}: {
+  editor: Editor
+  isCodeBlock: boolean
+  isCallout: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [videoOpen, setVideoOpen] = useState(false)
+  const [videoUrl, setVideoUrl] = useState('')
+
+  function close() {
+    setOpen(false)
+    setVideoOpen(false)
+    setVideoUrl('')
+  }
+
+  function applyVideo() {
+    const url = videoUrl.trim()
+    if (url !== '') {
+      editor.chain().focus().setYoutubeVideo({ src: url }).run()
+    }
+    close()
+  }
+
+  const items: Array<{ label: string; icon: ReactNode; active?: boolean; onClick: () => void }> = [
+    {
+      label: 'Bloco de código',
+      icon: <Code size={15} />,
+      active: isCodeBlock,
+      onClick: () => {
+        editor.chain().focus().toggleCodeBlock().run()
+        close()
+      },
+    },
+    {
+      label: 'Aviso (callout)',
+      icon: <Info size={15} />,
+      active: isCallout,
+      onClick: () => {
+        editor.chain().focus().toggleCallout('info').run()
+        close()
+      },
+    },
+    {
+      label: 'Tabela',
+      icon: <TableIcon size={15} />,
+      onClick: () => {
+        editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+        close()
+      },
+    },
+    {
+      label: 'Divisor',
+      icon: <Minus size={15} />,
+      onClick: () => {
+        editor.chain().focus().setHorizontalRule().run()
+        close()
+      },
+    },
+  ]
+
+  return (
+    <div className="relative">
+      <ToolbarButton title="Inserir bloco" active={open} onClick={() => setOpen((prev) => !prev)}>
+        <Plus size={15} />
+      </ToolbarButton>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={close} />
+          <div className="absolute left-0 top-full z-20 mt-1 w-52 rounded-lg border border-border bg-card p-1.5 shadow-lg">
+            {items.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={item.onClick}
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition',
+                  item.active ? 'bg-brand-primary text-white' : 'text-brand-text hover:bg-brand-btn-light',
+                )}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => setVideoOpen((prev) => !prev)}
+              className={cn(
+                'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition',
+                videoOpen ? 'bg-brand-primary text-white' : 'text-brand-text hover:bg-brand-btn-light',
+              )}
+            >
+              <VideoIcon size={15} />
+              Vídeo do YouTube
+            </button>
+            {videoOpen && (
+              <div className="mt-1 flex items-center gap-1 border-t border-border pt-1.5">
+                <input
+                  autoFocus
+                  type="url"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      applyVideo()
+                    }
+                    if (e.key === 'Escape') setVideoOpen(false)
+                  }}
+                  placeholder="https://youtube.com/watch?v=..."
+                  className="h-8 flex-1 rounded-md border border-border bg-background px-2 text-xs text-brand-text outline-none focus:ring-1 focus:ring-ring"
+                />
+                <button type="button" title="Inserir vídeo" aria-label="Inserir vídeo" onClick={applyVideo} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-primary text-white transition hover:bg-brand-hover">
+                  <Check size={15} />
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function RichEditor({
   value,
   onChange,
   name = 'body',
   projectId,
+  className,
 }: RichEditorProps) {
   const fileRef = useRef<HTMLInputElement>(null)
   const editorRef = useRef<Editor | null>(null)
-  const [linkOpen, setLinkOpen] = useState(false)
-  const [linkUrl, setLinkUrl] = useState('')
-  const [videoOpen, setVideoOpen] = useState(false)
-  const [videoUrl, setVideoUrl] = useState('')
   const [uploading, setUploading] = useState(false)
   const [tocOpen, setTocOpen] = useState(false)
 
@@ -504,7 +695,7 @@ export function RichEditor({
     },
     extensions: [
       StarterKit.configure({
-        heading: { levels: [1, 2, 3, 4, 5, 6] },
+        heading: { levels: [2, 3, 4, 5, 6] },
         link: { openOnClick: false },
         codeBlock: false,
       }),
@@ -561,6 +752,12 @@ export function RichEditor({
     selector: (ctx) => (ctx.editor ? selectEditorUi(ctx.editor) : null),
   })
 
+  useEffect(() => {
+    if (!editor) return
+    if (value === editor.getHTML()) return
+    editor.commands.setContent(value || '', { emitUpdate: false })
+  }, [value, editor])
+
   if (!editor) return null
 
   const ui = state ?? selectEditorUi(editor)
@@ -582,39 +779,6 @@ export function RichEditor({
     e.target.value = ''
   }
 
-  const openLinkPopover = () => {
-    const previous = (editor.getAttributes('link').href as string | undefined) ?? ''
-    setLinkUrl(previous)
-    setLinkOpen((open) => !open)
-  }
-
-  const applyLink = () => {
-    const url = linkUrl.trim()
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run()
-    } else {
-      const href = /^(https?:\/\/|mailto:|tel:)/i.test(url) ? url : `https://${url}`
-      editor.chain().focus().extendMarkRange('link').setLink({ href }).run()
-    }
-    setLinkOpen(false)
-    setLinkUrl('')
-  }
-
-  const removeLink = () => {
-    editor.chain().focus().extendMarkRange('link').unsetLink().run()
-    setLinkOpen(false)
-    setLinkUrl('')
-  }
-
-  const applyVideo = () => {
-    const url = videoUrl.trim()
-    if (url !== '') {
-      editor.chain().focus().setYoutubeVideo({ src: url }).run()
-    }
-    setVideoOpen(false)
-    setVideoUrl('')
-  }
-
   const applyBlock = (blockValue: string) => {
     if (blockValue === 'paragraph') {
       editor.chain().focus().setParagraph().run()
@@ -632,7 +796,7 @@ export function RichEditor({
   const blockValue = ui.headingLevel ? `h${ui.headingLevel}` : 'paragraph'
 
   return (
-    <div className="janus-rich-editor flex flex-col overflow-hidden rounded-lg border border-border bg-brand-bg">
+    <div className={cn('janus-rich-editor flex flex-col overflow-hidden rounded-lg border border-border bg-brand-bg', className)}>
       <style>{EDITOR_STYLES}</style>
 
       <div className="sticky top-0 z-10 flex flex-wrap items-center gap-0.5 border-b border-border bg-card px-2 py-1.5">
@@ -643,7 +807,6 @@ export function RichEditor({
           className="mr-1 h-8 rounded-md border border-border bg-background px-2 text-xs font-medium text-brand-text outline-none focus:ring-1 focus:ring-ring"
         >
           <option value="paragraph">Parágrafo</option>
-          <option value="h1">Título 1</option>
           <option value="h2">Título 2</option>
           <option value="h3">Título 3</option>
           <option value="h4">Título 4</option>
@@ -653,16 +816,16 @@ export function RichEditor({
 
         <Divider />
 
-        <ToolbarButton title="Negrito" active={ui.isBold} onClick={() => editor.chain().focus().toggleBold().run()}>
+        <ToolbarButton title="Negrito (Ctrl+B)" active={ui.isBold} onClick={() => editor.chain().focus().toggleBold().run()}>
           <Bold size={15} />
         </ToolbarButton>
-        <ToolbarButton title="Itálico" active={ui.isItalic} onClick={() => editor.chain().focus().toggleItalic().run()}>
+        <ToolbarButton title="Itálico (Ctrl+I)" active={ui.isItalic} onClick={() => editor.chain().focus().toggleItalic().run()}>
           <Italic size={15} />
         </ToolbarButton>
-        <ToolbarButton title="Sublinhado" active={ui.isUnderline} onClick={() => editor.chain().focus().toggleUnderline().run()}>
+        <ToolbarButton title="Sublinhado (Ctrl+U)" active={ui.isUnderline} onClick={() => editor.chain().focus().toggleUnderline().run()}>
           <Underline size={15} />
         </ToolbarButton>
-        <ToolbarButton title="Tachado" active={ui.isStrike} onClick={() => editor.chain().focus().toggleStrike().run()}>
+        <ToolbarButton title="Tachado (Ctrl+Shift+S)" active={ui.isStrike} onClick={() => editor.chain().focus().toggleStrike().run()}>
           <Strikethrough size={15} />
         </ToolbarButton>
 
@@ -714,36 +877,7 @@ export function RichEditor({
 
         <Divider />
 
-        <div className="relative">
-          <ToolbarButton title="Inserir link" active={ui.isLink || linkOpen} onClick={openLinkPopover}>
-            <Link2 size={15} />
-          </ToolbarButton>
-          {linkOpen && (
-            <div className="absolute left-0 top-full z-20 mt-1 flex items-center gap-1 rounded-lg border border-border bg-card p-1.5 shadow-lg">
-              <input
-                autoFocus
-                type="url"
-                value={linkUrl}
-                onChange={(e) => setLinkUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    applyLink()
-                  }
-                  if (e.key === 'Escape') setLinkOpen(false)
-                }}
-                placeholder="https://exemplo.com"
-                className="h-8 w-48 rounded-md border border-border bg-background px-2 text-xs text-brand-text outline-none focus:ring-1 focus:ring-ring"
-              />
-              <button type="button" title="Aplicar link" aria-label="Aplicar link" onClick={applyLink} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-primary text-white transition hover:bg-brand-hover">
-                <Check size={15} />
-              </button>
-              <button type="button" title="Remover link" aria-label="Remover link" onClick={removeLink} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-brand-muted transition hover:bg-brand-btn-light hover:text-destructive">
-                <Unlink size={15} />
-              </button>
-            </div>
-          )}
-        </div>
+        <LinkControl editor={editor} active={ui.isLink} />
         <ToolbarButton title="Citação" active={ui.isBlockquote} onClick={() => editor.chain().focus().toggleBlockquote().run()}>
           <Quote size={15} />
         </ToolbarButton>
@@ -759,52 +893,7 @@ export function RichEditor({
 
         <Divider />
 
-        <ToolbarButton title="Bloco de código" active={ui.isCodeBlock} onClick={() => editor.chain().focus().toggleCodeBlock().run()}>
-          <Code size={15} />
-        </ToolbarButton>
-        <ToolbarButton title="Aviso (callout)" active={ui.isCallout} onClick={() => editor.chain().focus().toggleCallout('info').run()}>
-          <Info size={15} />
-        </ToolbarButton>
-        <ToolbarButton title="Inserir tabela" onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>
-          <TableIcon size={15} />
-        </ToolbarButton>
-        <div className="relative">
-          <ToolbarButton
-            title="Inserir vídeo do YouTube"
-            active={videoOpen}
-            onClick={() => {
-              setVideoUrl('')
-              setVideoOpen((open) => !open)
-            }}
-          >
-            <VideoIcon size={15} />
-          </ToolbarButton>
-          {videoOpen && (
-            <div className="absolute left-0 top-full z-20 mt-1 flex items-center gap-1 rounded-lg border border-border bg-card p-1.5 shadow-lg">
-              <input
-                autoFocus
-                type="url"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    applyVideo()
-                  }
-                  if (e.key === 'Escape') setVideoOpen(false)
-                }}
-                placeholder="https://youtube.com/watch?v=..."
-                className="h-8 w-56 rounded-md border border-border bg-background px-2 text-xs text-brand-text outline-none focus:ring-1 focus:ring-ring"
-              />
-              <button type="button" title="Inserir vídeo" aria-label="Inserir vídeo" onClick={applyVideo} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-primary text-white transition hover:bg-brand-hover">
-                <Check size={15} />
-              </button>
-            </div>
-          )}
-        </div>
-        <ToolbarButton title="Divisor" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
-          <Minus size={15} />
-        </ToolbarButton>
+        <InsertMenu editor={editor} isCodeBlock={ui.isCodeBlock} isCallout={ui.isCallout} />
 
         <Divider />
 
@@ -816,10 +905,10 @@ export function RichEditor({
         >
           <ListTree size={15} />
         </ToolbarButton>
-        <ToolbarButton title="Desfazer" disabled={!ui.canUndo} onClick={() => editor.chain().focus().undo().run()}>
+        <ToolbarButton title="Desfazer (Ctrl+Z)" disabled={!ui.canUndo} onClick={() => editor.chain().focus().undo().run()}>
           <Undo2 size={15} />
         </ToolbarButton>
-        <ToolbarButton title="Refazer" disabled={!ui.canRedo} onClick={() => editor.chain().focus().redo().run()}>
+        <ToolbarButton title="Refazer (Ctrl+Shift+Z)" disabled={!ui.canRedo} onClick={() => editor.chain().focus().redo().run()}>
           <Redo2 size={15} />
         </ToolbarButton>
 
@@ -882,18 +971,19 @@ export function RichEditor({
       )}
 
       <BubbleMenu editor={editor} className="janus-bubble-menu">
-        <ToolbarButton title="Negrito" active={ui.isBold} onClick={() => editor.chain().focus().toggleBold().run()}>
+        <ToolbarButton title="Negrito (Ctrl+B)" active={ui.isBold} onClick={() => editor.chain().focus().toggleBold().run()}>
           <Bold size={15} />
         </ToolbarButton>
-        <ToolbarButton title="Itálico" active={ui.isItalic} onClick={() => editor.chain().focus().toggleItalic().run()}>
+        <ToolbarButton title="Itálico (Ctrl+I)" active={ui.isItalic} onClick={() => editor.chain().focus().toggleItalic().run()}>
           <Italic size={15} />
         </ToolbarButton>
-        <ToolbarButton title="Sublinhado" active={ui.isUnderline} onClick={() => editor.chain().focus().toggleUnderline().run()}>
+        <ToolbarButton title="Sublinhado (Ctrl+U)" active={ui.isUnderline} onClick={() => editor.chain().focus().toggleUnderline().run()}>
           <Underline size={15} />
         </ToolbarButton>
-        <ToolbarButton title="Tachado" active={ui.isStrike} onClick={() => editor.chain().focus().toggleStrike().run()}>
+        <ToolbarButton title="Tachado (Ctrl+Shift+S)" active={ui.isStrike} onClick={() => editor.chain().focus().toggleStrike().run()}>
           <Strikethrough size={15} />
         </ToolbarButton>
+        <LinkControl editor={editor} active={ui.isLink} />
         <ColorControl
           title="Cor da fonte"
           icon={<Baseline size={15} />}
@@ -934,7 +1024,7 @@ export function RichEditor({
         <GripVertical size={16} />
       </DragHandle>
 
-      <div className="max-h-[60vh] overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <EditorContent editor={editor} />
       </div>
 

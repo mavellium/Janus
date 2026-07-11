@@ -4,6 +4,36 @@
 
 ---
 
+### [2026-07-07] — Fix: restaurar versão não atualizava o editor sem F5
+
+**Arquivos:**
+- `src/modules/blog/actions/restoreBlogPostVersion.ts`: retorna `data` (title/subtitle/body/coverImageUrl/seoTitle/seoDescription/seoKeywords) do post restaurado
+- `src/components/blog/BlogVersionsSheet.tsx`: nova prop `onRestored(data)`, chamada com o retorno da action antes do `router.refresh()`
+- `src/components/blog/PostEditorClient.tsx`: `handleVersionRestored` aplica os dados retornados diretamente nos `useState` do editor (title/subtitle/body/coverImageUrl/seoTitle/seoDescription/seoKeywords); novo ref `skipNextDirtyCheckRef` para o efeito de "marcar sujo" (que observa esses mesmos campos) não sobrescrever o `dirty=false` do restore
+- `src/components/blog/RichEditor.tsx`: novo `useEffect` que chama `editor.commands.setContent(value, { emitUpdate: false })` quando o `value` (prop) externo diverge do HTML atual do editor
+
+**Razão:** `PostEditorClient` inicializa `title`/`body`/etc via `useState(post?.campo ?? ...)` — valor apenas de montagem. `router.refresh()` (usado após restaurar) re-renderiza o Server Component e passa um `post` novo, mas como o Client Component não remonta, o `useState` não re-sincroniza — só um F5 (reload completo) mostrava o conteúdo restaurado. O TipTap tem o mesmo problema: `useEditor({ content: value })` só lê `value` na criação do editor, não reage a mudanças de prop depois.
+
+**Impacto:** Restaurar uma versão agora atualiza título, subtítulo, corpo (incluindo o texto visível no TipTap), capa e campos de SEO imediatamente, sem F5. `router.refresh()` continua sendo chamado para manter a lista de versões atualizada na próxima abertura do Sheet.
+
+---
+
+### [2026-07-07] — Editor Fase 6: agendamento, rascunho silencioso, modo foco e ergonomia de escrita
+
+**Arquivos:**
+- `src/modules/blog/actions/autosaveBlogPost.ts`: reescrito para upsert — sem `id`, cria o rascunho silenciosamente (slug `titulo-<timestamp36>` para evitar colisão, sem `logAudit`/`revalidatePath`, mantendo o precedente já existente de autosave silencioso); com `id`, agora também persiste `categoryIds`/`tagIds`/`authorId` (antes só title/subtitle/status/body/seo); novo campo `publishedAt` em ambos os ramos
+- `src/modules/blog/actions/createBlogPost.ts`, `updateBlogPost.ts`: novo campo `publishedAt` (ISO string) no schema Zod; `publishedAt` do post passa a respeitar a data escolhida quando `status='PUBLISHED'` (agendamento), com fallback para `new Date()`
+- `src/components/blog/PostEditorClient.tsx`: reescrito — estado `postId` local (autosave cria o rascunho no primeiro conteúdo digitado e troca a URL via `history.replaceState`, sem navegação); campo "Publicar em" (`datetime-local`) com badge "Agendado para..." quando status=PUBLISHED e data é futura; guarda de saída (`beforeunload` + confirm no link Voltar) via flag `dirty`; Ctrl+S submete o form; capa aceita drag-and-drop; contadores de caracteres nos campos SEO (30–60 / 70–160, cores do `seo-checklist.ts`); botão "Modo foco" oculta a sidebar; layout responsivo (`grid-cols-1 lg:grid-cols-[1fr_320px]`); indicador de autosave só mostra "Salvando..." durante o request (não durante o debounce) e exibe o horário do último save
+- `src/components/blog/RichEditor.tsx`: heading H1 removido (`levels: [2,3,4,5,6]`, select e slash menu) — o H1 da página pública é o título do post; toolbar de código/callout/tabela/vídeo/divisor agrupada em dropdown "Inserir bloco"; `LinkControl` extraído e reutilizado no toolbar e no bubble menu (antes só no toolbar); tooltips ganharam o atalho (Ctrl+B etc, verificados no source dos pacotes `@tiptap/extension-*`); removido o `max-h-[60vh]` fixo do corpo do editor (causava scroll aninhado) — agora usa `flex-1 min-h-0`, preenchendo a altura da coluna; aceita prop `className` para o `PostEditorClient` controlar a altura
+- `src/components/blog/extensions/SlashCommand.tsx`: item "Título 1" removido (consistente com o H1 do RichEditor)
+- `src/components/blog/RichEditor.spec.tsx`: ajustado às mudanças de UI (tooltips com atalho, itens do "Inserir bloco" dentro do dropdown)
+
+**Razão:** Pedido do usuário para revisar e melhorar a experiência de escrita do blog. Riscos identificados: posts novos sem autosave (perda total se a aba fechasse), sem aviso de navegação com alterações pendentes, sem UI para o agendamento que o domínio já suporta (`publishedAt` futuro), capa prometia drag-and-drop que não existia, editor com scroll aninhado e sidebar fixa de 320px que espremia a coluna em telas menores.
+
+**Impacto:** Rascunhos novos passam a ter `createdAt` no instante do primeiro autosave (não no clique em "Criar Post"); a auditoria (`logAudit`) só registra a primeira entrada como `UPDATE` (no submit manual), não `CREATE`, já que a criação em si é silenciosa — trade-off aceito para proteger o trabalho do usuário. `getBlogPosts`/API pública não mudam (já filtravam por `status`/`publishedAt`). Nenhuma migration necessária.
+
+---
+
 ### [2026-07-06] — Fix: banner de API não some durante impersonação de usuário comum
 
 **Arquivos:**
