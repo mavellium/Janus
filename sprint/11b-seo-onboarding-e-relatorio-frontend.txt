@@ -1,0 +1,120 @@
+================================================================
+TASK 11b — SEO: fluxo de onboarding (input URL -> score -> relatório)
+================================================================
+
+PONTUACAO: 8 pontos (G) | PRIORIDADE: Alta
+DEPENDE DE: 11a (Server Action analyzeSeo, queries, model SeoAnalysis)
+
+CONTEXTO
+Com 11a pronta, existe `analyzeSeo({ url })` retornando score 0-100 +
+lista detalhada de checks, persistido em `SeoAnalysis`. Esta task
+constrói a experiência do cliente: onde ele cola a URL, como vê o
+resultado, e como acessa o relatório completo depois.
+
+Pedido do usuário: fluxo em 2 momentos —
+  1. Análise inicial rápida: usuário cola a URL, vê a pontuação (0-100)
+     e quais ações são necessárias para melhorar.
+  2. Relatório completo: versão detalhada e "guardável" da mesma
+     análise (não uma feature separada, é o mesmo dado com mais
+     profundidade de apresentação).
+
+IMPLEMENTACAO TECNICA
+
+1. Ponto de entrada — "Analisar meu site" (onboarding):
+   - Integrar como parte do checklist de onboarding da task 08: um
+     passo adicional (ou uma chamada de destaque separada, decidir no
+     code review conforme o resultado visual das duas tasks juntas)
+     "Analise seu site atual" com um input de URL + botão "Analisar",
+     visível principalmente para clientes novos (mesma heurística de
+     "conta nova" já definida na task 08) — mas SEM checagem de
+     permissão de projeto, já que analisar uma URL não depende de
+     `PROJECT_CREATE`/`PAGE_CREATE` (é uma consulta, não uma mutação
+     sobre dado do Janus). Qualquer usuário autenticado da empresa
+     pode rodar.
+   - Componente Client `src/components/seo/SeoUrlInputForm.tsx`:
+     input controlado com validação básica de formato de URL no
+     client (feedback imediato), `useActionState` chamando
+     `analyzeSeo`, estado de loading (a análise faz fetch de uma URL
+     externa + parsing, pode levar alguns segundos — usar um loading
+     state claro, tipo "Analisando seu site... isso pode levar até
+     10 segundos", não deixar o botão parecer travado).
+   - Tratar os erros tipados que 11a pode retornar (`INVALID_URL`,
+     'PRIVATE_ADDRESS_BLOCKED' -> mensagem genérica "não foi possível
+     acessar essa URL" para não vazar detalhe de infraestrutura ao
+     usuário, 'TIMEOUT', 'TOO_LARGE', 'UNREACHABLE', erro de rate
+     limit 429 -> "você atingiu o limite de análises por hoje").
+
+2. Resultado da análise rápida — componente
+   `src/components/seo/SeoScoreCard.tsx`:
+   - Visual de destaque para o score: anel de progresso (radial
+     progress) ou gauge semicircular com o número 0-100 no centro,
+     cor variando por faixa (ex: vermelho < 50, amarelo 50-79, verde
+     >= 80 — usar tokens de cor do design system do projeto, não
+     cores arbitrárias; conferir se já existe um componente de
+     progress/gauge reutilizável em src/components/ui/ antes de criar
+     um novo).
+   - Lista de ações necessárias: ordenar os `checks` retornados
+     colocando primeiro os que falharam (`passed: false`), agrupados
+     por `severity` (critical primeiro, depois important, depois
+     minor), cada item mostrando `label`, `message` e
+     `recommendation`. Itens que passaram (`passed: true`) aparecem
+     depois, colapsados/resumidos (não precisam de destaque, servem
+     só como confirmação do que já está certo).
+   - CTA "Ver relatório completo" leva à página de relatório (passo 3).
+
+3. Página de relatório completo:
+   `src/app/[companySlug]/dashboard/seo/[analysisId]/page.tsx`
+   (criar a seção `seo` na sidebar? Avaliar se cabe como item de menu
+   próprio ou se fica acessível só a partir do resultado da análise/
+   onboarding nesta primeira versão — decisão de produto, não travar
+   a task; recomendo NÃO adicionar item fixo na sidebar ainda nesta
+   sprint, já que é uma feature nova em validação, e revisitar depois
+   com dados de uso reais).
+   - Server Component: busca a análise via `getSeoAnalysis(analysisId)`
+     (checando que pertence à `companyId` da sessão — nunca permitir
+     acessar análise de outra empresa via URL direta, checagem
+     obrigatória de autorização mesmo sendo dado "público" por
+     natureza, já que registra QUEM analisou e QUANDO).
+   - Reaproveita `SeoScoreCard` no topo, mas em versão expandida:
+     todos os checks visíveis (não colapsados), com `maxPoints` vs
+     `points` de cada item mostrado (ex: "6/10 pontos"), para o
+     cliente entender o peso relativo de cada recomendação.
+   - Seção de metadados: URL analisada, data/hora da análise, botão
+     "Analisar novamente" (chama analyzeSeo de novo com a mesma URL).
+   - Opcional (avaliar se cabe no ponto estimado): botão de exportar/
+     imprimir o relatório (usar `window.print()` com CSS de print
+     dedicado é a opção mais barata — não implementar geração de PDF
+     server-side nesta task, é escopo grande demais para o ponto
+     estimado; se o cliente pedir PDF de verdade, vira task própria
+     futura).
+   - Listagem de análises anteriores da empresa (usar
+     `getRecentSeoAnalyses`), permitindo ver o histórico de evolução
+     do score ao longo do tempo — mesmo que simples (lista com data +
+     score + link), já entrega a noção de progresso.
+
+4. Acessibilidade e estados de erro: página de relatório trata o caso
+   de `analysisId` inexistente ou pertencente a outra empresa
+   (retornar 404 via `notFound()` do Next, não vazar existência do
+   recurso).
+
+5. pnpm typecheck + pnpm exec eslint em todos os arquivos client/
+   server tocados.
+
+RESULTADO FINAL
+Cliente novo cola a URL do site atual (mesmo antes de ter qualquer
+projeto no Janus) e recebe, em segundos, uma pontuação de SEO de 0 a
+100 com uma lista priorizada de ações para melhorar. Pode acessar um
+relatório completo e detalhado da mesma análise a qualquer momento, e
+ver o histórico de análises anteriores da empresa.
+
+IMPACTO
+Entrega a primeira ferramenta de diagnóstico "self-service" do Janus:
+gera valor imediato mesmo para quem ainda não é cliente ativo de
+sites/LPs (só precisa estar logado), funcionando como gancho de
+ativação — o cliente vê problemas concretos no site atual dele e
+naturalmente associa a solução a continuar usando o produto. É também
+a base visual e de dados sobre a qual a fase futura de GEO será
+construída, então o cuidado em desenhar o componente de score e a
+lista de checks de forma genérica (não hardcoded para "SEO" no texto
+da UI onde puder ser evitado) paga dividendos quando essa expansão
+vier.

@@ -50,6 +50,8 @@ export async function updateBlogCategory(_: unknown, formData: FormData) {
       action: 'UPDATE',
       entity: 'BlogCategory',
       entityId: id,
+      entityLabel: category.name,
+      projectId: category.projectId,
       oldData: before,
       newData: category,
     })

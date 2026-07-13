@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 export async function toggleScript({ id, companySlug }: { id: string; companySlug: string }) {
   const session = await auth()
@@ -11,7 +12,13 @@ export async function toggleScript({ id, companySlug }: { id: string; companySlu
   try {
     const existing = await db.siteScript.findUnique({
       where: { id },
-      select: { isActive: true, project: { select: { id: true, company: { select: { slug: true } } } } },
+      select: {
+        isActive: true,
+        name: true,
+        project: {
+          select: { id: true, companyId: true, company: { select: { slug: true } } },
+        },
+      },
     })
     if (!existing) return { ok: false, error: 'Script não encontrado' }
     if (
@@ -23,6 +30,18 @@ export async function toggleScript({ id, companySlug }: { id: string; companySlu
     const updated = await db.siteScript.update({
       where: { id },
       data: { isActive: !existing.isActive },
+    })
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE',
+      entity: 'SiteScript',
+      entityId: id,
+      entityLabel: `${updated.isActive ? 'Ativado' : 'Desativado'} · ${existing.name}`,
+      companyId: existing.project.companyId,
+      projectId: existing.project.id,
+      oldData: { isActive: existing.isActive },
+      newData: { isActive: updated.isActive },
     })
 
     revalidatePath(`/${companySlug}/dashboard/sites/${existing.project.id}/scripts`)

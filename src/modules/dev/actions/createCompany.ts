@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 const schema = z.object({
   name: z.string().min(2),
@@ -33,7 +34,19 @@ export async function createCompany(_prev: { ok: boolean; error?: string }, form
     return { ok: false, error: 'Slug já está em uso.' }
   }
 
-  await db.company.create({ data: { ...parsed.data, createdById: session.user.id } })
+  const company = await db.company.create({
+    data: { ...parsed.data, createdById: session.user.id },
+  })
+
+  await logAudit({
+    userId: session.user.id,
+    action: 'CREATE',
+    entity: 'Company',
+    entityId: company.id,
+    entityLabel: company.name,
+    companyId: company.id,
+    newData: company,
+  })
 
   revalidatePath(`/dev/${session?.user?.id}/dashboard`)
   return { ok: true }

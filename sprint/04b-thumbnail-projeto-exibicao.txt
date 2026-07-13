@@ -1,0 +1,73 @@
+================================================================
+TASK 04b — Thumbnail de projeto: exibição nas listagens e na Home
+================================================================
+
+PONTUACAO: 3 pontos (P) | PRIORIDADE: Média
+DEPENDE DE: 04a (campo thumbnailUrl e upload já implementados)
+
+CONTEXTO
+Com 04a pronta, `Project.thumbnailUrl` existe e pode ser preenchido.
+Esta task troca os placeholders cinza estáticos pela imagem real (com
+fallback) em todos os lugares que hoje mostram um card/linha de
+projeto:
+  - Home: src/app/[companySlug]/dashboard/page.tsx (os `<div
+    className="w-8 h-8 rounded bg-brand-btn-light">` nas linhas ~106
+    e ~178).
+  - Listagem completa de Sites: src/app/[companySlug]/dashboard/sites/page.tsx
+    (cards com `rounded-xl border ... overflow-hidden hover:shadow-lg`,
+    confirmado no levantamento anterior).
+  - Listagem completa de Landing Pages: src/app/[companySlug]/dashboard/landing-pages/page.tsx
+    (mesmo padrão).
+
+IMPLEMENTACAO TECNICA
+1. Atualizar `src/modules/projects/queries/getProjects.ts` para
+   incluir `thumbnailUrl: true` no `select` (hoje não busca esse
+   campo). Mesma alteração, se aplicável, em qualquer outra query de
+   projeto usada nessas 3 telas (conferir se sites/page.tsx e
+   landing-pages/page.tsx usam getProjects ou uma query própria —
+   ajustar a que for usada).
+
+2. Criar componente compartilhado
+   src/components/projects/ProjectThumbnail.tsx (Server Component):
+   ```
+   interface ProjectThumbnailProps {
+     thumbnailUrl: string | null
+     name: string
+     size?: number // default 32 (home) vs maior nas listagens
+   }
+   ```
+   - Se `thumbnailUrl`: `next/image` com `object-cover`, `rounded`,
+     tamanho conforme prop.
+   - Se null: fallback com as iniciais do nome do projeto sobre um
+     fundo de cor derivada do hash do nome (padrão comum e barato de
+     implementar: pegar as 2 primeiras letras do nome, gerar uma cor
+     HSL determinística a partir de um hash simples do nome, texto
+     branco centralizado). Evita reintroduzir o quadrado cinza sem
+     graça e dá uma identidade visual mínima mesmo sem upload.
+
+3. Trocar os placeholders nos 3 locais (home, sites, landing-pages)
+   por `<ProjectThumbnail thumbnailUrl={project.thumbnailUrl}
+   name={project.name} size={...} />`, ajustando o tamanho conforme
+   o contexto (menor na home, maior nos cards da listagem completa).
+
+4. Página do próprio projeto: confirmar que o cabeçalho ajustado em
+   04a (passo 7) usa o mesmo componente `ProjectThumbnail`, garantindo
+   consistência visual em toda a aplicação — a task 04a adiciona a
+   capacidade de EDITAR ali, esta task garante que a EXIBIÇÃO usa o
+   componente único.
+
+5. pnpm typecheck + pnpm exec eslint.
+
+RESULTADO FINAL
+Todo lugar que lista projetos (home, listagem de sites, listagem de
+landing pages, página do projeto) mostra a imagem real do projeto
+quando configurada, ou um avatar de iniciais colorido no lugar do
+quadrado cinza morto quando não há thumbnail.
+
+IMPACTO
+Fecha o ciclo iniciado em 04a: a lista de projetos passa a ser
+visualmente escaneável — clientes com múltiplos sites/LPs conseguem
+identificar o projeto certo em menos tempo, sem depender de ler cada
+nome. É uma mudança pequena em esforço (3 pontos) mas com efeito
+visual desproporcional, porque toca 3-4 telas de uma vez com um único
+componente reutilizável.

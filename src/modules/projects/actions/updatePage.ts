@@ -53,6 +53,9 @@ export async function updatePage({
       action: 'UPDATE',
       entity: 'Page',
       entityId: pageId,
+      entityLabel: `${updated.name} · ${page.project.name}`,
+      companyId: page.project.companyId,
+      projectId: page.project.id,
       oldData: { ...page, project: undefined },
       newData: updated,
     })

@@ -55,6 +55,9 @@ export async function createProject({
       action: 'CREATE',
       entity: 'Project',
       entityId: project.id,
+      entityLabel: project.name,
+      companyId: project.companyId,
+      projectId: project.id,
       newData: project,
     })
 

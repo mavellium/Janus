@@ -27,6 +27,8 @@ export async function deleteBlogPost(id: string) {
         action: "DELETE",
         entity: "BlogPost",
         entityId: id,
+        entityLabel: post.title,
+        projectId: post.projectId,
         oldData: { ...post, project: undefined },
       });
     }

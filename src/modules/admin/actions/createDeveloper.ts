@@ -6,6 +6,7 @@ import { auth } from '@/lib/auth'
 import { hash } from 'bcryptjs'
 import { revalidatePath } from 'next/cache'
 import { ALL_PERMISSIONS } from '@/lib/auth/permissions'
+import { logAudit, omitSensitive } from '@/lib/audit-logger'
 
 const schema = z.object({
   name: z.string().min(1),
@@ -50,7 +51,7 @@ export async function createDeveloper(
 
   const hashedPassword = await hash(parsed.data.password, 10)
 
-  await db.user.create({
+  const developer = await db.user.create({
     data: {
       name: parsed.data.name,
       email: parsed.data.email,
@@ -61,6 +62,16 @@ export async function createDeveloper(
       requiresPasswordReset: true,
       createdById: session.user.id,
     },
+  })
+
+  await logAudit({
+    userId: session.user.id,
+    action: 'CREATE',
+    entity: 'User',
+    entityId: developer.id,
+    entityLabel: `Desenvolvedor · ${developer.email}`,
+    companyId: developer.companyId,
+    newData: omitSensitive(developer),
   })
 
   revalidatePath('/dashboard-admin/developers')

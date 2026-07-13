@@ -1,0 +1,109 @@
+================================================================
+TASK 06 — Atividade recente na Home
+================================================================
+
+PONTUACAO: 5 pontos (M) | PRIORIDADE: Média
+
+CONTEXTO
+`src/lib/audit-logger.ts` já registra toda mutação crítica via
+`logAudit({ userId, action, entity, entityId, oldData, newData })`,
+gravando em `AuditLog` (schema.prisma linhas 400-417: id, userId,
+action, entity, entityId, oldData, newData, createdAt). Já existe uma
+query `getAuditLogs(limit)` em
+src/modules/admin/queries/getAuditLogs.ts, mas ela busca TODOS os
+logs do sistema sem filtro de empresa/projeto — é usada apenas na
+tela admin-only (dashboard-admin/logs). Não serve como está para um
+feed por cliente.
+
+LIMITAÇÃO DE MODELAGEM A RESPEITAR (decisão de design, não é bug)
+`AuditLog.entity` é uma String genérica (ex: 'Project', 'Page',
+'BlogPost') e `AuditLog.entityId` é o UUID daquela entidade — não há
+foreign key real para Project/Company. Ou seja, não dá para fazer um
+JOIN direto "logs de entidades que pertencem à empresa X" sem antes
+buscar os IDs de todos os Projects/Pages/BlogPosts da empresa e
+filtrar `entityId IN (...)`, o que é caro e frágil (múltiplas
+subqueries, uma por tipo de entidade).
+
+Abordagem recomendada — mais simples e semanticamente até mais
+correta: filtrar por QUEM fez a ação, não pelo que foi afetado. Ou
+seja, "atividade recente" = ações realizadas pelos usuários da
+própria empresa, não literalmente "tudo que mudou nos dados dela"
+(que incluiria ações de suporte feitas por ADMIN/DEVELOPER via
+impersonação, que não interessam ao cliente ver). Isso é factível
+porque `AuditLog.userId` É uma FK real para `User`, e `User` tem
+`companyId` direto (fora o N:N via `UserCompany`).
+
+IMPLEMENTACAO TECNICA
+1. Nova query src/modules/admin/queries/getRecentCompanyActivity.ts
+   (ou mover para um local mais apropriado tipo
+   src/modules/companies/queries/ se esse módulo existir/fizer mais
+   sentido — verificar convenção do projeto antes de decidir a pasta):
+   ```
+   const RELEVANT_ENTITIES = ['Project', 'Page', 'BlogPost', 'BlogCategory', 'BlogTag']
+
+   export async function getRecentCompanyActivity(companyId: string, limit = 8) {
+     const companyUserIds = await db.user.findMany({
+       where: { companyId, deletedAt: null },
+       select: { id: true },
+     }).then(users => users.map(u => u.id))
+
+     if (companyUserIds.length === 0) return []
+
+     return db.auditLog.findMany({
+       where: {
+         userId: { in: companyUserIds },
+         entity: { in: RELEVANT_ENTITIES },
+       },
+       orderBy: { createdAt: 'desc' },
+       take: limit,
+       include: { user: { select: { name: true, email: true } } },
+     })
+   }
+   ```
+   Nota: considerar também incluir usuários vinculados via
+   `UserCompany` (não só `User.companyId` direto), dependendo de como
+   o produto trata multi-empresa hoje — conferir se há usuários reais
+   nesse cenário antes de decidir a complexidade extra.
+
+2. Humanizar a entrada de log para exibição — os campos brutos
+   (entity: 'Project', action: 'UPDATE', entityId: uuid) não são
+   legíveis para o cliente final. Criar um mapeador
+   src/modules/admin/queries/formatActivityEntry.ts (ou inline no
+   componente) que traduz:
+   - `entity + action` -> frase curta: "criou o site", "editou a
+     página", "publicou o post", "excluiu a categoria" etc.
+   - Tentar extrair um nome legível de `newData`/`oldData` quando
+     disponível (ex: `newData.name` para Project, `newData.title`
+     para BlogPost) para compor "Ana criou o site 'Landing Black
+     Friday'" em vez de só "Ana criou um site".
+   - Fallback genérico quando o nome não estiver disponível no JSON
+     guardado: "Ana atualizou um projeto".
+
+3. Componente Server src/components/dashboard/RecentActivityFeed.tsx:
+   lista compacta (ícone por tipo de ação — Plus/Pencil/Trash/Upload
+   de lucide-react — + texto humanizado + nome do autor + tempo
+   relativo tipo "há 2 horas", usar lib já disponível no projeto para
+   isso ou Intl.RelativeTimeFormat nativo). Estado vazio: "Nenhuma
+   atividade recente" (comum em conta nova).
+
+4. Posicionar na home, junto aos cards de Sites/Landing Pages —
+   sugestão: uma terceira coluna ou um card abaixo do grid principal,
+   a decidir conforme o resultado visual real (ajustar no code review,
+   não travar a task nisso).
+
+5. pnpm typecheck + pnpm exec eslint.
+
+RESULTADO FINAL
+A home mostra as últimas ações realizadas pela própria equipe do
+cliente dentro do Janus — criação/edição de sites, páginas e posts de
+blog — com quem fez e quando, sem expor ações administrativas de
+suporte feitas por ADMIN/DEVELOPER.
+
+IMPACTO
+Dá visibilidade de equipe: em contas com mais de uma pessoa
+gerenciando o conteúdo, cada usuário passa a enxergar o que os
+colegas fizeram sem precisar perguntar ("quem editou a home
+ontem?"). Também reforça a sensação de que o sistema está sendo
+usado ativamente — um feed de atividade vazio numa conta nova é, em
+si, um sinal para a task 08 (onboarding) mostrar o checklist de
+primeiros passos.

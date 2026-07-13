@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidateSites } from '@/lib/revalidateSites'
+import { logAudit } from '@/lib/audit-logger'
 
 interface TogglePagePublishParams {
   pageId: string
@@ -32,6 +33,18 @@ export async function togglePagePublish({ pageId, isPublished }: TogglePagePubli
     const updated = await db.page.update({
       where: { id: pageId },
       data: { isPublished },
+    })
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE',
+      entity: 'Page',
+      entityId: pageId,
+      entityLabel: `${isPublished ? 'Publicada' : 'Despublicada'} · ${page.name}`,
+      companyId: page.project.companyId,
+      projectId: page.project.id,
+      oldData: { isPublished: page.isPublished },
+      newData: { isPublished: updated.isPublished },
     })
 
     revalidateSites(page.project.company.slug)

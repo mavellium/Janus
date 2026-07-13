@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 const schema = z.object({
   id: z.string().uuid(),
@@ -31,7 +32,11 @@ export async function updateScript(_: unknown, formData: FormData) {
   try {
     const existing = await db.siteScript.findUnique({
       where: { id },
-      select: { project: { select: { id: true, company: { select: { slug: true } } } } },
+      include: {
+        project: {
+          select: { id: true, companyId: true, company: { select: { slug: true } } },
+        },
+      },
     })
     if (!existing) return { ok: false, error: 'Script não encontrado' }
     if (
@@ -43,6 +48,19 @@ export async function updateScript(_: unknown, formData: FormData) {
     const updated = await db.siteScript.update({
       where: { id },
       data: { name, code, position },
+    })
+
+    const { project, ...before } = existing
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE',
+      entity: 'SiteScript',
+      entityId: id,
+      entityLabel: updated.name,
+      companyId: project.companyId,
+      projectId: project.id,
+      oldData: before,
+      newData: updated,
     })
 
     revalidatePath(`/${companySlug}/dashboard/sites/${existing.project.id}/scripts`)

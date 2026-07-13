@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@/lib/prisma'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 const schema = z.object({
   postId: z.string().uuid(),
@@ -34,12 +35,27 @@ export async function updateGuestPost(
     return { ok: false, error: 'Postagem não encontrada.' }
   }
 
-  await db.guestPost.update({
+  const guest = await db.guestEntry.findUnique({ where: { id: guestId } })
+
+  const updated = await db.guestPost.update({
     where: { id: parsed.data.postId },
     data: {
       title: parsed.data.title || null,
       message: parsed.data.message,
     },
+  })
+
+  await logAudit({
+    userId: null,
+    userEmail: guest?.email ?? null,
+    userName: guest ? `Convidado · ${guest.name}` : 'Convidado',
+    action: 'UPDATE',
+    entity: 'GuestPost',
+    entityId: parsed.data.postId,
+    entityLabel: updated.title ?? updated.message.slice(0, 60),
+    companyId: guest?.companyId,
+    oldData: post,
+    newData: updated,
   })
 
   revalidatePath(`/${parsed.data.companySlug}/guest`)

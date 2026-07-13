@@ -1,0 +1,60 @@
+================================================================
+TASK 01 — Corrigir link "Faturas" quebrado na Sidebar
+================================================================
+
+PONTUACAO: 1 ponto (P) — trivial | PRIORIDADE: Alta (bug visível)
+
+CONTEXTO
+O item "Faturas" existe na navegação principal da Sidebar do cliente
+(MAIN_ITEMS em src/components/dashboard/Sidebar.tsx, linha ~73):
+
+  { label: 'Faturas', href: `/${companySlug}/dashboard/invoices`, icon: FileStack }
+
+A rota `/[companySlug]/dashboard/invoices` NÃO existe em src/app —
+qualquer clique nesse item resulta em 404. Confirmado por busca
+exaustiva: não há nenhum arquivo, módulo ou menção a billing/
+faturamento/Stripe/boleto em todo o projeto. É puramente um item de
+menu órfão, provavelmente placeholder de uma feature nunca construída.
+
+Isso é o tipo de detalhe que mina a confiança do cliente: um botão
+visível e clicável que quebra é pior do que não ter o botão.
+
+DECISÃO DE ESCOPO
+Esta sprint NÃO inclui construir um módulo de faturamento (é grande
+demais para entrar aqui e depende de definir gateway de pagamento,
+que é decisão de produto/negócio, não técnica). O objetivo desta task
+é apenas parar de expor uma promessa quebrada.
+
+IMPLEMENTACAO TECNICA
+Duas opções — recomendo a Opção A por ser reversível e não perder o
+trabalho de navegação já feito quando o módulo de faturas existir.
+
+Opção A (recomendada): esconder o item até o módulo existir
+  1. Em src/components/dashboard/Sidebar.tsx, remover a entrada
+     'Faturas' do array MAIN_ITEMS (linha ~71).
+  2. Remover também a condição órfã correspondente em isActive()
+     (linha ~97): `(href.includes('/invoices') && ...)`.
+  3. Buscar por outras referências a `/invoices` no projeto (grep por
+     "invoices") para garantir que não sobra nada apontando pra lá.
+
+Opção B (se o cliente/PO quiser manter visível como "em breve"):
+  1. Manter o item, mas trocar o `href` por `undefined` e renderizar
+     como <button disabled> com badge "Em breve" ao lado do label,
+     em vez de <Link>. Requer pequeno ajuste de JSX condicional no
+     map de MAIN_ITEMS (hoje assume que todo item é um Link).
+  Não recomendado como padrão — polui a UI com algo não-funcional.
+  Só usar se houver compromisso comercial já comunicado ao cliente
+  de que "Faturas" chega em breve.
+
+Após a escolha, rodar pnpm typecheck e pnpm exec eslint em
+src/components/dashboard/Sidebar.tsx.
+
+RESULTADO FINAL
+A navegação do cliente não tem mais nenhum item que leve a uma
+página inexistente. Nenhum outro comportamento muda.
+
+IMPACTO
+Elimina um ponto de fricção e desconfiança que qualquer cliente pode
+encontrar em segundos de uso — é o tipo de bug que gera ticket de
+suporte ou comentário negativo desproporcional ao esforço de corrigir
+(1 ponto). Prioridade alta apesar do tamanho trivial.

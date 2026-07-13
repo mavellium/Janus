@@ -1,0 +1,86 @@
+================================================================
+TASK 07 — Status de publicação por projeto ("X de Y páginas publicadas")
+================================================================
+
+PONTUACAO: 3 pontos (P) | PRIORIDADE: Média
+
+CONTEXTO
+Confirmado no schema: `Page.isPublished` (Boolean, default false,
+schema.prisma linha 348) já existe e já é usado em produção — a
+action `src/modules/projects/actions/togglePagePublish.ts` liga/
+desliga esse campo e a UI já tem o componente
+`src/components/projects/PublishPageButton.tsx`. Ou seja, o dado que
+falta expor já está sendo mantido corretamente, só não aparece
+resumido em nenhum lugar.
+
+Hoje, tanto na home quanto nas listagens de Sites/Landing Pages, o
+cliente vê só o nome do projeto e a data de criação — não há
+indicação de quantas páginas estão de fato publicadas (visíveis ao
+público) versus em rascunho, nem um link direto para abrir o site em
+produção.
+
+IMPLEMENTACAO TECNICA
+1. Query: usar contagem de relação filtrada do Prisma (suportado no
+   Prisma 6 — "filtered relation count"; confirmar sintaxe exata na
+   documentação oficial ou em node_modules/@prisma/client antes de
+   codar, conforme regra do CLAUDE.md de embasar em docs oficiais).
+   Ajustar `src/modules/projects/queries/getProjects.ts`:
+   ```
+   select: {
+     ...,
+     _count: {
+       select: {
+         pages: true, // total de páginas (comportamento atual mantido)
+       },
+     },
+     pages: {
+       where: { isPublished: true, deletedAt: null },
+       select: { id: true },
+     },
+   }
+   ```
+   E no consumidor, `publishedCount = project.pages.length`. Se a
+   sintaxe de `_count.select.pages.where` filtrado estiver disponível
+   e for mais eficiente (evita trazer a lista de IDs), preferir essa
+   forma:
+   ```
+   _count: {
+     select: {
+       pages: true,
+       pagesPublished: { pages: { where: { isPublished: true, deletedAt: null } } }, // confirmar sintaxe exata na doc do Prisma 6 antes de usar
+     },
+   }
+   ```
+   Escolher a abordagem que a versão instalada do Prisma suportar sem
+   ambiguidade — testar localmente antes de generalizar para as 3
+   telas.
+
+2. Exibição — nos cards de Sites/Landing Pages na home
+   (src/app/[companySlug]/dashboard/page.tsx) e nas listagens
+   completas (sites/page.tsx, landing-pages/page.tsx): trocar/
+   complementar a métrica "Páginas" (hoje só mostra o total) por
+   "X de Y publicadas" (ex: "4 de 6 publicadas"), com um pequeno
+   indicador visual (badge ou barra de progresso fina) quando
+   published < total, sinalizando que há conteúdo pendente de
+   publicação — informação acionável, não só decorativa.
+
+3. Link para o site em produção: usar `project.previewUrl` (campo já
+   existente) para renderizar um link/ícone "Ver site no ar"
+   (ExternalLink de lucide-react) ao lado do nome do projeto, target
+   _blank, rel="noopener noreferrer". Se `previewUrl` for null/vazio,
+   omitir o link (não renderizar link morto).
+
+4. pnpm typecheck + pnpm exec eslint.
+
+RESULTADO FINAL
+Cada projeto listado (na home e nas listagens completas) mostra
+quantas de suas páginas estão realmente publicadas versus o total, e
+oferece um atalho direto para abrir o site em produção — sem precisar
+entrar no projeto para descobrir isso.
+
+IMPACTO
+Responde de forma direta a uma pergunta recorrente do cliente ("meu
+site já está no ar com o conteúdo mais recente?") sem exigir
+navegação. Também ajuda times que trabalham com conteúdo em rascunho
+por um tempo a enxergar rapidamente o que ainda falta publicar,
+reduzindo o risco de esquecer uma página em draft por engano.

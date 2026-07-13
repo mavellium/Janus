@@ -38,6 +38,9 @@ export async function softDeleteProject({
         action: 'DELETE',
         entity: 'Project',
         entityId: projectId,
+        entityLabel: before.name,
+        companyId: before.companyId,
+        projectId,
         oldData: before,
         newData: updated,
       })

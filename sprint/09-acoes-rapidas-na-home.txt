@@ -1,0 +1,74 @@
+================================================================
+TASK 09 — Ações rápidas na Home
+================================================================
+
+PONTUACAO: 3 pontos (P) | PRIORIDADE: Baixa/Média
+RELACIONADA A: 08 (mesma lógica de permissões deve ser reaplicada)
+
+CONTEXTO
+Hoje, para fazer qualquer ação comum, o cliente precisa navegar pela
+sidebar até a seção certa e depois abrir um modal. As 3 ações mais
+frequentes de um cliente já ativo no produto são, plausivelmente:
+escrever um post no blog, editar conteúdo de uma página existente, e
+abrir o site no ar para conferir algo. Um atalho de 1 clique para
+essas ações no topo da home economiza navegação repetida.
+
+Esta task também precisa respeitar RBAC — mesmo racional da task 08:
+usar `hasPermission`/`checkPermission` de src/lib/auth/permissions.ts
+antes de renderizar qualquer atalho de criação/edição.
+
+IMPLEMENTACAO TECNICA
+1. Componente src/components/dashboard/QuickActions.tsx (Server
+   Component, recebe os dados já resolvidos da home via props para
+   não duplicar queries):
+   - "Ver site no ar": só aparece se existir pelo menos 1 projeto com
+     `previewUrl` preenchido. Se houver mais de um projeto, usar o
+     projeto mais recentemente atualizado (`orderBy: updatedAt desc`,
+     já que os dados de projetos existentes já vêm ordenados por
+     createdAt hoje — considerar se updatedAt é mais apropriado para
+     "o que o cliente provavelmente quer ver agora"; ajustar
+     getProjects ou fazer o sort no componente). Abre em nova aba.
+   - "Editar conteúdo": leva direto para
+     `/${companySlug}/dashboard/{sites|landing-pages}/{projectId}/pages`
+     do projeto mais recente. Só aparece se o usuário tiver
+     `PAGE_CREATE` OU já existir pelo menos 1 página para editar
+     (edição de página existente pode ter permissão diferente de
+     criação — conferir constante `PERMISSIONS` e usar a mais
+     apropriada; se não houver uma permissão específica de "editar
+     página" separada de PAGE_CREATE, usar a mesma checagem de
+     PROJECT_CREATE/PAGE_CREATE já usada nas listagens).
+   - "Novo post no blog": só aparece se existir ao menos 1 projeto
+     com `blogEnabled = true` E o usuário tiver `BLOG_MANAGE`
+     (`hasPermission(session, 'BLOG_MANAGE', 'sites'|'landingPages',
+     'project', impersonating)` — confirmar em qual module/tier
+     BLOG_MANAGE é checado hoje, replicando o padrão já usado nas
+     telas de blog existentes em vez de inventar um novo). Leva para
+     a tela de criar post do projeto com blog habilitado (se houver
+     mais de um projeto com blog, escolher o mais recente ou exibir
+     um pequeno seletor — decisão de UX simples, não travar a task
+     nisso).
+   - Se NENHUMA ação for aplicável (ex: usuário sem qualquer
+     permissão de escrita e sem projetos), não renderizar o bloco de
+     ações rápidas — mesma lógica de "nunca mostrar botão morto" das
+     tasks anteriores.
+
+2. Visual: 2-3 botões/cards pequenos lado a lado, com ícone
+   (lucide-react: FilePlus, Pencil, ExternalLink), label curto,
+   posicionados entre o banner (02b) e o resumo de analytics (05), ou
+   integrados ao próprio banner como botões secundários — avaliar no
+   code review qual composição fica mais limpa visualmente sem
+   sobrecarregar o topo da página.
+
+3. pnpm typecheck + pnpm exec eslint.
+
+RESULTADO FINAL
+Cliente ativo consegue disparar as ações mais comuns (ver site,
+editar conteúdo, escrever post) direto da home, sem navegar pela
+sidebar — e cada atalho só aparece se o usuário de fato tem permissão
+e há um alvo válido (projeto/blog) para a ação.
+
+IMPACTO
+Reduz o número de cliques para tarefas do dia a dia de quem já usa o
+produto regularmente — pequeno em esforço, mas cumulativo em tempo
+economizado a cada acesso. Reforça a home como ponto de partida
+funcional, não só informativo.

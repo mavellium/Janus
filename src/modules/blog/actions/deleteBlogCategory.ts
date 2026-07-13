@@ -21,6 +21,8 @@ export async function deleteBlogCategory(id: string) {
         action: 'DELETE',
         entity: 'BlogCategory',
         entityId: id,
+        entityLabel: before.name,
+        projectId: before.projectId,
         oldData: before,
       })
     }

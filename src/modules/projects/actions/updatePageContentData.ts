@@ -4,6 +4,7 @@ import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { revalidateSites } from '@/lib/revalidateSites'
+import { logAudit } from '@/lib/audit-logger'
 
 interface UpdatePageContentDataParams {
   pageId: string
@@ -36,9 +37,22 @@ export async function updatePageContentData({ pageId, contentData }: UpdatePageC
 
     const safeData = JSON.parse(JSON.stringify(contentData))
 
-    await db.page.update({
+    const updated = await db.page.update({
       where: { id: pageId },
       data: { contentData: safeData },
+    })
+
+    const { project, ...before } = page
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE',
+      entity: 'Page',
+      entityId: pageId,
+      entityLabel: `${page.name} · ${project.name}`,
+      companyId: project.companyId,
+      projectId: project.id,
+      oldData: before,
+      newData: updated,
     })
 
     revalidatePath(`/${page.project.company.slug}/dashboard`, 'layout')

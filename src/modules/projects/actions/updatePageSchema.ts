@@ -4,6 +4,7 @@ import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { revalidateSites } from '@/lib/revalidateSites'
+import { logAudit } from '@/lib/audit-logger'
 
 interface UpdatePageSchemaParams {
   pageId: string
@@ -44,6 +45,18 @@ export async function updatePageSchema({ pageId, schemaJson }: UpdatePageSchemaP
     await db.page.update({
       where: { id: pageId },
       data: { schemaData: parsed as object },
+    })
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE',
+      entity: 'Page',
+      entityId: pageId,
+      entityLabel: `Schema · ${page.name}`,
+      companyId: page.project.companyId,
+      projectId: page.project.id,
+      oldData: { schemaData: page.schemaData },
+      newData: { schemaData: parsed },
     })
 
     const pageSlug = (page.slug ?? '').trim() === '/' || !(page.slug ?? '').trim() ? 'home' : page.slug

@@ -21,6 +21,8 @@ export async function deleteBlogTag(id: string) {
         action: 'DELETE',
         entity: 'BlogTag',
         entityId: id,
+        entityLabel: before.name,
+        projectId: before.projectId,
         oldData: before,
       })
     }

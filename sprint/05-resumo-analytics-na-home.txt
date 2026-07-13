@@ -1,0 +1,94 @@
+================================================================
+TASK 05 — Resumo de Analytics na Home (condicional a GA4 configurado)
+================================================================
+
+PONTUACAO: 5 pontos (M) | PRIORIDADE: Alta (maior valor percebido)
+
+CONTEXTO
+O módulo de analytics já existe e funciona: a página de Resultados
+(src/app/[companySlug]/dashboard/results/page.tsx) busca todos os
+projetos ativos da empresa com `ga4PropertyId` preenchido, e renderiza
+`CompanyAnalyticsOverview` (src/components/analytics/CompanyAnalyticsOverview.tsx),
+que por sua vez chama `getCompanyAnalytics(projectPropertyIds, 30)`
+(src/modules/analytics/queries/getCompanyAnalytics.ts) — essa função
+busca métricas GA4 em paralelo por projeto e soma
+views/visitors/sessions numa série diária mesclada, retornando
+`{ ok, configured, data?: { totals, series }, error? }`.
+
+`configured` já vem pronto: é `false` quando nenhum projeto da
+empresa tem GA4 configurado. Isso é exatamente o "se existir
+analytics" pedido pelo usuário — a lógica de detecção já existe,
+só falta reaproveitá-la na home.
+
+Hoje a home não mostra NENHUM dado de analytics — o cliente só
+descobre que existe a página de Resultados se clicar em "Resultados"
+na sidebar. Trazer um resumo para a home aumenta a frequência de
+contato do cliente com o dado mais valioso que o produto entrega
+(prova de que o site está trazendo tráfego).
+
+IMPORTANTE: `getCompanyAnalytics` NÃO calcula comparação com período
+anterior (confirmado na pesquisa — só soma o período atual). Não
+inventar uma comparação "+12% vs mês passado" nesta task sem
+implementar isso de verdade — ficaria para uma task futura separada
+(calcular também os 30 dias anteriores e comparar totals). Aqui,
+mostrar os números absolutos dos últimos 30 dias é suficiente e
+honesto.
+
+IMPLEMENTACAO TECNICA
+1. Em src/app/[companySlug]/dashboard/page.tsx, replicar a mesma
+   busca de `projectPropertyIds` que results/page.tsx já faz:
+   ```
+   const projectsWithGa4 = await db.project.findMany({
+     where: { companyId: company.id, isActive: true, deletedAt: null, ga4PropertyId: { not: null } },
+     select: { ga4PropertyId: true },
+   })
+   const projectPropertyIds = projectsWithGa4.map(p => p.ga4PropertyId).filter(Boolean)
+   ```
+   Incluir essa busca no Promise.all já existente (paralelizar com
+   institutionalProjects/landingPageProjects e o banner da task 02b).
+
+2. Se `projectPropertyIds.length === 0`: não renderizar nenhum card
+   de analytics na home (é o "se existir analytics" do pedido —
+   ausência completa, não um estado vazio/CTA, para não competir com
+   o onboarding checklist da task 08, que já vai cobrir "configure
+   seu GA4" como parte do fluxo de setup inicial se for o caso).
+
+3. Se houver property IDs: criar componente Server
+   src/components/dashboard/AnalyticsSummaryCard.tsx que chama
+   `getCompanyAnalytics(projectPropertyIds, 30)` e renderiza:
+   - Se `!ok` ou `!configured`: não renderiza nada (falha silenciosa
+     — a home não deve quebrar nem mostrar erro técnico ao cliente
+     por causa de uma integração GA4 com problema; erros detalhados
+     continuam na página de Resultados).
+   - Se `ok && data`: card compacto com 3 números
+     (data.totals.views, data.totals.visitors, data.totals.sessions)
+     lado a lado, rótulo "Últimos 30 dias", e um link "Ver resultados
+     completos →" apontando para `/${companySlug}/dashboard/results`.
+     Reaproveitar visualmente o componente `KpiCard` já usado em
+     CompanyAnalyticsOverview, mas em versão mais compacta (ou os
+     mesmos KpiCard em um grid menor).
+   - Opcional (se o esforço couber no ponto estimado): incluir uma
+     versão miniatura do `AnalyticsAreaChart` (sparkline dos últimos
+     30 dias) — se ficar complexo demais, deixar só os 3 números com
+     o link, a sparkline pode ser uma iteração futura.
+
+4. Posicionamento na home: logo abaixo do banner (task 02b), antes
+   dos cards de Sites/Landing Pages — é o dado de maior valor, deve
+   vir primeiro.
+
+5. pnpm typecheck + pnpm exec eslint.
+
+RESULTADO FINAL
+Cliente com pelo menos um projeto com Google Analytics configurado
+vê, direto na home, um resumo de tráfego dos últimos 30 dias (visitas,
+usuários únicos, sessões) com um atalho para o relatório completo.
+Cliente sem GA4 configurado não vê nada quebrado nem incompleto — o
+card simplesmente não aparece.
+
+IMPACTO
+Este é o item de maior retorno da sprint em termos de percepção de
+valor: transforma a home de "onde eu clico para gerenciar meus sites"
+para "onde eu vejo se meu site está funcionando", que é a pergunta
+que todo cliente realmente quer responder ao logar. Aumenta a
+frequência de acesso ao produto e reforça o valor do serviço prestado
+pela Mavellium a cada visita.

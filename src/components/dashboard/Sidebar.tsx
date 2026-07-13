@@ -7,7 +7,7 @@ import Image from 'next/image'
 import { useParams, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  Home, FileText, Globe, Zap, FileStack,
+  Home, FileText, Globe, Zap,
   Bell, Settings, LogOut, PanelLeftClose, PanelLeftOpen, UserCircle,
   ChevronLeft, BarChart3, BookOpen, Code2,
 } from 'lucide-react'
@@ -70,7 +70,6 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
     { label: 'Resultados', href: `/${companySlug}/dashboard/results`, icon: FileText },
     { label: 'Sites', href: `/${companySlug}/dashboard/sites`, icon: Globe },
     { label: 'Landing Pages', href: `/${companySlug}/dashboard/landing-pages`, icon: Zap },
-    { label: 'Faturas', href: `/${companySlug}/dashboard/invoices`, icon: FileStack },
   ]
 
   const PROJECT_ITEMS = [
@@ -96,7 +95,6 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
       (href.includes('/sites') && pathname.includes('/sites') && !href.includes('/landing-pages')) ||
       (href.includes('/landing-pages') && pathname.includes('/landing-pages')) ||
       (href.includes('/results') && pathname.includes('/results')) ||
-      (href.includes('/invoices') && pathname.includes('/invoices')) ||
       (href.includes('/settings') && pathname.includes('/settings'))
   }
 

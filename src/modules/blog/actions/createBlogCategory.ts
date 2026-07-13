@@ -48,6 +48,8 @@ export async function createBlogCategory(_: unknown, formData: FormData) {
       action: 'CREATE',
       entity: 'BlogCategory',
       entityId: category.id,
+      entityLabel: category.name,
+      projectId: category.projectId,
       newData: category,
     })
     revalidatePath('/', 'layout')

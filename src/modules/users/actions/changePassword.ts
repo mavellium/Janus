@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
 import { compare } from 'bcryptjs'
 import { hash } from 'bcryptjs'
+import { logAudit } from '@/lib/audit-logger'
 
 interface ChangePasswordParams {
   userId: string
@@ -136,6 +137,15 @@ export async function changePassword({
     await db.user.update({
       where: { id: userId },
       data: { password: hashedNewPassword }
+    })
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE',
+      entity: 'User',
+      entityId: userId,
+      entityLabel: 'Alteração de senha',
+      newData: { passwordChanged: true },
     })
 
     return { ok: true }

@@ -1,0 +1,324 @@
+================================================================
+TASK 15 — GEO (Generative Engine Optimization) no Janus
+================================================================
+
+PONTUACAO: EPIC — fora da escala das demais tasks desta sprint.
+Estimativa somada das 7 subfases: ~55-65 pontos (ver detalhamento
+por subfase abaixo). Não recomendado tentar entregar em uma única
+sprint — ver seção "COMO EXECUTAR" ao final.
+PRIORIDADE: Estratégica (novo produto/serviço, não é melhoria de UX
+incremental como as tasks 01-11) | DEPENDE DE: 11a/11b (motor de SEO)
+como base técnica e de nomenclatura.
+
+----------------------------------------------------------------
+LEIA PRIMEIRO — ISTO NÃO É UMA TASK DE 1-2 DIAS
+----------------------------------------------------------------
+A metodologia GEO descrita no material da Mavellium
+(Mavellium-Metodologia-GEO.pdf) é um processo de 7 fases que mistura
+trabalho de SOFTWARE (o que dá para automatizar no Janus) com
+trabalho de SERVIÇO/CONTEÚDO/HUMANO (entrevistas com vendedores,
+redação de páginas-resposta, outreach para listas/imprensa/parceiros
+— isso a equipe da Mavellium faz, o sistema não faz sozinho).
+
+Esta spec separa claramente, fase por fase, o que é "implementar no
+sistema" (o pedido do usuário) do que continua sendo entrega humana
+apoiada por dados do sistema. Tentar automatizar 100% das 7 fases
+seria promessa técnica irreal — e não é o que o próprio material
+descreve (fases 2, 4 e 5 têm etapas explicitamente humanas:
+"entrevistamos quem vende", "cada texto é assinado por uma pessoa
+real", "buscamos presença em listas... imprensa regional").
+
+FATOS TÉCNICOS CONFIRMADOS NO CÓDIGO (2026-07-07) QUE MUDAM O ESCOPO
+  - NÃO existe nenhum SDK de IA instalado no projeto (busca em
+    package.json por "openai", "@anthropic-ai", "@google/generative-ai",
+    "perplexity" — zero resultados). Toda a Fase 1 (testar perguntas
+    nos 4 provedores) parte do zero em termos de integração.
+  - `node-cron` (^4.2.1) JÁ é dependência do projeto, mas hoje só é
+    usado em `src/scripts/backup-daemon.ts` — um DAEMON STANDALONE
+    rodando fora do processo Next.js (via systemd, conforme commits
+    "feat(backup): systemd service com teto duro de CPU/RAM" no
+    histórico do projeto). NÃO existe cron rodando dentro do app web.
+    Isso é o padrão a seguir para a Fase 7 (ciclo mensal) — replicar
+    a mesma arquitetura de daemon standalone, não tentar rodar cron
+    dentro de Server Actions/rotas Next.js.
+  - NÃO existe nenhum model de Lead/Contato/Formulário no schema
+    Prisma. A Fase 6 (Captura e Atribuição), no que depende de
+    "todo contato responde como nos encontrou", não tem onde
+    persistir isso hoje — é um pré-requisito que não existe ainda
+    (ver Fase 6 abaixo para o que É possível entregar sem esse
+    módulo).
+  - O módulo `seo` (tasks 11a/11b) já foi desenhado com o enum
+    `SeoAnalysisType { SEO }` reservando espaço para `GEO` — mas o
+    formato de dado do GEO (séries de testes ao longo do tempo, N
+    perguntas x 4 provedores x 2 modos) é estruturalmente diferente
+    de uma análise SEO de URL única. Reaproveitar o NOME do módulo
+    (`src/modules/seo/`) e o PADRÃO visual (score 0-100, cards de
+    ação), mas não forçar o dado de GEO dentro do model
+    `SeoAnalysis.checks` (Json) existente — GEO ganha seus próprios
+    models (detalhados na Fase 1).
+
+RISCOS A VALIDAR COM O TIME ANTES DE ORÇAR/VENDER O ESCOPO COMPLETO
+  1. CUSTO RECORRENTE REAL: rodar a Fase 1 (Raio-X) e a Fase 7 (ciclo
+     mensal) significa chamar 4 APIs de IA pagas (OpenAI, Google
+     Gemini, Anthropic Claude, Perplexity) para cada uma das 15-25
+     perguntas-alvo, em até 2 modos (memória do modelo + busca ao
+     vivo) — até 25 x 4 x 2 = 200 chamadas de API por empresa, por
+     ciclo. Isso é custo variável de infraestrutura por cliente
+     atendido, não custo único de engenharia — precisa entrar na
+     precificação do serviço, e provavelmente precisa de um limite
+     de perguntas/frequência por plano.
+  2. DETECÇÃO DE "QUEM FOI RECOMENDADO" É APROXIMADA, NÃO EXATA:
+     não existe forma 100% confiável de extrair automaticamente "a
+     IA recomendou a Empresa X" de um texto livre — a abordagem
+     viável é correspondência de nome/apelidos da empresa e de uma
+     lista de concorrentes cadastrada manualmente pelo cliente/admin
+     (busca de substring/fuzzy match no texto da resposta). Isso
+     precisa ser comunicado como o método real, não como IA
+     perfeita de compreensão.
+  3. ATRIBUIÇÃO DE TRÁFEGO VINDO DE IA É FRACA POR NATUREZA: a
+     maioria dos apps de IA (ChatGPT, Perplexity, Claude, Gemini) não
+     envia referrer confiável quando o usuário clica num link citado
+     — o sinal mais realista hoje é o campo UTM/origem de sessão do
+     GA4 (`source/medium`) quando disponível, não um rastreamento
+     perfeito "a IA mandou este lead". A Fase 6 do material já
+     assume isso implicitamente com "campo de como você nos
+     encontrou" preenchido por humano — reforça que essa é a fonte
+     de verdade mais confiável, não o tracking automático sozinho.
+  4. "RESPOSTA PRIMEIRO" (Fase 3) não é uma checagem automatizável
+     com precisão razoável sem um modelo de linguagem avaliando o
+     texto — vira ou (a) uma diretriz manual no checklist com
+     orientação editorial, ou (b) uma chamada extra a um LLM para
+     avaliar "este parágrafo responde a pergunta X nas 2 primeiras
+     frases?" — mais uma fonte de custo variável, avaliar se cabe no
+     escopo inicial.
+
+----------------------------------------------------------------
+COMO CADA FASE DO MATERIAL SE TRADUZ EM SISTEMA
+----------------------------------------------------------------
+
+FASE 1 — RAIO-X (diagnóstico + IAG Score) — SOFTWARE — ~13 pts
+Esta é o núcleo técnico de toda a task 15; as demais dependem dela.
+
+Schema novo em `src/modules/seo/` (ou, dado o tamanho, considerar
+`src/modules/geo/` como módulo próprio — decisão do time; esta spec
+assume módulo próprio `src/modules/geo/` por clareza, já que o
+volume de models e actions é grande demais para conviver dentro de
+`seo/` sem confundir os dois motores):
+
+  model GeoTargetQuestion {
+    id, companyId, projectId?, text, layer (enum DECISAO|AVALIACAO|PROBLEMA),
+    priority Int, status (enum ACTIVE|ARCHIVED), createdAt, updatedAt
+  }
+
+  enum GeoProvider { OPENAI GEMINI PERPLEXITY CLAUDE }
+  enum GeoProbeMode { MODEL_MEMORY LIVE_SEARCH } // mapeia os 2
+    mecanismos da página 3 do PDF: memória do modelo vs busca ao vivo
+
+  model GeoCompetitor {
+    id, companyId, name, aliases String[] // nomes alternativos para
+    matching
+  }
+
+  model GeoProbeRun {
+    id, companyId, targetQuestionId, provider (GeoProvider),
+    mode (GeoProbeMode), rawResponse Text, companyMentioned Boolean,
+    mentionedCompetitorId String?, citedUrls String[], // quando o
+    provedor retorna citações (Perplexity nativamente; OpenAI/Gemini/
+    Claude só em modo com ferramenta de busca habilitada)
+    costUsdCents Int?, // custo estimado da chamada, para controle
+    createdAt
+  }
+
+  model GeoScoreSnapshot {
+    id, companyId, score Int (0-100), // IAG Score
+    breakdown Json, // detalhamento por pergunta/provedor
+    competitorComparison Json?, createdAt
+  }
+
+Infra de chamada às 4 APIs — `src/modules/geo/infra/providers/`:
+um adapter por provedor (`openaiProbe.ts`, `geminiProbe.ts`,
+`claudeProbe.ts`, `perplexityProbe.ts`), cada um implementando uma
+interface comum `probeQuestion(question, mode): Promise<GeoProbeResult>`.
+Necessário adicionar as dependências oficiais de cada provedor (SDK
+`openai`, `@anthropic-ai/sdk`, `@google/genai` ou equivalente
+atualizado — conferir nome exato do pacote oficial vigente na
+documentação antes de instalar, conforme regra do CLAUDE.md de
+embasar em docs atualizadas; Perplexity expõe API compatível com
+formato OpenAI via REST, não exige SDK dedicado). Cada adapter
+precisa tratar separadamente o modo `LIVE_SEARCH` (habilitar a
+ferramenta de busca nativa de cada provedor quando disponível) do
+modo `MODEL_MEMORY` (chamada padrão sem ferramentas) — são
+capacidades e formatos de resposta diferentes por provedor, exigindo
+leitura da documentação oficial de cada um antes de implementar.
+
+Motor de detecção — `src/modules/geo/domain/detectMention.ts`:
+função pura que recebe o texto bruto da resposta + nome/aliases da
+empresa + lista de `GeoCompetitor` e retorna
+`{ companyMentioned, mentionedCompetitorId }` via correspondência de
+texto (normalização de acentos/caixa + busca de substring, com nota
+explícita de que é heurística, não NLP perfeito).
+
+Cálculo do IAG Score — `src/modules/geo/domain/calculateIagScore.ts`:
+função pura, recebe o conjunto de `GeoProbeRun` de um ciclo e produz
+0-100 (ex: proporção de perguntas em que a empresa foi mencionada,
+ponderada por camada de intenção — DECISAO pesa mais que PROBLEMA,
+espelhando a priorização de "poucas perguntas que valem venda" do
+material).
+
+Action orquestradora — `src/modules/geo/actions/runRaioX.ts`:
+dispara o probe de todas as `GeoTargetQuestion` ativas da empresa nos
+4 provedores x 2 modos, persiste os `GeoProbeRun`, calcula e persiste
+o `GeoScoreSnapshot`. Roda em background (ação demorada — considerar
+fila/job assíncrono em vez de Server Action síncrona bloqueante, dado
+o volume de chamadas externas; avaliar reaproveitar alguma
+infraestrutura de fila já existente no projeto ou introduzir uma
+simples, ex: processar sequencialmente com `after()` do Next 16 ou
+um endpoint dedicado chamado pelo daemon).
+
+Resultado final da Fase 1: painel "Raio-X de Visibilidade em IA" —
+mesmo conceito visual do `SeoScoreCard` da task 11b (reaproveitar o
+componente de gauge/anel), mostrando o IAG Score, comparação com
+concorrentes cadastrados, e a lista de perguntas onde a empresa está
+ausente (com o texto da resposta da IA como evidência).
+
+FASE 2 — MAPEAMENTO DE INTENÇÃO — HÍBRIDO (CRUD simples) — ~5 pts
+O sistema não "descobre" as perguntas sozinho (isso é entrevista +
+pesquisa humana, conforme o próprio material descreve). O que É
+software: uma tela de gestão das `GeoTargetQuestion` — Admin/equipe
+Mavellium cadastra, edita, prioriza (drag-and-drop ou campo
+`priority`) e classifica por camada (Decisão/Avaliação/Problema),
+limitando a 15-25 ativas por empresa (validação Zod com `.max(25)`
+na criação, alinhado ao "foco total" do material). Cliente
+(dependendo de permissão) pode visualizar a lista e sugerir novas
+perguntas, mas a curadoria final fica com quem opera o GEO.
+
+FASE 3 — FUNDAÇÃO TÉCNICA — SOFTWARE, REAPROVEITA A TASK 11a — ~8 pts
+Esta fase é a mais natural de todas de conectar com a infraestrutura
+que a task 11a já constrói. Estender `src/modules/seo/domain/seoScoring.ts`
+(ou criar `geoTechnicalChecks.ts` ao lado) com checks NOVOS,
+específicos de IA, além dos já cobertos pelo SEO tradicional:
+  - Robots.txt permite os user-agents de IA: `GPTBot`, `ChatGPT-User`,
+    `PerplexityBot`, `ClaudeBot`, `Google-Extended`, `Applebot-Extended`
+    (verificar a lista oficial/atualizada de cada provedor antes de
+    codar — muda com frequência).
+  - Presença de Schema.org `Organization`/`LocalBusiness`/`FAQPage`
+    (o motor de parsing HTML já criado em 11a — `parseHtml.ts` — já
+    extrai JSON-LD; só precisa validar os tipos específicos aqui).
+  - "Resposta primeiro": nesta primeira versão, tratar como item de
+    checklist MANUAL com orientação (não automatizado — ver risco 4
+    do bloco acima), evitando prometer detecção automática que não é
+    confiável sem custo extra de LLM.
+Resultado: o mesmo relatório da task 11a ganha uma seção "Fundação
+para GEO" com os checks acima, reaproveitando 100% da infraestrutura
+de fetch seguro (proteção SSRF) já construída em 11a — não duplicar
+esse código.
+
+FASE 4 — AUTORIDADE PRÓPRIA — HÍBRIDO (tracking de cobertura) — ~5 pts
+Escrever as páginas-resposta é trabalho editorial humano (o material
+é explícito: "cada texto é assinado por uma pessoa real"). O que O
+SISTEMA pode fazer: rastrear COBERTURA, não gerar o conteúdo.
+Adicionar campo `answersQuestionId String? @db.Uuid` (FK para
+`GeoTargetQuestion`) em `Page` e/ou `BlogPost` — ao publicar uma
+página/post, o editor pode vinculá-la a uma pergunta-alvo. A tela de
+gestão da Fase 2 passa a mostrar, por pergunta, se já há conteúdo
+publicado vinculado (badge "Coberta"/"Pendente") — um indicador de
+progresso direto (ex: "12 de 20 perguntas com página publicada"),
+sem o sistema escrever nada sozinho.
+
+FASE 5 — AUTORIDADE DE TERCEIROS — HÍBRIDO (registro manual) — ~3 pts
+Outreach para listas, imprensa, portais e associações é trabalho
+humano de relacionamento — fora do escopo de automação. O sistema
+entrega um `GeoMention` (CRUD simples, similar ao `GeoCompetitor`):
+`{ id, companyId, sourceUrl, sourceName, mentionedAt, notes }`,
+registrado manualmente pela equipe Mavellium conforme conquista cada
+menção, exibido ao cliente como "Mapa de Menções" (lista com link
+para a fonte). Puro valor de transparência/relatório, sem tentar
+"descobrir" menções automaticamente nesta fase (isso exigiria um
+serviço de monitoramento de menções de marca na web, que é uma
+categoria de ferramenta à parte — citar como possível fase futura,
+não construir agora).
+
+FASE 6 — CAPTURA E ATRIBUIÇÃO — SOFTWARE PARCIAL — ~8 pts
+Como não existe módulo de Lead/Contato no Janus hoje (confirmado no
+schema), esta fase tem um pré-requisito que esta task NÃO cobre por
+completo. O que É entregável agora, sem esse módulo:
+  - Reaproveitar a infraestrutura de Analytics (GA4) já existente
+    (`src/modules/analytics/`) para filtrar e exibir, no painel de
+    GEO, a fatia de tráfego cujo `source`/`medium` do GA4 bate com
+    domínios conhecidos de IA (`chatgpt.com`, `perplexity.ai`,
+    `gemini.google.com`, `claude.ai`) — nova função
+    `getAiReferralTraffic(propertyIds, days)` em
+    `src/modules/analytics/queries/`, reaproveitando o client GA4 já
+    configurado (`src/lib/analytics/ga4-client.ts`).
+  - Deixar formalmente registrado como DEPENDÊNCIA EXTERNA À ESTA
+    TASK: se/quando existir um módulo de Leads/Contato no Janus, essa
+    fase se completa adicionando um campo `source` com opção `'IA'`
+    no formulário de contato e cruzando com os `GeoProbeRun` que
+    citaram a URL de origem — endereçar em task futura própria,
+    fora do escopo desta sprint.
+
+FASE 7 — AUTORIDADE CONTÍNUA — SOFTWARE — ~8 pts
+Reexecutar a Fase 1 mensalmente, comparar com o snapshot anterior,
+gerar o relatório de 1 página. Arquitetura: seguir EXATAMENTE o
+padrão já validado no projeto para `backup-daemon.ts` — um script
+standalone (`src/scripts/geo-monthly-scan.ts`) agendado via
+`node-cron` (dependência já instalada) rodando como serviço systemd
+próprio (mesmo padrão de "teto duro de CPU/RAM" usado no backup),
+chamando a mesma `runRaioX` action da Fase 1 para cada empresa com
+GEO ativo, e persistindo um novo `GeoScoreSnapshot` por ciclo. Alerta
+de queda de posição: comparar `companyMentioned` pergunta a pergunta
+entre o snapshot atual e o anterior; quando uma pergunta que antes
+tinha `true` passa a `false`, gerar uma notificação (reaproveitar o
+módulo de Notificações já construído nesta mesma sprint anterior —
+`src/modules/notifications/`, adicionando um novo tipo de
+notificação interna seguindo o guia já documentado em
+`.claude/context/notifications/patterns.md`).
+
+----------------------------------------------------------------
+RESULTADO FINAL (da task 15 como um todo, quando as 7 subfases
+estiverem completas)
+----------------------------------------------------------------
+O Janus passa a oferecer, além do diagnóstico de SEO tradicional
+(tasks 11a/11b), um diagnóstico e monitoramento de visibilidade em
+IAs generativas: IAG Score comparado a concorrentes cadastrados,
+gestão das perguntas de compra prioritárias, checklist técnico
+específico para robôs de IA, rastreamento de cobertura editorial por
+pergunta, registro de menções de terceiros conquistadas, visão de
+tráfego vindo de IA via GA4, e reavaliação mensal automática com
+alerta de queda de posição — cobrindo em software tudo que é
+razoável automatizar das 7 fases do método, e deixando explícito
+onde o valor continua sendo entrega humana da equipe Mavellium
+apoiada pelos dados que o sistema produz.
+
+----------------------------------------------------------------
+IMPACTO
+----------------------------------------------------------------
+Transforma a metodologia GEO de um serviço 100% manual/consultivo em
+um produto com componente de software recorrente — o "ativo que
+fica" mencionado no material (página 13) passa a ter um painel real
+dentro do Janus, não só relatórios avulsos em PDF. Isso abre um novo
+tier de contrato (SEO tradicional vs. GEO) com componente de
+assinatura mensal justificada pelo ciclo automático da Fase 7,
+diferenciando a Mavellium de concorrentes que vendem GEO como
+consultoria pontual sem plataforma de acompanhamento contínuo.
+
+----------------------------------------------------------------
+COMO EXECUTAR (recomendação, não parte do pedido original)
+----------------------------------------------------------------
+Não tentar entregar a task 15 inteira numa sprint. Sugestão de
+sequenciamento em sprints futuras, cada uma como sua própria sprint
+de planejamento (repetir o processo desta pasta `sprint/` para cada
+uma quando chegar a vez):
+  Sprint GEO-1: Fase 1 completa (motor de probe + IAG Score) — é o
+    bloco que todas as outras dependem, e o único que exige decisão
+    de negócio sobre custo de API antes de começar.
+  Sprint GEO-2: Fases 2, 3, 4 (gestão de perguntas, fundação técnica,
+    rastreamento de cobertura) — todas HÍBRIDAS/leves, encaixam bem
+    juntas.
+  Sprint GEO-3: Fases 5, 6, 7 (menções, atribuição via GA4, ciclo
+    mensal + alertas) — fecha o produto com o componente recorrente.
+Antes de abrir a Sprint GEO-1, validar com o time de produto/negócio
+o modelo de custo de API por cliente (risco 1 do bloco acima) — é a
+decisão que mais afeta se o restante do escopo é viável como está
+desenhado ou precisa de limites mais agressivos de
+perguntas/frequência por plano.

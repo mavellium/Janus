@@ -1,0 +1,96 @@
+================================================================
+TASK 10 — Blog recente na Home
+================================================================
+
+PONTUACAO: 5 pontos (M) | PRIORIDADE: Média
+
+CONTEXTO
+`src/modules/blog/queries/getBlogPosts.ts` já busca todos os posts de
+um `projectId`, ordenados por `publishedAt` asc com `nulls: 'last'`
+(rascunhos ficam no fim). `BlogPost.status` é um enum `DRAFT |
+PUBLISHED` (schema.prisma linhas 26-31), e `Project.blogEnabled`
+indica se o blog está habilitado para aquele projeto. Hoje a home não
+mostra nada sobre blog — o cliente só vê isso entrando no projeto e
+navegando até a seção de blog.
+
+Como uma empresa pode ter múltiplos projetos, e cada um pode ou não
+ter blog habilitado, esta task precisa agregar posts de TODOS os
+projetos da empresa que tenham `blogEnabled = true`, não só de um.
+
+IMPLEMENTACAO TECNICA
+1. Nova query src/modules/blog/queries/getRecentCompanyBlogPosts.ts:
+   ```
+   export async function getRecentCompanyBlogPosts(companyId: string, limit = 5) {
+     const blogProjects = await db.project.findMany({
+       where: { companyId, blogEnabled: true, isActive: true, deletedAt: null },
+       select: { id: true, name: true, type: true },
+     })
+     if (blogProjects.length === 0) return { hasBlog: false, recent: [], drafts: [] }
+
+     const projectIds = blogProjects.map(p => p.id)
+
+     const [recent, drafts] = await Promise.all([
+       db.blogPost.findMany({
+         where: { projectId: { in: projectIds }, status: 'PUBLISHED', deletedAt: null },
+         orderBy: { publishedAt: 'desc' },
+         take: limit,
+         select: { id, title, coverImageUrl, publishedAt, projectId },
+       }),
+       db.blogPost.findMany({
+         where: { projectId: { in: projectIds }, status: 'DRAFT', deletedAt: null },
+         orderBy: { updatedAt: 'desc' },
+         take: limit,
+         select: { id, title, updatedAt, projectId },
+       }),
+     ])
+
+     return { hasBlog: true, recent, drafts, projectsById: /* map id -> {name, type} para montar hrefs */ }
+   }
+   ```
+   Nota: confirmar se `BlogPost` tem `deletedAt` (soft delete) antes
+   de incluir esse filtro — conferir schema antes de codar; se não
+   houver soft delete no model, remover a cláusula.
+
+2. Componente Server src/components/dashboard/RecentBlogCard.tsx:
+   - Se `!hasBlog`: não renderiza nada (nenhum projeto da empresa tem
+     blog habilitado — não é erro, é estado normal para quem não usa
+     essa feature).
+   - Se `hasBlog`: card com duas seções compactas — "Últimos posts
+     publicados" (título + data + link para o post/editor) e, se
+     `drafts.length > 0`, um destaque "Rascunhos pendentes (N)" com
+     lista curta — rascunhos esquecidos são um problema real de
+     produtividade editorial e merecem destaque visual (ex: badge
+     amarelo/laranja).
+   - Botão "Escrever novo post" — aplicar a MESMA checagem de
+     permissão `BLOG_MANAGE` já usada na task 09 (não duplicar lógica
+     de permissão divergente entre os dois componentes; extrair para
+     um helper compartilhado se fizer sentido, ex:
+     `src/lib/auth/canManageBlog(session, impersonating): boolean`
+     usado tanto aqui quanto em QuickActions).
+   - Cada item de post linka para
+     `/${companySlug}/dashboard/{sites|landing-pages}/{projectId}/blog/{postId}`
+     (confirmar o padrão exato de rota em
+     src/app/[companySlug]/dashboard/sites/[siteId]/blog/ antes de
+     montar o href).
+
+3. Posicionamento: card adicional na home, junto com o resumo de
+   analytics (05) e atividade recente (06) — considerar layout de
+   grid responsivo (2 colunas em telas largas) para não empilhar
+   verticalmente demais com todos os novos cards desta sprint juntos.
+
+4. pnpm typecheck + pnpm exec eslint.
+
+RESULTADO FINAL
+Clientes que usam o blog veem, direto na home, os últimos posts
+publicados e um alerta visível de rascunhos pendentes, com atalho
+para escrever um novo post — sempre respeitando permissão de quem
+pode gerenciar blog. Clientes sem blog habilitado não veem nada
+relacionado (sem promover uma feature que não usam).
+
+IMPACTO
+Incentiva consistência editorial — rascunhos esquecidos são um
+problema comum em qualquer ferramenta de blog, e trazer isso pra
+frente do cliente (em vez de deixá-lo descobrir por acaso) aumenta a
+chance de publicação. Também reforça o blog como parte do produto
+Janus visível no dia a dia, não uma feature escondida atrás de vários
+cliques.

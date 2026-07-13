@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import { db } from '@/lib/prisma'
 import { cookies } from 'next/headers'
+import { logAudit } from '@/lib/audit-logger'
 
 const schema = z.object({
   name: z.string().min(1),
@@ -46,6 +47,18 @@ export async function registerGuest(
 
   const guest = await db.guestEntry.create({
     data: { name, email, companyId },
+  })
+
+  await logAudit({
+    userId: null,
+    userEmail: guest.email,
+    userName: `Convidado · ${guest.name}`,
+    action: 'CREATE',
+    entity: 'GuestEntry',
+    entityId: guest.id,
+    entityLabel: guest.name,
+    companyId,
+    newData: guest,
   })
 
   const cookieStore = await cookies()

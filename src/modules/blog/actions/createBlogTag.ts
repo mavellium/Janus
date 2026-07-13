@@ -49,6 +49,8 @@ export async function createBlogTag(_: unknown, formData: FormData) {
       action: 'CREATE',
       entity: 'BlogTag',
       entityId: tag.id,
+      entityLabel: tag.name,
+      projectId: tag.projectId,
       newData: tag,
     })
     revalidatePath('/', 'layout')

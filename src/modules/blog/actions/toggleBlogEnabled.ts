@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 export async function toggleBlogEnabled(projectId: string, companySlug: string, enabled: boolean) {
   const session = await auth()
@@ -29,6 +30,19 @@ export async function toggleBlogEnabled(projectId: string, companySlug: string, 
       where: { id: projectId },
       data: { blogEnabled: enabled },
     })
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE',
+      entity: 'Project',
+      entityId: projectId,
+      entityLabel: `Blog ${enabled ? 'ativado' : 'desativado'} · ${project.name}`,
+      companyId: company.id,
+      projectId,
+      oldData: { blogEnabled: project.blogEnabled },
+      newData: { blogEnabled: enabled },
+    })
+
     revalidatePath(`/${companySlug}/dashboard`)
     return { ok: true }
   } catch {

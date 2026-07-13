@@ -1,0 +1,71 @@
+================================================================
+TASK 02b — Banner promocional: exibição na Home do cliente
+================================================================
+
+PONTUACAO: 2 pontos (P) | PRIORIDADE: Média
+DEPENDE DE: 02a (schema + actions + admin já implementados)
+
+CONTEXTO
+Com 02a implementada, existe `getDashboardBanner(companyId)` retornando
+o banner efetivo da empresa (customizado ou padrão) ou null. Esta task
+troca o hero hardcoded em src/app/[companySlug]/dashboard/page.tsx
+(linhas 51-66) pelo conteúdo dinâmico.
+
+IMPLEMENTACAO TECNICA
+1. Em src/app/[companySlug]/dashboard/page.tsx, importar e chamar
+   `const banner = await getDashboardBanner(company.id)` junto com o
+   Promise.all já existente de institutionalProjects/landingPageProjects
+   (paralelizar as 3 chamadas).
+
+2. Extrair o bloco do hero para um novo Server Component
+   src/components/dashboard/DashboardBanner.tsx recebendo `banner:
+   DashboardBanner | null` como prop:
+   - Se `banner === null`: não renderiza nada (sem hero) — ou
+     renderiza um fallback estático mínimo sem CTA quebrado (decisão
+     de produto; recomendo simplesmente omitir o bloco, já que
+     sempre haverá ao menos o banner padrão depois do seed inicial —
+     ver passo 4).
+   - Se `banner.imageUrl` existir: usar next/image no lugar do
+     `<div className="hidden md:block w-48 h-40 bg-brand-btn-light/30
+     rounded-lg">` vazio atual.
+   - Se `banner.ctaLabel && banner.ctaHref`: renderizar `<Link
+     href={banner.ctaHref}>` estilizado como o botão CTA atual
+     (bg-brand-cta, hover:bg-brand-cta-hover). Se ctaHref for externo
+     (começa com http), abrir em nova aba com rel="noopener
+     noreferrer". Se não houver CTA configurado, omitir o botão (não
+     renderizar botão sem ação, é exatamente o bug que está sendo
+     corrigido).
+   - Manter a estrutura visual atual (rounded-xl, bg-brand-btn-dark,
+     padding, layout flex) — só trocar o conteúdo, não o design.
+
+3. Página home passa a ficar:
+   `<DashboardBanner banner={banner} />` no lugar do bloco JSX inline
+   atual.
+
+4. Seed inicial: como o banner padrão só existe depois que um Admin
+   preencher o form de 02a pela primeira vez, adicionar um seed (ou
+   instruir o Admin a configurar antes do deploy) com um
+   DefaultDashboardBanner sensato (reaproveitar o texto atual como
+   ponto de partida, mas corrigido: título claro, descrição sem erro
+   de português, CTA "Criar novo projeto" apontando para
+   `/${companySlug}/dashboard/sites` — como o href precisa ser
+   relativo à empresa, considerar usar um placeholder tipo
+   `{company}/dashboard/sites` no campo `ctaHref` e fazer replace no
+   componente, OU simplesmente linkar para uma rota fixa não
+   dependente de empresa, ex: abrir o CreateProjectModal — mais
+   simples: apontar para a âncora da seção de projetos da própria
+   home). Documentar a escolha final no changelog do módulo.
+
+5. pnpm typecheck + pnpm exec eslint nos arquivos tocados.
+
+RESULTADO FINAL
+A home do cliente exibe um banner real e configurável no lugar do
+placeholder quebrado — com CTA funcional (ou nenhum CTA, nunca um
+botão morto) e imagem de verdade quando configurada pelo Admin.
+
+IMPACTO
+Fecha o ciclo da task 02a: o cliente passa a ver comunicação
+intencional (novidade, direcionamento, campanha) em vez de um texto
+de rascunho ("Converse com IA pública ou comum clique aqui") e um
+botão que não faz nada — remove um sinal visível de produto
+inacabado logo na primeira tela que o cliente vê ao logar.

@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 interface UpdatePageModeParams {
   pageId: string
@@ -32,6 +33,18 @@ export async function updatePageMode({ pageId, isAdvanced }: UpdatePageModeParam
     await db.page.update({
       where: { id: pageId },
       data: { isAdvanced },
+    })
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE',
+      entity: 'Page',
+      entityId: pageId,
+      entityLabel: `Modo ${isAdvanced ? 'avançado' : 'legado'} · ${page.name}`,
+      companyId: page.project.companyId,
+      projectId: page.project.id,
+      oldData: { isAdvanced: page.isAdvanced },
+      newData: { isAdvanced },
     })
 
     revalidatePath(`/${page.project.company.slug}/dashboard`)

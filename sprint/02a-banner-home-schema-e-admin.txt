@@ -1,0 +1,171 @@
+================================================================
+TASK 02a — Banner promocional da Home: schema + gestão no Admin
+================================================================
+
+PONTUACAO: 5 pontos (M) | PRIORIDADE: Média
+DEPENDE DE: nada | BLOQUEIA: 02b (exibição no cliente)
+
+CONTEXTO
+O hero da home do cliente hoje é hardcoded em
+src/app/[companySlug]/dashboard/page.tsx (linhas 51-66): título fixo
+"Transforme sua ideia em um site ou landing page — em minutos",
+texto placeholder sem sentido ("Converse com IA pública ou comum
+clique aqui"), botão "Começar" sem onClick, e um retângulo cinza
+vazio no lugar de imagem. É texto de rascunho que foi parar em
+produção.
+
+Pedido do usuário: banner com conteúdo PADRÃO definido pelo Admin,
+que aparece para TODAS as empresas, mas que o Admin também pode
+SOBRESCREVER individualmente por empresa (ex: campanha específica
+para um cliente, aviso de manutenção só pra quem usa X funcionalidade
+etc).
+
+Hoje não existe nenhum campo de configuração livre em Company
+(model tem apenas: id, slug, name, description, logo, guestModeEnabled,
+webhookUrl, webhookToken — nenhum JSON de settings). Não existe
+página de "configurações globais do sistema" no admin hoje — a mais
+próxima é src/app/dashboard-admin/companies/ (CRUD de empresa, campos
+name/slug/description) e src/app/dashboard-admin/settings/ (settings
+do usuário admin logado, não do sistema).
+
+DECISÃO DE MODELAGEM (ler antes de implementar)
+Duas entidades separadas, não uma só com companyId nullable+unique.
+Motivo: no Postgres, uma constraint UNIQUE trata múltiplos valores
+NULL como distintos entre si — ou seja, "companyId nullable @unique"
+NÃO impede a criação de vários banners "globais" (companyId=null) por
+engano. Para garantir de verdade "só existe 1 banner padrão", usamos
+o padrão de tabela-singleton (id fixo conhecido), separado da tabela
+de overrides por empresa (aí sim com FK obrigatória e @unique real).
+
+IMPLEMENTACAO TECNICA
+
+1. Schema Prisma (prisma/schema.prisma) — adicionar dois models:
+
+   model DefaultDashboardBanner {
+     id          String   @id @default("singleton")
+     title       String   @default("Transforme sua ideia em um site ou landing page")
+     description String   @default("Comece agora e publique em minutos.")
+     ctaLabel    String?  @map("cta_label")
+     ctaHref     String?  @map("cta_href")
+     imageUrl    String?  @map("image_url")
+     isActive    Boolean  @default(true) @map("is_active")
+     updatedAt   DateTime @updatedAt @map("updated_at")
+     updatedById String?  @map("updated_by_id") @db.Uuid
+     @@map("default_dashboard_banner")
+   }
+
+   model CompanyDashboardBanner {
+     id          String   @id @default(uuid()) @db.Uuid
+     companyId   String   @unique @db.Uuid @map("company_id")
+     company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+     title       String
+     description String
+     ctaLabel    String?  @map("cta_label")
+     ctaHref     String?  @map("cta_href")
+     imageUrl    String?  @map("image_url")
+     isActive    Boolean  @default(true) @map("is_active")
+     createdAt   DateTime @default(now()) @map("created_at")
+     updatedAt   DateTime @updatedAt @map("updated_at")
+     updatedById String?  @map("updated_by_id") @db.Uuid
+     @@map("company_dashboard_banners")
+   }
+
+   Adicionar `companyDashboardBanner CompanyDashboardBanner?` na
+   relação inversa do model Company. `isActive` permite ao Admin
+   desligar o banner (global ou de uma empresa) sem apagar o conteúdo
+   (útil pra reativar depois). Rodar `pnpm prisma migrate dev --name
+   add_dashboard_banners` (ou o comando equivalente usado no projeto
+   — conferir scripts em package.json antes).
+
+2. Domain (novo módulo): src/modules/notifications/... NÃO — este é
+   um módulo próprio. Criar src/modules/dashboard-banner/ com:
+   - domain/banner.ts — tipo `DashboardBanner { title, description,
+     ctaLabel, ctaHref, imageUrl, isActive, source: 'default' | 'company' }`.
+
+3. Queries: src/modules/dashboard-banner/queries/getDashboardBanner.ts
+   `getDashboardBanner(companyId: string): Promise<DashboardBanner | null>`
+   - Busca CompanyDashboardBanner por companyId; se existir e
+     isActive=true, retorna com source:'company'.
+   - Senão, busca DefaultDashboardBanner (id: 'singleton'); se
+     existir e isActive=true, retorna com source:'default'.
+   - Senão, retorna null (home renderiza sem banner, ou com fallback
+     estático mínimo — decisão do 02b).
+   - Também: getDefaultDashboardBanner() e getCompanyDashboardBanner(companyId)
+     separados, para uso nas telas de admin.
+
+4. Actions (fluxo Zod -> Auth -> Prisma -> revalidatePath, retorno
+   padronizado, logAudit obrigatório por ser conteúdo visível a todas
+   as empresas):
+   src/modules/dashboard-banner/actions/updateDefaultBanner.ts
+   - Zod schema: title (min 1, max 120), description (min 1, max 280),
+     ctaLabel/ctaHref opcionais (se um vier, o outro é obrigatório —
+     usar .refine), imageUrl opcional (url válida), isActive boolean.
+   - Auth: `session.user.role === 'ADMIN'` obrigatório (banner global
+     afeta todos os clientes — não liberar para DEVELOPER).
+   - `db.defaultDashboardBanner.upsert({ where: { id: 'singleton' },
+     update: {...data, updatedById: session.user.id}, create: { id:
+     'singleton', ...data, updatedById: session.user.id } })`.
+   - logAudit({ entity: 'DefaultDashboardBanner', entityId: 'singleton',
+     action: oldRow ? 'UPDATE' : 'CREATE', oldData, newData }).
+   - revalidatePath — como este banner afeta TODAS as empresas, usar
+     `revalidatePath('/[companySlug]/dashboard', 'page')` com
+     wildcard não é suportado nativamente pelo Next; a alternativa
+     prática é revalidar via tag: buscar o banner na query com
+     `next: { tags: ['dashboard-banner-default'] }` e chamar
+     `revalidateTag`/`updateTag('dashboard-banner-default')` na action
+     (mesmo padrão já usado em getReleases.ts do módulo notifications
+     — reaproveitar essa técnica, incluindo a ressalva de que no
+     Next 16 é `updateTag(tag)`, não `revalidateTag(tag, profile)`).
+
+   src/modules/dashboard-banner/actions/updateCompanyBanner.ts
+   - Mesmo Zod schema + companyId (uuid).
+   - Auth: role ADMIN (ou DEVELOPER, a definir com o time — recomendo
+     ADMIN apenas, já que é conteúdo de marca visível ao cliente).
+   - Upsert por companyId (unique). logAudit entity
+     'CompanyDashboardBanner', entityId = companyId.
+   - revalidatePath(`/${company.slug}/dashboard`, 'page') — este caso
+     é direto pois sabemos o slug da empresa afetada.
+
+   src/modules/dashboard-banner/actions/deleteCompanyBanner.ts
+   - Remove o override, empresa volta a usar o banner padrão. Auth
+     ADMIN, logAudit action DELETE, mesmo revalidate de cima.
+
+5. UI Admin — dois pontos de entrada:
+
+   a) Banner padrão (global): nova aba/seção dentro de
+      src/app/dashboard-admin/settings/ (settings já existe como área
+      de configuração administrativa — adicionar sub-seção "Banner da
+      Dashboard" em vez de criar rota nova). Form simples: título,
+      descrição, CTA label/href, upload de imagem (reaproveitar
+      uploadImage de src/modules/upload/actions/uploadImage.ts,
+      folder: 'dashboard-banners'), toggle isActive. useActionState +
+      updateDefaultBanner.
+
+   b) Banner por empresa (override): em
+      src/app/dashboard-admin/companies/AdminCompaniesClient.tsx, o
+      CompanyFormModal hoje só edita name/slug/description (linhas
+      50-142). Adicionar um botão/ícone por linha da tabela de
+      empresas ("Banner customizado") que abre um novo modal
+      `CompanyBannerModal.tsx` (mesmo padrão de CompanyFormModal) com
+      o mesmo form do item (a), mas escopado à empresa, chamando
+      updateCompanyBanner/deleteCompanyBanner. Mostrar no modal se a
+      empresa está usando banner padrão ou customizado (ler
+      getCompanyDashboardBanner antes de abrir).
+
+6. Após implementar: rodar skill module-docs para o módulo
+   dashboard-banner (cria .claude/context/dashboard-banner/), depois
+   skill registry para atualizar PROJECT.md.
+
+RESULTADO FINAL
+Admin tem uma tela para definir o banner padrão que todas as empresas
+veem na home, e pode sobrescrever esse banner para uma empresa
+específica a partir da lista de empresas. Nenhuma mudança visível
+para o cliente final ainda nesta task — isso é o trabalho de 02b.
+
+IMPACTO
+Transforma um hero hardcoded e quebrado em uma ferramenta de
+comunicação e marketing interno: a Mavellium pode anunciar novidades,
+promoções ou avisos direcionados sem precisar de deploy, e pode
+personalizar a mensagem para contas estratégicas. Base de
+infraestrutura que também abre caminho para futuras campanhas
+segmentadas.

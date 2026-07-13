@@ -1,0 +1,162 @@
+================================================================
+RESUMO FINAL — TASKS DA SPRINT ORDENADAS POR URGÊNCIA
+================================================================
+(da mais urgente para a menos urgente)
+
+CRITÉRIO DE ORDENAÇÃO
+Esta ordem NÃO é a mesma da pontuação de esforço (ver
+00-indice-sprint.txt para isso). Aqui o critério é urgência real,
+combinando:
+  1. Bug ativo e visível (quebrado ou enganando o cliente agora).
+  2. Retorno de valor percebido por esforço investido (quick wins
+     sobre infraestrutura que já existe).
+  3. Tasks de schema/infra que bloqueiam outras (resolver antes das
+     que dependem delas).
+  4. Impacto em ativação de cliente novo (primeira impressão).
+  5. Ganho de produtividade para quem já usa o produto no dia a dia.
+  6. Tamanho/risco técnico — a maior feature nova (SEO) vem por
+     último não por ser menos importante estrategicamente, mas por
+     exigir mais preparo (segurança, schema novo, módulo do zero) e
+     poder correr em paralelo como uma frente própria, sem travar o
+     resto da sprint.
+
+----------------------------------------------------------------
+ORDEM DE EXECUÇÃO RECOMENDADA
+----------------------------------------------------------------
+
+1º — 01-fix-link-faturas-quebrado.txt
+     Esforço: 1 pt | Por quê primeiro: bug ativo, clicável, gera 404
+     agora mesmo. Zero dependências. Custo de correção desprezível
+     frente ao dano de confiança que causa.
+
+2º — 03-fix-metrica-projetos-ativos.txt
+     Esforço: 2 pts | Por quê: outra inconsistência visível hoje na
+     primeira tela que o cliente vê ("Ativos" sempre igual a
+     "Total"). Investigação rápida + correção simples, sem
+     dependências.
+
+3º — 05-resumo-analytics-na-home.txt
+     Esforço: 5 pts | Por quê: maior retorno de valor percebido da
+     sprint. Toda a infraestrutura de analytics (GA4, queries,
+     componentes) já existe e funciona — é reuso, não construção do
+     zero. Nenhuma dependência de outra task desta sprint.
+
+4º — 07-status-publicacao-por-projeto.txt
+     Esforço: 3 pts | Por quê: reaproveita campo que já existe
+     (`Page.isPublished`), responde pergunta recorrente do cliente
+     ("meu site está no ar com o conteúdo certo?"), sem dependências.
+     Também é pré-requisito de contexto útil para a task 08
+     (onboarding), então faz sentido vir antes dela.
+
+5º — 02a-banner-home-schema-e-admin.txt
+     Esforço: 5 pts | Por quê: o hero da home hoje é texto de
+     rascunho com botão morto — mancha a primeira impressão tanto
+     quanto os itens 1º e 2º, mas exige schema novo e tela de admin,
+     por isso não entra na frente de bugs simples. Bloqueia a 02b.
+
+6º — 02b-banner-home-exibicao-cliente.txt
+     Esforço: 2 pts | Por quê: conclui a correção do hero iniciada em
+     5º. Só pode começar depois da 02a.
+
+7º — 04a-thumbnail-projeto-schema-e-upload.txt
+     Esforço: 5 pts | Por quê: melhoria de usabilidade real (achar o
+     projeto certo numa lista), mas não é um bug — cliente já
+     consegue operar sem isso. Schema + upload primeiro; bloqueia a
+     04b.
+
+8º — 04b-thumbnail-projeto-exibicao.txt
+     Esforço: 3 pts | Por quê: conclui a 04a. Só pode começar depois
+     dela.
+
+9º — 08-onboarding-checklist-cliente-novo.txt
+     Esforço: 5 pts | Por quê: alto impacto em ativação (reduz
+     dependência de suporte manual no primeiro acesso), mas afeta só
+     clientes novos/com setup pendente — universo menor que os itens
+     acima, que tocam todo cliente em todo acesso. Fica mais completo
+     reaproveitando o dado de publicação da 07.
+
+10º — 06-atividade-recente-na-home.txt
+      Esforço: 5 pts | Por quê: valioso principalmente para contas
+      com mais de um usuário gerenciando conteúdo — universo menor
+      que os itens anteriores. Exige desenho de query nova sobre
+      AuditLog (mais fricção técnica que os itens de reuso puro).
+
+11º — 10-blog-recente-na-home.txt
+      Esforço: 5 pts | Por quê: só é relevante para clientes com
+      blog habilitado — subconjunto da base. Mesmo padrão de valor
+      condicional da 06, priorizado depois por afetar um público
+      ainda mais específico.
+
+12º — 09-acoes-rapidas-na-home.txt
+      Esforço: 3 pts | Por quê: é polimento de produtividade (menos
+      cliques) para quem já é cliente ativo, não resolve nenhuma
+      dor aguda nem afeta ativação de cliente novo. Fica melhor
+      posicionada depois de 04b/05/07/10 existirem, porque os
+      atalhos citam conteúdo real (site, página, post) que essas
+      tasks passam a expor.
+
+13º — 11a-seo-motor-de-analise-backend.txt
+      Esforço: 8 pts | Por quê: maior valor estratégico de médio
+      prazo da sprint (ferramenta de aquisição/ativação nova), mas
+      também a maior novidade técnica — módulo do zero, schema novo,
+      e exige implementar corretamente proteção contra SSRF antes de
+      ir ao ar (não é opcional, é requisito de segurança). Por ser
+      tecnicamente independente de todas as tasks acima, PODE rodar
+      em paralelo com elas por outro desenvolvedor, sem travar o
+      restante da sprint — a posição nesta lista reflete ordem de
+      entrega single-thread, não uma trava real.
+
+14º — 11b-seo-onboarding-e-relatorio-frontend.txt
+      Esforço: 8 pts | Por quê: só pode começar depois da 11a
+      (consome a Server Action e as queries que ela cria). Fecha a
+      sprint entregando a experiência completa de ponta a ponta da
+      análise de SEO.
+
+----------------------------------------------------------------
+FORA DO RANKING — 15-geo-generative-engine-optimization.txt
+----------------------------------------------------------------
+Esforço: EPIC (~55-65 pts) | Não entra na ordem 1º-14º acima de
+propósito: é um epic de 7 subfases, não uma task de sprint
+comparável em tamanho às demais. Estrategicamente é o item de MAIOR
+valor de médio prazo do backlog inteiro (abre uma nova linha de
+serviço/receita recorrente para a Mavellium), mas tecnicamente é o
+menos pronto para começar amanhã: depende de decisão de negócio
+sobre custo recorrente de API (4 provedores de IA pagos, até 200
+chamadas/empresa/ciclo) e de escolher entre construir tudo de uma vez
+ou fatiar em sprints GEO-1/GEO-2/GEO-3 (recomendado, ver o próprio
+arquivo 15). Só a Fase 1 do GEO (motor de Raio-X + IAG Score) já
+teria peso comparável a toda a task 11 (SEO) somada — por isso não
+faz sentido competir por posição de urgência com bugs de 1-2 pontos.
+Recomendação: tratar como uma iniciativa própria a ser sequenciada
+DEPOIS que as 14 tasks acima estiverem entregues (ou em paralelo, com
+equipe dedicada, dado que é tecnicamente independente de todas elas),
+começando pela decisão de custo/orçamento antes de qualquer linha de
+código.
+
+----------------------------------------------------------------
+AGRUPAMENTO POR ONDA (se for paralelizar com mais de 1 dev/agente)
+----------------------------------------------------------------
+Onda 1 — Bugs (sem dependências, iniciar imediatamente):
+  01, 03
+
+Onda 2 — Quick wins sobre infraestrutura existente (sem dependências
+entre si, paralelizáveis):
+  05, 07
+
+Onda 3 — Features com par schema->exibição (iniciar a metade "a" de
+cada par primeiro; "b" só depois que "a" terminar):
+  02a -> 02b   |   04a -> 04b
+
+Onda 4 — Features de engajamento (sem dependências entre si,
+paralelizáveis; 08 se beneficia de 07 já pronta, mas não é bloqueio
+rígido):
+  08, 06, 10, 09
+
+Onda 5 — SEO (frente própria, pode começar em paralelo com qualquer
+onda acima desde o dia 1, já que não depende de nenhuma outra task
+desta sprint):
+  11a -> 11b
+
+----------------------------------------------------------------
+TOTAL DA SPRINT: 14 tasks entregáveis | ~60 pontos de esforço
+----------------------------------------------------------------

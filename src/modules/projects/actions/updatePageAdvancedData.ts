@@ -4,6 +4,7 @@ import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { revalidateSites } from '@/lib/revalidateSites'
+import { logAudit } from '@/lib/audit-logger'
 
 interface UpdatePageAdvancedDataParams {
   pageId: string
@@ -56,6 +57,18 @@ export async function updatePageAdvancedData({
         schemaData: parsedSchema as object,
         uiSchema: parsedUiSchema as object,
       },
+    })
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE',
+      entity: 'Page',
+      entityId: pageId,
+      entityLabel: `Dados avançados · ${page.name}`,
+      companyId: page.project.companyId,
+      projectId: page.project.id,
+      oldData: { schemaData: page.schemaData, uiSchema: page.uiSchema },
+      newData: { schemaData: parsedSchema, uiSchema: parsedUiSchema },
     })
 
     const pageSlug =

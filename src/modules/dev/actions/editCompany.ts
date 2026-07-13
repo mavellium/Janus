@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 const schema = z.object({
   id: z.string().uuid(),
@@ -32,9 +33,22 @@ export async function editCompany(_prev: { ok: boolean; error?: string }, formDa
   })
   if (conflict) return { ok: false, error: 'Slug já está em uso.' }
 
-  await db.company.update({
+  const before = await db.company.findUnique({ where: { id: parsed.data.id } })
+
+  const after = await db.company.update({
     where: { id: parsed.data.id },
     data: { name: parsed.data.name, slug: parsed.data.slug, description: parsed.data.description ?? null },
+  })
+
+  await logAudit({
+    userId: session.user.id,
+    action: 'UPDATE',
+    entity: 'Company',
+    entityId: parsed.data.id,
+    entityLabel: after.name,
+    companyId: parsed.data.id,
+    oldData: before,
+    newData: after,
   })
 
   revalidatePath(`/dev/${session.user.id}/dashboard/companies`)

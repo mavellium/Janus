@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 const schema = z.object({
   projectId: z.string().uuid(),
@@ -31,7 +32,7 @@ export async function createScript(_: unknown, formData: FormData) {
   try {
     const project = await db.project.findUnique({
       where: { id: projectId, deletedAt: null },
-      select: { id: true, company: { select: { slug: true } } },
+      select: { id: true, companyId: true, company: { select: { slug: true } } },
     })
     if (!project) return { ok: false, error: 'Projeto não encontrado' }
     if (
@@ -42,6 +43,17 @@ export async function createScript(_: unknown, formData: FormData) {
 
     const script = await db.siteScript.create({
       data: { projectId, name, code, position },
+    })
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'CREATE',
+      entity: 'SiteScript',
+      entityId: script.id,
+      entityLabel: script.name,
+      companyId: project.companyId,
+      projectId,
+      newData: script,
     })
 
     revalidatePath(`/${companySlug}/dashboard/sites/${projectId}/scripts`)

@@ -190,3 +190,15 @@
 **Razão:** Expor API pública por projeto; facilitar descoberta para Devs/Admins.
 
 **Impacto:** URL canônica da API: `/api/{companySlug}/{projectId}/blog`. Rota genérica sem projectId removida.
+
+---
+
+### [2026-07-12] — Audit v2: entityLabel/projectId nos logs + toggleBlogEnabled auditado
+
+**Arquivos:**
+- `src/modules/blog/actions/{create,update,delete}Blog{Post,Category,Tag}.ts`: `logAudit()` agora recebe `entityLabel` (título/nome) e `projectId`
+- `src/modules/blog/actions/toggleBlogEnabled.ts` e `src/modules/admin/actions/updateProjectBlogEnabled.ts`: passam a auditar (entity `Project`, old/new `blogEnabled`)
+
+**Razão:** Logs de blog exibiam apenas UUID; ativação/desativação do blog não deixava rastro.
+
+**Impacto:** Nenhuma mudança de comportamento do blog; tabela de auditoria mostra título do post/categoria/tag e permite filtrar por empresa/projeto. `autosaveBlogPost` segue fora da auditoria (ruído).

@@ -1,0 +1,89 @@
+================================================================
+TASK 03 — Corrigir métrica "Ativos" redundante na Home
+================================================================
+
+PONTUACAO: 2 pontos (P) | PRIORIDADE: Média
+
+CONTEXTO (achado importante, ler com atenção)
+Na home (src/app/[companySlug]/dashboard/page.tsx), cada card de
+Sites/Landing Pages mostra 3 números: Total, Ativos, Páginas. Hoje
+"Total" e "Ativos" são sempre o MESMO número
+(`totalInstitutional`/`totalLandingPages`, linhas 32-33 e 81-89,
+158-160).
+
+Investigação do código mostrou a causa raiz: a query
+`src/modules/projects/queries/getProjects.ts` já filtra
+`isActive: true` na cláusula where (linha 12) — ou seja, ela só
+retorna projetos ativos. A página home usa o array inteiro retornado
+tanto para "Total" quanto para "Ativos", que por definição serão
+sempre iguais, porque projetos inativos nunca chegam no array.
+
+Isso NÃO é um bug de "número errado" — o número mostrado está
+correto para o que a query busca. O problema é de UX: mostrar duas
+métricas lado a lado que são sempre idênticas é confuso e sugere ao
+cliente que algo está quebrado ou que a métrica "Ativos" é enganosa
+(dá a entender que existem inativos sendo contabilizados à parte,
+quando na verdade eles são simplesmente invisíveis).
+
+Confirmar antes de implementar: existe algum fluxo no produto que
+marca `Project.isActive = false` (fora do soft delete via
+`deletedAt`)? Buscar por `isActive` em src/modules/projects/actions/
+e src/modules/admin/actions/ para achar quem seta esse campo. Se não
+houver NENHUM fluxo que desative um projeto sem deletar (ativo é
+sempre true na prática), a métrica "Ativos" é morta e a solução mais
+honesta é remover o terceiro cartão e simplificar o grid, em vez de
+inventar uma distinção que o produto não usa.
+
+IMPLEMENTACAO TECNICA
+Passo 0 (investigação, obrigatório antes de codar): grep por
+`isActive:\s*false` e por `isActive` em toda a pasta src/modules/
+para confirmar se existe toggle de ativar/desativar projeto em algum
+lugar da UI (admin ou cliente). Duas ramificações:
+
+RAMIFICAÇÃO A — Se EXISTE toggle de isActive em algum lugar:
+  1. Criar nova query leve
+     src/modules/projects/queries/getProjectCounts.ts:
+     ```
+     export async function getProjectCounts({ companyId, type }) {
+       const [total, active] = await Promise.all([
+         db.project.count({ where: { companyId, deletedAt: null, ...(type && { type }) } }),
+         db.project.count({ where: { companyId, deletedAt: null, isActive: true, ...(type && { type }) } }),
+       ])
+       return { total, active }
+     }
+     ```
+  2. Home passa a chamar essa query (em paralelo com getProjects, que
+     continua sendo usada para listar os 2 projetos recentes exibidos
+     no card — considerar se getProjects deveria parar de filtrar
+     isActive para essa listagem também, ou manter como está: exibir
+     só ativos na prévia da home faz sentido).
+  3. "Total" = counts.total, "Ativos" = counts.active — agora
+     genuinamente diferentes quando houver projeto inativo.
+
+RAMIFICAÇÃO B — Se NÃO existe nenhum toggle (isActive é sempre true
+na prática, só existe soft delete via deletedAt):
+  1. Simplificar: remover o terceiro cartão "Ativos" dos dois blocos
+     (Sites e Landing Pages) na home, ficando só "Total" e "Páginas".
+     Ajustar o grid de `grid-cols-3` para `grid-cols-2`.
+  2. Não criar nenhuma query nova — menos código, e a UI para de
+     prometer uma distinção que o produto não oferece.
+  Esta ramificação é a mais provável dado que nenhuma menção a
+  desativar projeto apareceu na pesquisa inicial do código, mas
+  precisa ser confirmada com o grep do Passo 0 antes de decidir.
+
+Em ambos os casos: pnpm typecheck + pnpm exec eslint no arquivo da
+home e (se aplicável) na nova query.
+
+RESULTADO FINAL
+Ramificação A: o cliente vê "Total: 5, Ativos: 4" quando há de fato
+um projeto desativado — métrica volta a ter significado.
+Ramificação B: o card fica mais limpo, com só as métricas que o
+produto realmente diferencia (Total, Páginas), sem prometer uma
+distinção inexistente.
+
+IMPACTO
+Pequeno em volume de código, mas remove uma inconsistência visível
+que um cliente atento nota rapidamente ("por que Ativos é sempre
+igual a Total?"). Reforça a percepção de precisão e cuidado no
+produto — o tipo de detalhe que, resolvido, ninguém percebe; não
+resolvido, gera desconfiança.

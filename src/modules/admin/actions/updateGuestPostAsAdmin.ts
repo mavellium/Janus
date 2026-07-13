@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 const schema = z.object({
   id: z.string().uuid(),
@@ -25,13 +26,25 @@ export async function updateGuestPostAsAdmin(formData: FormData): Promise<{ ok: 
 
   const post = await db.guestPost.findUnique({
     where: { id: parsed.data.id },
-    select: { guestId: true },
+    include: { guest: { select: { companyId: true } } },
   })
   if (!post) return { ok: false, error: 'Post não encontrado.' }
 
-  await db.guestPost.update({
+  const updated = await db.guestPost.update({
     where: { id: parsed.data.id },
     data: { title: parsed.data.title ?? null, message: parsed.data.message },
+  })
+
+  const { guest, ...before } = post
+  await logAudit({
+    userId: session.user.id,
+    action: 'UPDATE',
+    entity: 'GuestPost',
+    entityId: parsed.data.id,
+    entityLabel: updated.title ?? updated.message.slice(0, 60),
+    companyId: guest.companyId,
+    oldData: before,
+    newData: updated,
   })
 
   revalidatePath(`/dashboard-admin/guests/${post.guestId}/posts`)

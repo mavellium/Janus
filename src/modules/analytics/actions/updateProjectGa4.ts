@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 const schema = z.object({
   projectId: z.string().uuid(),
@@ -52,7 +53,7 @@ export async function updateProjectGa4(params: Params) {
 
     const project = await db.project.findFirst({
       where: { id: projectId, companyId: company.id, deletedAt: null },
-      select: { id: true },
+      select: { id: true, name: true, ga4PropertyId: true },
     })
     if (!project) {
       return { ok: false as const, error: 'Projeto não encontrado' }
@@ -61,6 +62,18 @@ export async function updateProjectGa4(params: Params) {
     await db.project.update({
       where: { id: projectId },
       data: { ga4PropertyId },
+    })
+
+    await logAudit({
+      userId: session.user.id,
+      action: 'UPDATE',
+      entity: 'Project',
+      entityId: projectId,
+      entityLabel: `GA4 · ${project.name}`,
+      companyId: company.id,
+      projectId,
+      oldData: { ga4PropertyId: project.ga4PropertyId },
+      newData: { ga4PropertyId },
     })
 
     revalidatePath(`/${companySlug}/dashboard/sites/${projectId}/analytics`)

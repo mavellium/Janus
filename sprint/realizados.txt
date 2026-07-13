@@ -1,0 +1,15 @@
+Task 01 — Link "Faturas" removido da Sidebar.tsx (item, condição de highlight e import órfão) — fim do 404 no menu.
+
+Task 11a — Motor de análise de SEO (src/modules/seo/):
+
+safe-fetch.ts — fetch reutilizável com proteção SSRF completa: só http/https, DNS resolvido antes com bloqueio de IPs privados/loopback/link-local/CGNAT (IPv4 e IPv6, incluindo mapeados), redirects manuais validados hop a hop (máx. 3), timeout de 10s e corpo limitado a 3MB.
+seoScoring.ts — função pura com 14 critérios somando exatamente 100 pontos (título, meta description, H1 único, HTTPS, viewport, canonical, Open Graph, JSON-LD, robots.txt, sitemap, volume de texto, alt em imagens, tempo de resposta), cada um com mensagem e recomendação em português.
+analyzeSeoUrl.ts — Server Action com fluxo Zod → auth → guard de empresa → rate limit (20/dia por empresa) → fetch → parse (cheerio, dependência nova) → score → persistência no novo model SeoAnalysis (migration aplicada à mão via migrate deploy, porque o shadow database do migrate dev quebra numa migration antiga pré-existente de guest_posts — vale corrigir esse histórico depois).
+Validação real: smoke test pontuou example.com em 40 (coerente) e confirmou o bloqueio de 127.0.0.1, 169.254.169.254 (metadata de cloud), localhost e ftp://.
+Task 11b — UI de SEO: card "Análise de SEO" na home — é ali que você cola a URL de qualquer site; o resultado aparece inline (anel de score colorido por faixa + ações necessárias ordenadas por severidade) com link para o relatório completo em /dashboard/seo/[id] (todos os checks com pontuação, botão "Analisar novamente" e histórico da empresa). URLs sem protocolo funcionam (www.site.com vira https://).
+
+Task 06 — Atividade recente: descobri que o AuditLog já ganhou companyId/entityLabel/impersonatedId num commit recente, então o feed ficou melhor que a spec: filtra direto por empresa, exclui ações feitas por admin via impersonação e mostra frases humanizadas ("Ana criou o projeto 'Site Black Friday' · há 2 horas").
+
+Task 08 — Onboarding: checklist "Primeiros passos" (criar projeto → adicionar conteúdo → publicar → blog, este só se houver blog habilitado) com barra de progresso. Respeita o RBAC como pedido: o CTA de cada passo só aparece se o usuário tem a permissão (PROJECT_CREATE/PAGE_CREATE/PAGE_BUILD/BLOG_MANAGE via hasPermission com permissões frescas + impersonação); sem permissão, o passo mostra texto informativo em vez de botão. Desaparece sozinho quando tudo está concluído.
+
+Documentação criada em .claude/context/seo/ e PROJECT.md registrado. Detalhe operacional: precisei subir o container postgres-local para a migration — ele está rodando agora.

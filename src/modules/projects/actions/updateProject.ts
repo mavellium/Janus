@@ -63,6 +63,9 @@ export async function updateProject({
       action: 'UPDATE',
       entity: 'Project',
       entityId: projectId,
+      entityLabel: updated.name,
+      companyId: company.id,
+      projectId,
       oldData: project,
       newData: updated,
     })

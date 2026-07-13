@@ -1,0 +1,102 @@
+================================================================
+SPRINT — MELHORIAS NA DASHBOARD DO CLIENTE (JANUS)
+================================================================
+
+OBJETIVO DA SPRINT
+Elevar a experiência da home do cliente (empresa) de "lista de links"
+para painel que entrega valor visível a cada acesso: corrigir o que
+está quebrado hoje, mostrar dados reais (analytics, atividade,
+publicação), reduzir fricção de quem está começando, e lançar a
+primeira ferramenta de análise de SEO do produto.
+
+Para a ordem de execução por URGÊNCIA (não por esforço), ver
+99-resumo-final-priorizado.txt — é o resumo final da sprint com
+todas as 14 tasks ranqueadas da mais para a menos urgente, com
+justificativa de cada posição e agrupamento por onda de execução
+paralela.
+
+Todas as specs abaixo foram escritas com base em leitura real do
+código-fonte (schema.prisma, actions, queries, components) em
+2026-07-06. Caminhos de arquivo citados são exatos nesta data —
+confirme antes de implementar, pois o código pode ter mudado.
+
+REGRAS DE OURO (valem para TODAS as tasks, não repetidas em cada
+arquivo por brevidade — ver CLAUDE.md na raiz do projeto):
+  - Server Actions: fluxo obrigatório Zod -> Auth -> Prisma -> revalidatePath.
+  - Retorno padronizado: { ok: true, data } ou { ok: false, error, code? }.
+  - Toda query filtra deletedAt: null quando a entidade suporta soft delete.
+  - Toda mutação em entidade sensível (User, Project, Page, Company e
+    novas entidades críticas criadas nesta sprint) chama logAudit()
+    de src/lib/audit-logger.ts.
+  - Após criar um módulo novo, rodar a skill module-docs para
+    documentar em .claude/context/[modulo]/.
+  - Ao final de QUALQUER task, rodar a skill registry para atualizar
+    o PROJECT.md.
+  - pnpm typecheck e pnpm exec eslint (não usar pnpm lint/format —
+    estão quebrados no Next 16, ver memory do projeto) devem passar
+    antes de considerar a task concluída.
+
+LISTA DE ARQUIVOS DESTA SPRINT (ordem sugerida de execução)
+----------------------------------------------------------------
+01   fix-link-faturas-quebrado                  P (1 pt)
+02a  banner-home-schema-e-admin                 M (5 pts)
+02b  banner-home-exibicao-cliente                P (2 pts)
+03   fix-metrica-projetos-ativos                P (2 pts)
+04a  thumbnail-projeto-schema-e-upload          M (5 pts)
+04b  thumbnail-projeto-exibicao                 P (3 pts)
+05   resumo-analytics-na-home                   M (5 pts)
+06   atividade-recente-na-home                  M (5 pts)
+07   status-publicacao-por-projeto              P (3 pts)
+08   onboarding-checklist-cliente-novo          M (5 pts)
+09   acoes-rapidas-na-home                      P (3 pts)
+10   blog-recente-na-home                       M (5 pts)
+11a  seo-motor-de-analise-backend               G (8 pts)
+11b  seo-onboarding-e-relatorio-frontend        G (8 pts)
+15   geo-generative-engine-optimization         EPIC (~55-65 pts,
+                                                 fora da escala — ver
+                                                 seção própria no
+                                                 arquivo 15)
+----------------------------------------------------------------
+TOTAL: 16 tasks (14 entregáveis desta sprint + 1 epic futuro + este
+índice) | ~60 pontos da sprint atual (task 15 tratada à parte, não
+somada — é trabalho de sprints futuras, ver o próprio arquivo 15)
+
+Legenda de pontuação: P = Pequena (1-3 pts, até meio dia),
+M = Média (5 pts, cerca de 1 dia), G = Grande (8 pts, 1,5-2 dias).
+Escala não-linear (Fibonacci) — reflete incerteza, não só tamanho.
+
+DEPENDÊNCIAS ENTRE TASKS
+  - 02b depende de 02a (schema precisa existir antes da exibição).
+  - 04b depende de 04a (mesmo motivo).
+  - 11b depende de 11a (motor de análise precisa existir antes do
+    fluxo de onboarding que o consome).
+  - 08 e 09 dependem indiretamente de 04b/05/06/07/10 estarem prontos
+    para fazer sentido visual (mas podem ser implementadas em paralelo
+    e integradas por último na página home).
+  - Todas as demais são independentes entre si e podem ser paralelizadas
+    por diferentes desenvolvedores/agentes.
+
+NOTA SOBRE GEO (task 15)
+A task 11 entrega análise de SEO (score 0-100 + plano de ação +
+relatório). A task 15, adicionada depois com base no material
+"Mavellium-Metodologia-GEO.pdf", especifica como levar as 7 fases da
+metodologia GEO da Mavellium para dentro do Janus — mas é um EPIC
+(~55-65 pts), não uma task de sprint normal, e o próprio arquivo 15
+recomenda dividi-la em 3 sprints futuras (GEO-1, GEO-2, GEO-3) em vez
+de tentar entregá-la de uma vez. A spec 11a já havia nomeado o módulo
+`src/modules/seo/` (não `seo-analysis`) e reservado o valor `GEO` no
+enum `SeoAnalysisType` pensando nisso — a task 15 confirma que o
+dado de GEO acaba precisando de models próprios (não cabe no formato
+de `SeoAnalysis` de URL única), então recomenda um módulo
+`src/modules/geo/` separado, mantendo só o nome do módulo `seo/` e o
+padrão visual como pontos de continuidade.
+
+ARQUIVO A CONSULTAR PARA CONTEXTO DE NEGÓCIO
+Este índice não repete o levantamento técnico completo (roles,
+permissions, models). Cada task já traz os trechos relevantes, mas em
+caso de dúvida, os arquivos-fonte principais são:
+  - src/lib/auth/permissions.ts (RBAC: hasPermission, checkPermission)
+  - prisma/schema.prisma (models Company, Project, Page, User,
+    UserCompany, AuditLog, BlogPost)
+  - src/modules/projects/ (actions e queries de projeto)
+  - src/lib/audit-logger.ts (logAudit)

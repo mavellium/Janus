@@ -22,6 +22,8 @@ export async function adminDeleteUser(id: string) {
       action: 'DELETE',
       entity: 'User',
       entityId: id,
+      entityLabel: before.email,
+      companyId: before.companyId,
       oldData: omitSensitive(before),
     })
   }

@@ -60,6 +60,8 @@ export async function updateBlogTag(_: unknown, formData: FormData) {
       action: 'UPDATE',
       entity: 'BlogTag',
       entityId: id,
+      entityLabel: tag.name,
+      projectId: tag.projectId,
       oldData: before,
       newData: tag,
     })

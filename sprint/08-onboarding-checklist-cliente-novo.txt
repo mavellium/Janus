@@ -1,0 +1,119 @@
+================================================================
+TASK 08 — Checklist de onboarding para cliente novo (respeitando permissões)
+================================================================
+
+PONTUACAO: 5 pontos (M) | PRIORIDADE: Média
+
+CONTEXTO
+Quando uma empresa não tem nenhum projeto ainda, a home hoje mostra
+os cards de Sites/Landing Pages vazios ("Nenhum site criado ainda") e
+mais nada — não há orientação de próximos passos. Isso é
+particularmente ruim para o primeiro acesso de um cliente novo, que
+ainda não sabe o vocabulário do produto.
+
+ATENÇÃO — REGRA DE NEGÓCIO OBRIGATÓRIA (pedido explícito do usuário):
+nem todo usuário da empresa pode criar Site ou Landing Page. O
+sistema já tem RBAC granular para isso em
+src/lib/auth/permissions.ts:
+  - Permissões relevantes: `PERMISSIONS.PROJECT_CREATE`,
+    `PERMISSIONS.PAGE_CREATE`, `PERMISSIONS.BLOG_MANAGE` (ver
+    constante `PERMISSIONS`, linhas 4-14).
+  - Módulo/tier: `ModuleType = 'sites' | 'landingPages'`,
+    `PermissionTier = 'project' | 'page'`.
+  - Checagem em Server Component: `checkPermission(session,
+    'PROJECT_CREATE', 'sites', 'project')` (async, resolve
+    impersonação) ou, com sessão já carregada,
+    `hasPermission(session, 'PROJECT_CREATE', 'sites', 'project',
+    impersonating)`.
+  - Regra de bypass: `role === 'ADMIN' || role === 'DEVELOPER'`
+    (fora de impersonação) sempre tem todas as permissões.
+  - Padrão de uso já em produção, replicar exatamente:
+    `src/app/[companySlug]/dashboard/sites/page.tsx:43` faz
+    `const canCreate = hasPermission(sessionWithFreshPerms,
+    'PROJECT_CREATE', 'sites', 'project', impersonating)` e só
+    renderiza o botão "Novo Site"/CreateProjectModal quando
+    `canCreate === true`.
+
+O checklist de onboarding PRECISA seguir a mesma regra: um usuário
+sem `PROJECT_CREATE` não pode ver um checklist que promete "crie seu
+primeiro site" com um botão que ele não tem permissão de usar — isso
+seria pior que não ter checklist nenhum (frustração garantida).
+
+IMPLEMENTACAO TECNICA
+1. Definir os passos do checklist como dados, não hardcoded no JSX,
+   para facilitar manutenção futura:
+   ```
+   type OnboardingStep = {
+     key: string
+     label: string
+     description: string
+     done: boolean
+     href?: string          // se null, passo não é navegável (ex: aguardando terceiro)
+     requiresPermission?: { permission: string; module: ModuleType; tier: PermissionTier }
+   }
+   ```
+
+2. Server Component (a home já é async, pode calcular tudo ali ou
+   delegar a um componente próprio
+   src/components/dashboard/OnboardingChecklist.tsx que recebe os
+   dados já resolvidos via props — preferir a segunda opção para
+   manter a home legível):
+   - Passo 1 "Criar seu primeiro projeto": `done =
+     (totalInstitutional + totalLandingPages) > 0`. Só mostra o
+     botão/CTA de ação se `canCreateSites || canCreateLandingPages`
+     (checar as duas permissões, já que o usuário pode ter uma e não
+     outra). Se `done = false` E o usuário NÃO tem nenhuma das duas
+     permissões, o passo aparece como "Aguardando criação por um
+     administrador da sua empresa" (sem botão, texto informativo) —
+     NUNCA esconder o passo inteiro, isso confundiria mais (o usuário
+     precisa entender que falta algo, mesmo não podendo resolver
+     sozinho).
+   - Passo 2 "Adicionar conteúdo": `done = existe pelo menos 1 Page
+     com content preenchido além da Home padrão criada
+     automaticamente por createProject` (checar se `_count.pages > 1`
+     ou algum critério equivalente combinado com o resultado da task
+     07). Requer `PAGE_CREATE`/edição de página para o CTA aparecer.
+   - Passo 3 "Publicar": `done = existe pelo menos 1 Page com
+     isPublished = true` (reaproveitar o dado da task 07, não
+     duplicar query). CTA leva à página de gerenciamento do projeto.
+   - (Opcional, se blogEnabled em algum projeto) Passo 4 "Configurar
+     o blog": `done = existe >= 1 BlogPost`. Só aparece se houver
+     projeto com `blogEnabled = true` E o usuário tiver
+     `BLOG_MANAGE`.
+
+3. Visibilidade do checklist inteiro: só renderizar na home quando
+   nem todos os passos aplicáveis ao usuário estiverem `done`
+   (esconder automaticamente depois que o cliente já passou do
+   onboarding — não poluir a home de quem já é usuário maduro). Regra
+   simples: `showChecklist = steps.some(s => !s.done)` E a conta é
+   "nova" (heurística: nenhum projeto OU todos os projetos criados
+   nos últimos N dias — evita reexibir o checklist pra sempre em
+   contas antigas que só não usam blog, por exemplo; alternativa mais
+   simples e talvez preferível: mostrar sempre que houver passo
+   pendente, sem heurística de tempo, e deixar o cliente "descartar"
+   manualmente — decisão de produto a validar com o time, mas
+   documentar a escolha final no changelog).
+
+4. Componente visual: lista de 3-4 itens com ícone de check
+   (preenchido/vazio), label, description curta, e botão/link de ação
+   quando aplicável e permitido. Seguir o padrão visual dos outros
+   cards da home (bg-card, rounded-xl, border-brand-btn-light).
+
+5. pnpm typecheck + pnpm exec eslint.
+
+RESULTADO FINAL
+Cliente novo (ou com passos de setup pendentes) vê na home um
+checklist claro do que falta fazer para colocar o site no ar, com
+call-to-action direto para cada passo — mas SOMENTE para os passos
+que ele tem permissão de executar; para os demais, uma mensagem
+informativa sem botão quebrado ou enganoso. O checklist desaparece
+sozinho quando todos os passos aplicáveis ao usuário estão completos.
+
+IMPACTO
+Reduz a curva de aprendizado do primeiro acesso e a dependência de
+suporte/onboarding manual da Mavellium para orientar "o que fazer
+primeiro". Ao mesmo tempo, por respeitar as permissões granulares já
+existentes no produto, evita o erro clássico de checklists genéricos
+que mostram ações que o usuário não pode realizar — o que geraria
+tickets de suporte do tipo "não consigo clicar em criar site" em vez
+de reduzir esse tipo de contato.

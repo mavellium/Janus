@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { logAudit } from "@/lib/audit-logger";
 
 function toSlug(name: string) {
   return name
@@ -41,6 +42,16 @@ export async function adminQuickCreateCompany(
   const company = await db.company.create({
     data: { name: parsed.data.name, slug, createdById: session.user.id },
     select: { id: true, name: true, slug: true },
+  });
+
+  await logAudit({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "Company",
+    entityId: company.id,
+    entityLabel: company.name,
+    companyId: company.id,
+    newData: company,
   });
 
   revalidatePath("/dashboard-admin/users");

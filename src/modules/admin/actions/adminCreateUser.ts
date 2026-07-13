@@ -81,6 +81,8 @@ export async function adminCreateUser(
     action: "CREATE",
     entity: "User",
     entityId: created.id,
+    entityLabel: created.email,
+    companyId: created.companyId,
     newData: omitSensitive(created),
   });
 

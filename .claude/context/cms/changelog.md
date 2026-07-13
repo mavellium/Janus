@@ -684,3 +684,15 @@
 
 ---
 
+### [2026-07-12] — Auditoria completa das actions de conteúdo (Audit v2)
+
+**Arquivos**:
+- `src/modules/projects/actions/updatePageContent.ts`, `updatePageContentData.ts`, `updatePageSchema.ts`, `updatePageSchemaContent.ts`, `updatePageAdvancedData.ts`, `updatePageMode.ts`, `togglePagePublish.ts`: adicionado `logAudit()` após a mutação (snapshot old/new, entityLabel com nome da página, companyId/projectId)
+- `src/modules/projects/actions/createProject.ts`, `updateProject.ts`, `softDeleteProject.ts`, `createPage.ts`, `updatePage.ts`: call sites existentes enriquecidos com entityLabel/companyId/projectId
+- `src/modules/scripts/actions/*`: create/update/delete/toggle de SiteScript agora auditados
+
+**Razão**: Edições de conteúdo pelo builder (contentData/schemaData), publicação e injeção de scripts eram invisíveis na auditoria — sem rastro nem reversão quando um cliente destruía uma página.
+
+**Impacto**: Nenhuma mudança no fluxo de dados do CMS (full-replace preservado); apenas registro pós-mutação. `Page` e `SiteScript` reversíveis via `/dashboard-admin/logs`. Módulo duplicado `src/modules/cms/actions/*` identificado como código morto (nenhum import) — não instrumentado.
+
+---

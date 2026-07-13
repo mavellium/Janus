@@ -9,6 +9,7 @@ import {
   IMPERSONATED_USER_NAME_COOKIE,
   IMPERSONATION_RETURN_URL_COOKIE,
 } from "@/lib/auth/permissions";
+import { logAudit } from "@/lib/audit-logger";
 
 export async function startImpersonation(
   targetUserId: string,
@@ -18,7 +19,7 @@ export async function startImpersonation(
   const session = await auth();
   const role = session?.user?.role;
 
-  if (role !== "ADMIN" && role !== "DEVELOPER") {
+  if (!session?.user?.id || (role !== "ADMIN" && role !== "DEVELOPER")) {
     return { ok: false as const, error: "Acesso não autorizado" };
   }
 
@@ -88,6 +89,19 @@ export async function startImpersonation(
       maxAge: 7 * 24 * 60 * 60,
     });
   }
+
+  await logAudit({
+    userId: session.user.id,
+    action: "CREATE",
+    entity: "Impersonation",
+    entityId: targetUser.id,
+    entityLabel: `Inspeção iniciada · ${displayName}`,
+    newData: {
+      targetUserId: targetUser.id,
+      targetEmail: targetUser.email,
+      companySlug,
+    },
+  });
 
   revalidatePath(`/${companySlug}/dashboard`, "layout");
   return { ok: true as const };

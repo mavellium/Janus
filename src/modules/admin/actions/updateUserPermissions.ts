@@ -5,6 +5,7 @@ import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { ALL_PERMISSIONS, PermissionName } from '@/lib/auth/permissions'
+import { logAudit } from '@/lib/audit-logger'
 
 const schema = z.object({
   userId: z.string().uuid(),
@@ -22,7 +23,15 @@ export async function updateUserPermissions(input: z.infer<typeof schema>) {
 
   const target = await db.user.findUnique({
     where: { id: parsed.data.userId, deletedAt: null },
-    select: { id: true, role: true, createdById: true },
+    select: {
+      id: true,
+      role: true,
+      createdById: true,
+      email: true,
+      name: true,
+      companyId: true,
+      permissions: true,
+    },
   })
   if (!target) return { ok: false, error: 'Usuário não encontrado.' }
 
@@ -34,57 +43,49 @@ export async function updateUserPermissions(input: z.infer<typeof schema>) {
     return { ok: false, error: 'Acesso não autorizado.' }
   }
 
-  console.log('Processing permissions:', parsed.data.permissions)
-  console.log('ALL_PERMISSIONS:', ALL_PERMISSIONS)
-
   const validPermissions = parsed.data.permissions.filter((permissionStr) => {
-    // Format: module:tier:permissionName or module:permissionName (legacy)
     const parts = permissionStr.split(':')
-    console.log(`Checking permission: "${permissionStr}" -> parts:`, parts)
 
     if (parts.length === 3) {
-      // New format: module:tier:permissionName
       const [module, tier, permName] = parts
-      const isValid = ['sites', 'landingPages'].includes(module) &&
-                      ['project', 'page'].includes(tier) &&
-                      ALL_PERMISSIONS.includes(permName as PermissionName)
-      console.log(`  3-part format: module="${module}" (valid: ${['sites', 'landingPages'].includes(module)}), tier="${tier}" (valid: ${['project', 'page'].includes(tier)}), permName="${permName}" (valid: ${ALL_PERMISSIONS.includes(permName as PermissionName)}) -> ${isValid}`)
-      return isValid
-    } else if (parts.length === 2) {
-      // Legacy format: module:permissionName
-      const [module, permName] = parts
-      const isValid = ['sites', 'landingPages'].includes(module) &&
-                      ALL_PERMISSIONS.includes(permName as PermissionName)
-      console.log(`  2-part format: module="${module}", permName="${permName}" -> ${isValid}`)
-      return isValid
+      return (
+        ['sites', 'landingPages'].includes(module) &&
+        ['project', 'page'].includes(tier) &&
+        ALL_PERMISSIONS.includes(permName as PermissionName)
+      )
     }
 
-    // No prefix - legacy
-    const isValid = ALL_PERMISSIONS.includes(permissionStr as PermissionName)
-    console.log(`  1-part format: permissionStr="${permissionStr}" -> ${isValid}`)
-    return isValid
-  })
+    if (parts.length === 2) {
+      const [module, permName] = parts
+      return (
+        ['sites', 'landingPages'].includes(module) &&
+        ALL_PERMISSIONS.includes(permName as PermissionName)
+      )
+    }
 
-  console.log('Saving permissions for user:', parsed.data.userId, 'Input:', parsed.data.permissions, 'Valid:', validPermissions)
+    return ALL_PERMISSIONS.includes(permissionStr as PermissionName)
+  })
 
   const updated = await db.user.update({
     where: { id: parsed.data.userId },
     data: { permissions: validPermissions },
   })
 
-  console.log('User permissions updated:', updated.id, 'New permissions:', updated.permissions)
+  await logAudit({
+    userId: session.user.id,
+    action: 'UPDATE',
+    entity: 'User',
+    entityId: target.id,
+    entityLabel: `Permissões · ${target.email}`,
+    companyId: target.companyId,
+    oldData: { permissions: target.permissions },
+    newData: { permissions: updated.permissions },
+  })
 
-  // Revalidate admin pages
   revalidatePath('/dashboard-admin/users')
   revalidatePath('/dashboard-admin/developers')
-
-  // Revalidate developer's user management page
   revalidatePath(`/dev/${session.user.id}/dashboard/users`)
-
-  // Revalidate all dashboard pages (sites, landing pages, etc)
   revalidatePath('/', 'layout')
-
-  console.log('Revalidated paths after permission update')
 
   return { ok: true }
 }

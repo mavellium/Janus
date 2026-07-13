@@ -75,6 +75,9 @@ export async function createPage({ projectId, name, slug, companySlug, previewUr
       action: 'CREATE',
       entity: 'Page',
       entityId: page.id,
+      entityLabel: `${page.name} · ${project.name}`,
+      companyId: project.companyId,
+      projectId,
       newData: page,
     })
 

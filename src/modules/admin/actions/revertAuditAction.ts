@@ -20,12 +20,22 @@ interface RevertibleDelegate {
 
 const ENTITY_DELEGATES: Record<string, RevertibleDelegate> = {
   User: db.user as unknown as RevertibleDelegate,
+  Company: db.company as unknown as RevertibleDelegate,
   Project: db.project as unknown as RevertibleDelegate,
   Page: db.page as unknown as RevertibleDelegate,
   BlogPost: db.blogPost as unknown as RevertibleDelegate,
   BlogCategory: db.blogCategory as unknown as RevertibleDelegate,
   BlogTag: db.blogTag as unknown as RevertibleDelegate,
+  SiteScript: db.siteScript as unknown as RevertibleDelegate,
+  GuestEntry: db.guestEntry as unknown as RevertibleDelegate,
+  GuestPost: db.guestPost as unknown as RevertibleDelegate,
 }
+
+const SNAPSHOT_ONLY_KEYS = new Set([
+  'deletedProjectsCount',
+  'affectedUsersCount',
+  'deletedPostsCount',
+])
 
 const ISO_DATE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/
@@ -44,6 +54,7 @@ function prepareWriteData(
   const result: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(raw)) {
     if (NON_WRITABLE_KEYS.has(key)) continue
+    if (SNAPSHOT_ONLY_KEYS.has(key)) continue
     if (!keepIdentity && (key === 'id' || key === 'createdAt')) continue
     if (value === undefined) continue
     result[key] = coerce(value)
@@ -123,6 +134,9 @@ export async function revertAuditAction(
       action: 'RESTORE',
       entity: log.entity,
       entityId: log.entityId,
+      entityLabel: log.entityLabel,
+      companyId: log.companyId,
+      projectId: log.projectId,
       oldData: existing,
       newData: restored,
     })

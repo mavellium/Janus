@@ -1,0 +1,217 @@
+================================================================
+TASK 11a — Motor de Análise de SEO (backend)
+================================================================
+
+PONTUACAO: 8 pontos (G) | PRIORIDADE: Alta (feature nova, diferencial)
+BLOQUEIA: 11b (fluxo de onboarding e relatório, que consome este motor)
+
+CONTEXTO
+Pedido novo do usuário, fora da lista original de 10 itens: quando um
+cliente novo entra no Janus, ele pode colar a URL do site dele e
+receber uma pontuação de SEO (0-100), com uma lista de ações
+necessárias para melhorar, evoluindo depois para um relatório
+completo. O usuário confirmou explicitamente que GEO (Generative
+Engine Optimization) é fase FUTURA — não implementar nada de GEO
+agora, só não fechar a porta para isso depois.
+
+Terreno hoje: já existe `src/lib/seo-checklist.ts` com
+`analyzeSeo({ title, seoTitle, seoDescription, seoKeywords, body })`,
+mas ele opera sobre dados JÁ ESTRUTURADOS de um BlogPost do próprio
+banco (título, corpo, meta description como campos separados) — não
+busca uma URL externa nem faz parsing de HTML. Esta task é
+essencialmente nova: precisa buscar uma página de fora do sistema,
+fazer parsing do HTML bruto e derivar os mesmos tipos de sinais (e
+outros) a partir disso.
+
+ATENÇÃO — RISCO DE SEGURANÇA (SSRF), LER ANTES DE CODAR
+Esta feature recebe uma URL arbitrária de um usuário e faz o SERVIDOR
+buscar essa URL. Isso é um vetor clássico de SSRF (Server-Side
+Request Forgery): um usuário malicioso pode colar uma URL apontando
+para serviços internos da infraestrutura (ex: metadata endpoint de
+cloud `169.254.169.254`, serviços internos em `10.x`/`172.16-31.x`/
+`192.168.x`, `localhost`/`127.0.0.1`, ou até portas internas do
+próprio servidor Janus) e usar o motor de SEO como proxy para
+escanear ou acessar recursos que não deveriam ser expostos. É
+OBRIGATÓRIO implementar as proteções abaixo antes de considerar esta
+task pronta — não é um "nice to have":
+  1. Validar protocolo: apenas `http:`/`https:` são aceitos.
+  2. Resolver o hostname via DNS ANTES de buscar, e rejeitar IPs
+     privados/reservados/loopback/link-local (RFC 1918: 10.0.0.0/8,
+     172.16.0.0/12, 192.168.0.0/16; loopback 127.0.0.0/8, ::1;
+     link-local 169.254.0.0/16 — inclui o metadata endpoint de
+     AWS/GCP/Azure; IPv6 equivalentes fc00::/7, fe80::/10).
+  3. Buscar com `redirect: 'manual'` (não deixar o fetch seguir
+     redirect automaticamente) e validar CADA hop de redirecionamento
+     contra as mesmas regras do item 2 antes de segui-lo — um
+     atacante pode hospedar uma URL pública que redireciona para um
+     IP interno, contornando a checagem inicial se você validar só a
+     URL de entrada. Limitar a no máximo 3 redirecionamentos.
+  4. Timeout curto (`AbortController`, 8-10s) — evita que uma URL
+     lenta/travada prenda o processo.
+  5. Limite de tamanho de resposta (ex: 3MB) — ler o stream com corte
+     no limite, para não permitir exaustão de memória com uma resposta
+     gigante.
+  6. Nunca repassar cookies/credenciais/headers de autenticação do
+     Janus na requisição de saída.
+  7. Rate limiting por empresa/usuário (ver passo 6 abaixo) —
+     evita uso da feature como scanner de portas/serviços em massa.
+  Verificar se já existe um helper de validação de URL/SSRF em
+  src/lib/ antes de criar um novo (buscar por "ssrf", "isPrivateIp",
+  "validateUrl" no projeto). Se não existir, criar
+  src/lib/security/safe-fetch.ts reutilizável (esta proteção também
+  pode ser útil no futuro para qualquer outra feature que busque URL
+  de usuário).
+
+IMPLEMENTACAO TECNICA
+
+1. Schema Prisma — novo model (nome do módulo já pensado para
+   comportar GEO no futuro sem remodelar):
+   ```
+   enum SeoAnalysisType {
+     SEO
+     // GEO — reservado para fase futura, não implementar agora
+   }
+
+   model SeoAnalysis {
+     id          String           @id @default(uuid()) @db.Uuid
+     companyId   String           @db.Uuid
+     company     Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+     userId      String           @db.Uuid
+     user        User             @relation(fields: [userId], references: [id])
+     projectId   String?          @db.Uuid  // opcional: cliente novo pode analisar antes de ter projeto criado
+     targetUrl   String           @map("target_url")
+     type        SeoAnalysisType  @default(SEO)
+     score       Int              // 0-100
+     checks      Json             // array de resultados detalhados (ver passo 3)
+     createdAt   DateTime         @default(now()) @map("created_at")
+
+     @@index([companyId])
+     @@index([createdAt])
+     @@map("seo_analyses")
+   }
+   ```
+   Adicionar relações inversas em `Company` e `User`. Migration:
+   `pnpm prisma migrate dev --name add_seo_analysis`.
+
+2. Novo módulo `src/modules/seo/` (domain/actions/queries, seguindo
+   Clean Architecture do CLAUDE.md):
+   - `domain/seoCheck.ts` — tipos:
+     ```
+     type SeoCheckSeverity = 'critical' | 'important' | 'minor'
+     interface SeoCheckResult {
+       key: string            // ex: 'title_tag', 'meta_description', 'https'
+       label: string           // ex: "Título da página"
+       passed: boolean
+       severity: SeoCheckSeverity
+       points: number          // pontos concedidos (0 se passed=false)
+       maxPoints: number
+       message: string         // explicação do resultado
+       recommendation?: string // o que fazer para corrigir, só quando passed=false
+     }
+     interface SeoAnalysisResult {
+       score: number            // soma de points, 0-100
+       checks: SeoCheckResult[]
+       fetchedAt: string
+       targetUrl: string
+     }
+     ```
+
+3. `domain/seoScoring.ts` — motor de scoring puro (função pura,
+   testável, recebe o HTML já parseado + metadados da resposta HTTP,
+   não faz fetch nem I/O). Rubrica sugerida (soma = 100 pontos;
+   ajustar pesos com o time de produto se necessário, mas manter a
+   soma em 100):
+     - Title tag presente e entre 30-60 caracteres ......... 10 pts
+     - Meta description presente e entre 70-160 caracteres . 10 pts
+     - Exatamente 1 tag <h1> na página ...................... 10 pts
+     - Presença de subtítulos <h2> (hierarquia de conteúdo) .. 5 pts
+     - HTTPS (protocolo da URL final após redirects) ........ 10 pts
+     - Meta viewport presente (mobile-friendly) .............. 5 pts
+     - Link rel="canonical" presente ......................... 5 pts
+     - Open Graph (og:title, og:description, og:image) ...... 10 pts
+     - Dados estruturados JSON-LD presentes .................. 5 pts
+     - robots.txt acessível (200 na raiz do domínio) ......... 5 pts
+     - sitemap.xml acessível (referenciado no robots.txt ou
+       na raiz do domínio) .................................. 5 pts
+     - Conteúdo textual da página >= 300 palavras ............ 5 pts
+     - >= 90% das imagens <img> possuem atributo alt não-vazio 10 pts
+     - Tempo de resposta da página < 3s ...................... 5 pts
+   Reaproveitar a MESMA faixa de caracteres já usada em
+   src/lib/seo-checklist.ts (30-60 título, 70-160 descrição) para
+   manter consistência de critério com o SEO de posts do blog.
+
+4. `queries`/infra de parsing e fetch:
+   - `src/modules/seo/infra/fetchTargetPage.ts` — aplica TODAS as
+     proteções de SSRF do bloco de segurança acima, retorna
+     `{ html: string, finalUrl: string, statusCode: number,
+     responseTimeMs: number }` ou lança erro tipado
+     (`SeoFetchError` com códigos tipo 'INVALID_URL',
+     'PRIVATE_ADDRESS_BLOCKED', 'TIMEOUT', 'TOO_LARGE',
+     'UNREACHABLE').
+   - `src/modules/seo/infra/parseHtml.ts` — parsing do HTML. Verificar
+     se já existe alguma lib de parsing HTML nas dependências do
+     projeto (buscar "cheerio" ou "jsdom" em package.json); se não
+     houver, avaliar adicionar `cheerio` (padrão de mercado para
+     parsing server-side em Node, leve, sem necessidade de DOM
+     completo) — checar documentação oficial antes de instalar,
+     conforme regra do CLAUDE.md de embasar em docs atualizadas.
+     Extrai: title, meta description, h1[], h2[], canonical href,
+     viewport meta, og:* tags, JSON-LD scripts, contagem de palavras
+     do texto visível, lista de imagens com/sem alt.
+
+5. Action principal (fluxo Zod -> Auth -> rate limit -> fetch seguro
+   -> parse -> score -> persist -> revalidate):
+   `src/modules/seo/actions/analyzeSeo.ts`
+   - Zod: `{ url: z.string().url(), projectId: z.string().uuid().optional() }`.
+   - Auth: sessão obrigatória (qualquer usuário autenticado da
+     empresa pode rodar — não é uma mutação sobre dado sensível de
+     terceiros, é uma consulta pública de um site).
+   - Rate limit: reaproveitar o padrão já usado em
+     `src/modules/auth/actions/checkIpStatus.ts` (rate limit por
+     IP/usuário) — limitar a um número razoável de análises por
+     empresa por dia (ex: 20/dia) contando linhas de `SeoAnalysis`
+     criadas nas últimas 24h para aquele `companyId`. Se estourar,
+     retornar `{ ok: false, error: 'Limite de análises atingido...',
+     code: 429 }`.
+   - Fetch + parse + score conforme passos 3-4.
+   - Persistir em `SeoAnalysis` (companyId da sessão, userId da
+     sessão, targetUrl normalizada, type: 'SEO', score, checks).
+   - Não precisa de `logAudit` no sentido do CLAUDE.md (não é
+     mutação de entidade crítica do sistema, é geração de um
+     relatório) — mas registrar de qualquer forma é barato e ajuda
+     auditoria de uso da feature; usar entity 'SeoAnalysis' se o time
+     preferir manter tudo auditado, decisão não-bloqueante.
+   - Retorno: `{ ok: true, data: { analysisId, result: SeoAnalysisResult } }`.
+
+6. Queries de leitura:
+   `src/modules/seo/queries/getSeoAnalysis.ts` (por id, com checagem
+   de que pertence à companyId da sessão) e
+   `src/modules/seo/queries/getRecentSeoAnalyses.ts` (histórico por
+   companyId, para a task 11b poder listar análises anteriores).
+
+7. Testes: dado que existe precedente (`src/lib/seo-checklist.spec.ts`),
+   criar `src/modules/seo/domain/seoScoring.spec.ts` cobrindo casos
+   de HTML bem formado, HTML sem title, sem alt em imagens, etc — o
+   scoring é lógica pura, fácil e barato de testar exaustivamente.
+
+8. Após implementar: rodar skill module-docs para o módulo `seo`
+   (cria .claude/context/seo/), depois skill registry.
+
+RESULTADO FINAL
+Existe uma Server Action `analyzeSeo(url)` que, dado qualquer URL
+pública, busca a página com segurança (sem risco de SSRF), calcula
+uma pontuação de 0 a 100 com base em critérios técnicos de SEO
+on-page, retorna a lista detalhada de checks (o que passou, o que
+falhou, por quê, e como corrigir), e persiste o resultado para
+consulta futura — pronta para ser consumida por qualquer UI (tarefa
+11b constrói a experiência de onboarding sobre isso).
+
+IMPACTO
+É a peça de infraestrutura que viabiliza a primeira ferramenta de
+diagnóstico gratuita do Janus — um gancho de aquisição/ativação forte
+(cliente cola a URL do site atual, mesmo antes de migrar pra Janus, e
+já recebe valor). Feito com o cuidado de segurança correto, essa
+mesma infraestrutura fica pronta para reaproveitamento em análises
+periódicas automáticas (ex: task futura de "health check" mencionada
+no plano geral) e para a expansão a GEO mencionada pelo usuário como
+próxima fase.

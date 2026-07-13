@@ -87,6 +87,8 @@ export async function adminEditUser(
     action: "UPDATE",
     entity: "User",
     entityId: parsed.data.id,
+    entityLabel: after?.email ?? parsed.data.email,
+    companyId: after?.companyId,
     oldData: omitSensitive(before),
     newData: omitSensitive(after),
   });

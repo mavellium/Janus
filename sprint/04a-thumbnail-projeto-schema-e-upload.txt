@@ -1,0 +1,108 @@
+================================================================
+TASK 04a — Thumbnail de projeto: schema + upload (criar/editar)
+================================================================
+
+PONTUACAO: 5 pontos (M) | PRIORIDADE: Média
+BLOQUEIA: 04b (exibição nas listagens e na home)
+
+CONTEXTO
+Hoje todo projeto (Site ou Landing Page) é representado visualmente
+por um quadrado cinza estático (`<div className="w-8 h-8 rounded
+bg-brand-btn-light">` na home, e padrão semelhante nas listagens de
+sites/landing-pages). Não existe NENHUM campo de thumbnail, screenshot
+ou favicon no model `Project` hoje (confirmado no schema.prisma,
+linhas 153-183). O cliente não consegue reconhecer visualmente qual
+projeto é qual numa lista — depende só do nome em texto.
+
+Pedido do usuário: implementar não só a exibição, mas também nos
+fluxos de CRIAÇÃO e EDIÇÃO do projeto, e na própria página do projeto.
+Esta task (04a) cobre schema + upload nos dois modais de
+criação/edição. A task 04b cobre a exibição nas listagens/home/página
+do projeto.
+
+IMPLEMENTACAO TECNICA
+
+1. Schema Prisma — adicionar campo em `Project`
+   (prisma/schema.prisma, dentro do model Project, perto de
+   `previewUrl`):
+   `thumbnailUrl String? @map("thumbnail_url")`
+   Rodar migration (`pnpm prisma migrate dev --name
+   add_project_thumbnail`).
+
+2. Upload: reaproveitar `uploadImage` de
+   src/modules/upload/actions/uploadImage.ts — já converte para AVIF
+   via sharp e sobe pro BunnyCDN, retornando `{ ok, url }`. Usar
+   `folder: 'projects/thumbnails'` na chamada. Não criar um upload
+   novo — é exatamente o caso de uso que essa action já resolve
+   (confirmado: aceita qualquer File de imagem vindo de formulário).
+
+3. Action de criação — src/modules/projects/actions/createProject.ts:
+   adicionar parâmetro opcional `thumbnailUrl?: string` na assinatura
+   e incluir no `db.project.create({ data: { ..., thumbnailUrl } })`.
+   Não faz upload dentro da action — a action recebe a URL já
+   resultante de uma chamada prévia a uploadImage feita pelo client
+   component (mesmo padrão dos uploads de capa de post do blog, ver
+   uploadBlogMedia.ts + PostEditorClient.tsx).
+
+4. Action de edição —
+   src/modules/projects/actions/updateProject.ts: já atualiza
+   `name`, `previewUrl`, `blogEnabled`, `cmsEnabled` parcialmente
+   (spread condicional). Adicionar `thumbnailUrl` ao mesmo padrão de
+   update parcial. Já chama logAudit — nada novo a fazer aí, o
+   thumbnailUrl entra automaticamente em oldData/newData.
+
+5. UI — src/components/projects/CreateProjectModal.tsx:
+   - Adicionar um campo de upload de imagem acima ou abaixo do campo
+     `name` existente. Componente sugerido: um input file estilizado
+     como dropzone/preview quadrado (reaproveitar visualmente o
+     padrão já usado no upload de capa de post do blog, se houver
+     componente compartilhado tipo `ImageUploadField` — se não
+     existir, criar um pequeno client component
+     `src/components/ui/ImageUploadInput.tsx` reutilizável também
+     pela edição e futuramente por outros formulários).
+   - Fluxo: usuário seleciona arquivo -> preview local (URL.createObjectURL)
+     -> ao submeter o form, primeiro chama uploadImage(file) client-side
+     (via fetch a uma Server Action ou via FormData), obtém a url, e
+     só então inclui thumbnailUrl no payload de createProject.
+   - Campo é OPCIONAL — criação de projeto sem thumbnail deve
+     continuar funcionando exatamente como hoje (fallback fica a
+     cargo da 04b, que define o placeholder quando thumbnailUrl é
+     null).
+
+6. UI — src/components/projects/EditProjectModal.tsx:
+   - Mesmo campo de upload, agora pré-preenchido com o
+     `project.thumbnailUrl` atual (mostrar a imagem existente como
+     preview, com opção de trocar ou remover — remover = enviar
+     thumbnailUrl: null explicitamente na próxima updateProject).
+   - Adicionar prop `initialThumbnailUrl` ao componente, seguindo o
+     mesmo padrão já usado para `initialBlogEnabled`.
+
+7. Página do próprio projeto (pedido explícito do usuário: "também
+   teria que implementar (...) na página em si"): localizar a página
+   de gerenciamento do projeto — presumivelmente
+   src/app/[companySlug]/dashboard/sites/[siteId]/pages/page.tsx (e
+   equivalente landing-pages) — e adicionar a thumbnail atual no
+   cabeçalho da página, ao lado do nome do projeto, com um botão
+   pequeno "Alterar imagem" que abre o mesmo EditProjectModal (já
+   deve existir algum ponto de entrada de edição nessa tela — conferir
+   `EditProjectContainer`/`EditProjectButton` mencionados na
+   pesquisa e reaproveitar).
+
+8. Validação Zod: se o time decidir validar o objeto de entrada da
+   action com Zod (recomendado, seguindo CLAUDE.md), validar
+   `thumbnailUrl` como `.url().optional().nullable()`.
+
+9. pnpm typecheck + pnpm exec eslint em todos os arquivos tocados.
+
+RESULTADO FINAL
+Ao criar ou editar um Site/Landing Page, o cliente pode fazer upload
+de uma imagem de capa/thumbnail para o projeto — opcional, com
+preview antes de salvar, e editável a qualquer momento inclusive de
+dentro da própria página do projeto.
+
+IMPACTO
+Prepara a infraestrutura para a task 04b (exibição). Sozinha, já
+resolve o problema de personalização — o cliente que sobe um logo,
+mockup ou screenshot do site passa a diferenciar seus projetos com
+uma imagem em vez de depender só do nome, o que ajuda especialmente
+quem gerencia muitos sites/LPs pela mesma conta.

@@ -129,6 +129,8 @@ export async function createBlogPost(_: unknown, formData: FormData) {
       action: 'CREATE',
       entity: 'BlogPost',
       entityId: post.id,
+      entityLabel: post.title,
+      projectId: post.projectId,
       newData: post,
     })
 

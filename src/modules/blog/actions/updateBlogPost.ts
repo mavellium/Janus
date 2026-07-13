@@ -176,6 +176,8 @@ export async function updateBlogPost(_: unknown, formData: FormData) {
       action: 'UPDATE',
       entity: 'BlogPost',
       entityId: id,
+      entityLabel: updated.title,
+      projectId: updated.projectId,
       oldData: { ...existing, project: undefined },
       newData: updated,
     })

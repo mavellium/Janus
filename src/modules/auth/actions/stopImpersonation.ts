@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { IMPERSONATED_USER_ID_COOKIE, IMPERSONATED_USER_NAME_COOKIE, IMPERSONATION_RETURN_URL_COOKIE } from '@/lib/auth/permissions'
+import { logAudit } from '@/lib/audit-logger'
 
 export async function stopImpersonation(redirectTo?: string | false) {
   const session = await auth()
@@ -23,9 +24,23 @@ export async function stopImpersonation(redirectTo?: string | false) {
     targetUrl = redirectTo ?? cookieStore.get(IMPERSONATION_RETURN_URL_COOKIE)?.value ?? undefined
   }
 
+  const impersonatedId = cookieStore.get(IMPERSONATED_USER_ID_COOKIE)?.value
+  const impersonatedName = cookieStore.get(IMPERSONATED_USER_NAME_COOKIE)?.value
+
   cookieStore.delete(IMPERSONATED_USER_ID_COOKIE)
   cookieStore.delete(IMPERSONATED_USER_NAME_COOKIE)
   cookieStore.delete(IMPERSONATION_RETURN_URL_COOKIE)
+
+  if (impersonatedId && session?.user?.id) {
+    await logAudit({
+      userId: session.user.id,
+      action: 'DELETE',
+      entity: 'Impersonation',
+      entityId: impersonatedId,
+      entityLabel: `Inspeção encerrada · ${impersonatedName ?? impersonatedId}`,
+      oldData: { targetUserId: impersonatedId, targetName: impersonatedName },
+    })
+  }
 
   revalidatePath('/', 'layout')
 

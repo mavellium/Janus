@@ -171,17 +171,19 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 ### admin
 - **Queries:**
-  - `getLoginLogs.ts` — lista tentativas falhas de login (limit param)
+  - `getLoginLogs.ts` — lista tentativas de login, falhas e sucessos (limit param)
   - `getLoginLogsByIp.ts` — filtra por IP
   - `getAdminStats.ts` — contagens globais: usersCount, developersCount, companiesCount, blockedCount
   - `getAdminCompanies.ts` — todas as empresas ativas com contagem de users/projects
   - `getAdminUsers.ts` — usuários com role DEFAULT/ADMIN, inclui company
   - `getAdminDevelopers.ts` — usuários com role DEVELOPER, inclui company (slug)
   - `getBlockedIps.ts` — IPs com 3+ tentativas na última hora, agrupados com contagem e emails
-  - `getAuditLogs.ts` — lista eventos de auditoria (limit param) com `user` (id/name/email); exporta `AuditLogWithUser`
+  - `getAuditLogs.ts` — lista metadados de auditoria SEM oldData/newData (payload leve, `AUDIT_LIST_LIMIT=1000`) + `totalCount`; `getAuditCompanies()` — empresas presentes nos logs para filtro; exporta `AuditLogListItem`
+  - `getAuditStats.ts` — cards do painel: eventos hoje, exclusões 7d, inspeções 7d, usuário mais ativo 7d (groupBy userEmail)
 - **Actions:**
-  - `unblockIp.ts` — remove bloqueio de um IP (admin-only)
-  - `revertAuditAction.ts` — motor de Undo (admin-only); reverte UPDATE/DELETE a partir de `oldData` (update se registro existe / create se hard-deletado); trata P2002/P2003/P2025/P2011; gera log `RESTORE`
+  - `unblockIp.ts` — remove bloqueio de um IP (admin-only); apaga apenas tentativas falhas (preserva histórico de sucesso); auditado (`BlockedIp` DELETE)
+  - `getAuditLogDiff.ts` — retorna oldData/newData de um log sob demanda (admin-only); usado pelo AuditDiffViewer
+  - `revertAuditAction.ts` — motor de Undo (admin-only); reverte UPDATE/DELETE a partir de `oldData` (update se registro existe / create se hard-deletado); delegates: User, Company, Project, Page, Blog*, SiteScript, GuestEntry, GuestPost; ignora chaves snapshot-only (`deletedProjectsCount` etc.); trata P2002/P2003/P2025/P2011; gera log `RESTORE` com label/escopo herdados
   - `adminCreateCompany.ts` — cria empresa; verifica role ADMIN
   - `adminEditCompany.ts` — edita empresa; verifica role ADMIN; valida conflito de slug
   - `adminDeleteCompany.ts` — **hard delete** em cascata de empresa; verifica role ADMIN; apaga tudo via DB cascade
@@ -204,6 +206,16 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **API:** `src/app/api/notifications/releases/route.ts` — GET paginado (auth por sessão) p/ "Carregar mais" do feed
 - **Extensão:** guia p/ novos tipos de notificação em `.claude/context/notifications/patterns.md`
 
+### seo
+- **Entidade:** `src/modules/seo/domain/seoCheck.ts` — `SeoCheckResult`/`PageSignals`/`SeoAnalysisResult` | `seoScoring.ts` — `scoreSeo()` puro, rubrica de 14 checks somando 100 (testado em `seoScoring.spec.ts`)
+- **Infra:** `fetchTargetPage.ts` — página + robots.txt + sitemap via safe-fetch | `parseHtml.ts` — extração cheerio (title, meta, headings, OG, JSON-LD, alt, palavras)
+- **Actions:** `analyzeSeoUrl.ts` — Zod → auth → guard empresa → rate limit 20/dia → fetch SSRF-safe → parse → score → persiste `SeoAnalysis`
+- **Queries:** `getSeoAnalysis.ts` — por id escopado a companyId | `getRecentSeoAnalyses.ts` — histórico
+- **Docs:** `.claude/context/seo/`
+
+### companies
+- **Queries:** `getRecentCompanyActivity.ts` — últimos AuditLogs da empresa (filtra `companyId`, `impersonatedId: null`, entidades Project/Page/Blog*) p/ feed da home
+
 ### auth
 - **Actions:** `startImpersonation.ts` — valida ADMIN/DEVELOPER, **guarda impersonação de ADMIN/DEVELOPER (retorna erro se target.role !== DEFAULT)**, seta 3 cookies HTTP-Only (`user_id`, `user_name`, `return_url`), aceita `returnTo` opcional | `stopImpersonation.ts` — deleta cookies; se `redirectTo=false` não redireciona (modo privilegiado); senão redireciona para `returnUrl` do cookie ou URL explícita | `checkIpStatus.ts` — rate limit por IP no login (3 tentativas/1h)
 - **Queries:** `getCompanyUsers.ts` — usuários ativos de uma empresa (id, name, email, role), ordenados por name
@@ -221,6 +233,12 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/components/notifications/RefreshReleasesButton.tsx` — Client — botão "Atualizar" com useActionState + spinner; chama `refreshReleases` para forçar refetch do GitHub (bypass do cache de 1h)
 - `src/components/notifications/ReleaseBody.tsx` — Client — corpo da release clampado em ~3 linhas (72px) com fade; expansão animada via `max-height` medido por ResizeObserver; chevron rotaciona; botão "Leia mais"/"Mostrar menos" só quando há overflow
 - `src/components/notifications/MarkNotificationsSeen.tsx` — Client — invisível; dispara `markNotificationsSeen()` + `router.refresh()` no mount quando `hasUnread` (apaga a bolinha do sino)
+- `src/components/seo/SeoScoreCard.tsx` — Server-compatible — anel SVG de score (cor por faixa 50/80) + checks reprovados por severidade + aprovados; prop `expanded` mostra pontos
+- `src/components/seo/SeoUrlInputForm.tsx` — Client — input de URL (normaliza sem protocolo p/ https), useActionState → `analyzeSeoUrl`, resultado inline + link p/ relatório
+- `src/components/seo/SeoAnalyzerCard.tsx` — Server async — card da home: form + 3 análises recentes
+- `src/components/seo/ReanalyzeButton.tsx` — Client — reanalisa a mesma URL e navega p/ novo relatório
+- `src/components/dashboard/OnboardingChecklist.tsx` — Server — "Primeiros passos" com barra de progresso; CTA só com permissão (senão `lockedMessage`); some quando tudo concluído
+- `src/components/dashboard/RecentActivityFeed.tsx` — Server — feed humanizado do AuditLog (verbo+entidade+label, tempo relativo pt-BR via Intl.RelativeTimeFormat)
 - `src/components/dashboard/ImpersonationSelector.tsx` — Client — modal de busca e seleção de usuário para impersonar; filtro por nome/email/role; dispara `startImpersonation(userId, slug, window.location.href)` e navega para dashboard
 - `src/components/dashboard/ImpersonationBanner.tsx` — Client — banner vermelho `bg-destructive` com nome do usuário impersonado; botões: KeyRound (editar permissões do alvo), Shield (ver como Admin/Dev — `stopImpersonation(false)` + `window.location.href`), Trocar (abre selector), Voltar ao Painel (`stopImpersonation(returnUrl)` via `window.location.href`); barra sutil `bg-muted` com "Simular Usuário" quando não impersonando — também mostra "Voltar ao Painel" no modo privilegiado (não impersonando)
 - `src/components/dashboard/UserPermissionsModal.tsx` — Client — modal de permissões RBAC por módulo (sites/landingPages) e tier (project/page); toggle Switch salva imediatamente via `updateUserPermissions`; aberto pelo KeyRound no banner
@@ -267,6 +285,7 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/app/[companySlug]/dashboard/notifications/page.tsx` — Server — notificações da empresa; guard auth+company; Suspense(NotificationsContent) + skeleton
 - `src/app/dashboard-admin/notifications/page.tsx` — Server — notificações no Admin Panel; guard role=ADMIN; Suspense(NotificationsContent) + skeleton
 - `src/app/dev/[devId]/dashboard/notifications/page.tsx` — Server — notificações no Dev Panel; guard DEVELOPER (ou ADMIN) + devId; Suspense(NotificationsContent) + skeleton
+- `src/app/[companySlug]/dashboard/seo/[analysisId]/page.tsx` — Server — relatório completo de SEO (score expandido com pontos, metadados, ReanalyzeButton, histórico da empresa); `notFound()` se análise não pertence à empresa
 - `src/app/dev/[devId]/dashboard/layout.tsx` — layout protegido do Dev; valida role=DEVELOPER e devId === session.user.id; suporte a DevSidebar colapsável via CSS var
 - `src/app/dev/[devId]/dashboard/page.tsx` — Centro de Comando: 4 top cards (totalCompanies, totalUsers, totalProjects, atividade recente) + grid 3 colunas (últimos projetos, últimas empresas, últimos usuários)
 - `src/app/dev/[devId]/dashboard/companies/page.tsx` — Server Component; busca getCompanies(); passa para CompaniesClient
@@ -280,9 +299,9 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - `src/app/dashboard-admin/companies/page.tsx` + `AdminCompaniesClient.tsx` — CRUD completo de empresas (criar/editar/soft-delete)
 - `src/app/dashboard-admin/users/page.tsx` + `AdminUsersClient.tsx` — tabela de usuários DEFAULT/ADMIN + modal criar/editar com `CompanyMultiSelect` (busca + criação rápida + badge principal) + `PasswordField`
 - `src/app/dashboard-admin/developers/page.tsx` + `AdminDevelopersClient.tsx` — tabela de DEVELOPERs + modal de criação com role DEVELOPER
-- `src/app/dashboard-admin/logs/page.tsx` + `AdminLogsClient.tsx` — Tabs: **Auditoria de Eventos** (default) + IPs Bloqueados (Desbloquear) + Tentativas Recentes
-- `src/app/dashboard-admin/logs/AuditLogsTable.tsx` — Client — Data Table de auditoria (via `AdminDataTable`); badges por ação, filtros (ação/entidade), botão Ver (diff) e Desfazer (só UPDATE/DELETE)
-- `src/app/dashboard-admin/logs/AuditDiffViewer.tsx` — Client — Sheet lateral com Monaco `DiffEditor` (read-only) comparando `oldData`×`newData`
+- `src/app/dashboard-admin/logs/page.tsx` + `AdminLogsClient.tsx` — guarda role=ADMIN + prune; 4 stat cards (hoje/exclusões 7d/inspeções 7d/mais ativo); Tabs: **Auditoria de Eventos** (default) + IPs Bloqueados (Desbloquear) + Logins Recentes (badge sucesso/falha + user-agent)
+- `src/app/dashboard-admin/logs/AuditLogsTable.tsx` — Client — Data Table de auditoria (via `AdminDataTable`); coluna Registro com `entityLabel` + badge de impersonação; filtros (ação/entidade/usuário/empresa/área/período); banner "exibindo N de M"; ações: Ver diff, Histórico do registro (timeline por entityId), Desfazer com `AlertDialog` de confirmação; Exportar CSV
+- `src/app/dashboard-admin/logs/AuditDiffViewer.tsx` — Client — Sheet lateral; busca diff sob demanda via `getAuditLogDiff`; modo Resumo (tabela campo→antes→depois só do que mudou) + modo JSON completo (Monaco `DiffEditor` read-only)
 - `src/app/dashboard-admin/settings/page.tsx` — configurações do admin; reutiliza DevSettingsClient
 - `src/app/(auth)/login/page.tsx` — tela de login (Server Component)
 - `src/app/(auth)/no-company/page.tsx` — Client — bloqueio elegante para usuário sem empresa; botão "Voltar" chama `signOut({ callbackUrl: '/login' })`
@@ -324,12 +343,12 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 - **Company** (`companies`) — id (UUID), slug (unique, indexed), name (string), description (String?), logo (String?), **createdById (UUID?, id do criador)**, createdAt, updatedAt, deletedAt | relações: User, Project, GuestEntry com **onDelete: Cascade**
 - **User** (`users`) — id (UUID), email (unique), password (text), role (**DEFAULT/ADMIN/DEVELOPER**), image (String?), preferences (Json? default {}), **companyId (UUID?, nullable fk→companies SET NULL)**, **createdById (UUID?, id do criador)**, requiresPasswordReset (bool), permissions (String[]), createdAt, updatedAt, deletedAt
 - **UserCompany** (`user_companies`) — id (UUID), userId (fk→users CASCADE), companyId (fk→companies CASCADE), permissions (String[]), createdAt | @@unique([userId, companyId])
-- **LoginAttempt** (`login_attempts`) — id (UUID), ip (string, indexed), email (string optional), createdAt
+- **LoginAttempt** (`login_attempts`) — id (UUID), ip (string, indexed), email (string optional), **success (bool, default false)**, **userAgent (String?)**, createdAt (indexed) — registra falhas E sucessos; bloqueio de IP conta apenas falhas
 - **Project** (`projects`) — id (UUID), companyId (UUID, fk→companies **CASCADE**), name (string), type (LANDING_PAGE|INSTITUTIONAL), **previewUrl (String?, nullable)**, **ga4PropertyId (String?, Property ID do GA4 do projeto)**, isActive (bool), deletedBy, deletionReason, deletedAt, createdAt, updatedAt
 - **Page** (`pages`) — id (UUID), projectId (UUID, fk→projects **CASCADE**), name, slug (unique per project), content (Json, legacy), **schemaData (Json, default {}, headless schema)**, **contentData (Json, default {}, valores preenchidos)**, isPublished (bool, default false), createdAt, updatedAt, deletedAt
 - **SiteScript** (`site_scripts`) — id (UUID), name, code (Text), position (HEAD|BODY_END enum), isActive (bool default true), projectId (UUID, fk→projects CASCADE), createdAt, updatedAt
 - **ProjectHistory** (`project_histories`) — id (UUID), projectId (UUID, fk→projects **CASCADE**), userId (UUID, fk→users **CASCADE**), previousState (Json?), newState (Json?), version (Int), createdAt
-- **AuditLog** (`audit_logs`) — id (UUID), userId (UUID, fk→users **CASCADE**), action (enum `AuditAction`: CREATE|UPDATE|DELETE|RESTORE), entity (string, PascalCase do model), entityId (string), oldData (Json?), newData (Json?), createdAt | índices: userId, entity, entityId, action, createdAt
+- **AuditLog** (`audit_logs`) — id (UUID), userId (UUID?, fk→users **SET NULL**), **userEmail/userName (snapshot do ator, sobrevive à exclusão do usuário)**, **impersonatedId/impersonatedName (contexto de inspeção)**, **companyId/projectId (UUID?, escopo de tenant, indexado)**, action (enum `AuditAction`: CREATE|UPDATE|DELETE|RESTORE), entity (string, PascalCase do model), entityId (string), **entityLabel (String?, nome legível do registro)**, oldData (Json?), newData (Json?), createdAt | índices: userId, companyId, [entity+entityId+createdAt], action, createdAt
 
 ---
 
@@ -344,9 +363,11 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 ## Lib / Utilitários
 
+- `src/lib/security/safe-fetch.ts` — `safeFetch()` SSRF-safe p/ URLs de usuário: só http/https, DNS resolvido com bloqueio de IP privado/loopback/link-local/CGNAT (v4+v6), redirects manuais validados por hop (máx 3), timeout 10s, corpo máx 3MB; `SafeFetchError` tipado
+
 - `src/lib/analytics/ga4-client.ts` — `BetaAnalyticsDataClient` via Service Account (env GA4_*); `getAnalyticsMetrics(propertyId, start, end)` retorna totais + série diária (usado pelo panorama da empresa); `getFullAnalyticsReport(propertyId)` retorna `{ metrics, funnel, events, channels, sources, pages }` via `batchRunReports` (usado na página de resultados por projeto)
 - `src/lib/prisma.ts` — singleton do PrismaClient com `accelerateUrl` (Prisma 7, export `db`)
-- `src/lib/audit-logger.ts` — `logAudit({ userId, action, entity, entityId, oldData, newData })` (nunca lança; serializa via JSON) + `omitSensitive()` (remove `password`); base do motor de Audit Logs. Doc: `.claude/janus_audit_architecture.md`
+- `src/lib/audit-logger.ts` — `logAudit({ userId (null p/ guests), action, entity, entityId, entityLabel?, companyId?, projectId?, oldData, newData })` (nunca lança); resolve snapshot email/nome do ator (lookup ou override) e contexto de impersonação via cookies automaticamente; scrub recursivo de chaves sensíveis (password/secret/token/api_key/credential); `pruneAuditLogs()` (retenção 60d) chamado na page de logs, fora do hot path. Doc: `.claude/janus_audit_architecture.md`
 - `src/lib/auth.config.ts` — NextAuthConfig base: authorized callback protege `/first-access`, `/no-company`, `/select-company` (login obrigatório); rota raiz e `/login` redirecionam para `/no-company` quando `slug` é nulo; middleware reforça separação de roles
 - `src/lib/auth.ts` — NextAuth v5: CredentialsProvider + PrismaAdapter + JWT strategy
 - `src/lib/utils.ts` — `cn`, `formatCurrency` (BRL), `formatDate` (pt-BR)
@@ -450,6 +471,11 @@ Janus é um sistema de gerenciamento de projetos Multi-Tenant focado em empresas
 
 | Data       | Arquivo                                       | O que foi feito                                            |
 | :--------- | :-------------------------------------------- | :--------------------------------------------------------- |
+| 2026-07-13 | `src/modules/seo/*`, `src/lib/security/safe-fetch.ts`, `src/components/seo/*`, `dashboard/seo/[analysisId]/page.tsx`, migration `20260713000000_add_seo_analysis`, dep `cheerio` | **FEAT(seo — sprint 11a+11b):** motor de análise de SEO por URL (score 0-100, 14 checks, rate limit 20/dia/empresa) com fetch SSRF-safe (bloqueio de IP privado/metadata/loopback validado em smoke test); card na home com resultado inline + relatório completo com histórico; 9 testes unitários do scoring |
+| 2026-07-13 | `dashboard/page.tsx`, `OnboardingChecklist.tsx`, `RecentActivityFeed.tsx`, `getRecentCompanyActivity.ts`, `Sidebar.tsx` | **FEAT(home — sprint 01+06+08):** removido link "Faturas" órfão (404) da Sidebar; checklist "Primeiros passos" com RBAC (CTA só com permissão, senão mensagem informativa; some ao concluir); feed "Atividade recente" via AuditLog escopado por companyId excluindo impersonação; home busca tudo em Promise.all |
+| 2026-07-07 | `sprint/15-geo-generative-engine-optimization.txt` (novo), `sprint/00-indice-sprint.txt`, `sprint/99-resumo-final-priorizado.txt` (atualizados) | **PLAN:** spec da metodologia GEO (Mavellium-Metodologia-GEO.pdf) traduzida para o Janus — epic de 7 subfases (~55-65 pts), separando o que é software (motor de probe em 4 provedores de IA + IAG Score, fundação técnica, ciclo mensal) do que é serviço humano (redação de páginas-resposta, outreach); confirma ausência de SDKs de IA e de módulo de Leads no projeto, reaproveita `node-cron`/padrão de daemon do backup para o ciclo mensal; recomenda módulo `src/modules/geo/` próprio (não cabe no formato de `SeoAnalysis` de URL única) — apenas planejamento, nenhum código de produto alterado |
+| 2026-07-12 | `schema.prisma` + migration `audit_v2_context_and_login_success`, `audit-logger.ts`, `auth.ts`, ~35 actions (companies/dev/permissões/impersonation/scripts/webhook/GA4/páginas CMS/guests/conta), `revertAuditAction.ts`, `getAuditLogs.ts`, `getAuditStats.ts` (novo), `getAuditLogDiff.ts` (novo), logs UI (page/AdminLogsClient/AuditLogsTable/AuditDiffViewer) | **FEAT(audit v2):** cobertura total de mutações críticas (Company, permissões, impersonation, SiteScript, conteúdo CMS, guests, webhook/GA4, unblockIp, conta); AuditLog com snapshot do ator (SET NULL em vez de CASCADE), impersonação, companyId/projectId, entityLabel; scrub recursivo de segredos; login registra sucesso+userAgent (bloqueio conta só falhas); lista sem blobs + diff on-demand; stats cards, filtros usuário/empresa, timeline por registro, CSV, confirmação no Desfazer, viewer com resumo de campos + Monaco. Doc: `.claude/janus_audit_architecture.md` |
+| 2026-07-07 | `sprint/00-indice-sprint.txt` a `sprint/11b-seo-onboarding-e-relatorio-frontend.txt` (15 arquivos, nova pasta) | **PLAN:** backlog da sprint de melhorias na home do cliente — specs de fix (link Faturas quebrado, métrica "Ativos" redundante), banner configurável (padrão global do Admin + override por empresa), thumbnail de projeto (upload em criar/editar/página do projeto + exibição), resumo de Analytics na home, atividade recente (via AuditLog escopado por usuários da empresa), status de publicação por projeto, checklist de onboarding respeitando RBAC (`hasPermission`), ações rápidas, blog recente na home, e motor de análise de SEO (score 0-100 + relatório, módulo `seo` novo, com proteção SSRF documentada e nomenclatura já pensada para suportar GEO no futuro) — apenas planejamento em `.txt`, nenhum código de produto alterado nesta entrada |
 | 2026-07-07 | `restoreBlogPostVersion.ts` (+`data` no retorno), `BlogVersionsSheet.tsx` (+`onRestored`), `PostEditorClient.tsx` (+`handleVersionRestored`), `RichEditor.tsx` (+sync effect) | **FIX(blog):** restaurar versão do histórico exigia F5 para o conteúdo aparecer — `useState`/`useEditor` só liam `post`/`value` na montagem, não reagiam ao `router.refresh()`; agora a action retorna os dados restaurados e o client aplica direto no state + `editor.commands.setContent` |
 | 2026-07-07 | `autosaveBlogPost.ts` (upsert), `createBlogPost.ts`/`updateBlogPost.ts` (+`publishedAt`), `PostEditorClient.tsx` (reescrito), `RichEditor.tsx`, `SlashCommand.tsx`, `RichEditor.spec.tsx` | **FEAT(blog editor fase 6):** agendamento de publicação (`publishedAt` futuro + badge "Agendado"); rascunho de post novo criado silenciosamente no primeiro autosave (URL trocada via `history.replaceState`, sem perda ao fechar a aba); guarda de saída com alterações não salvas; Ctrl+S salva; capa aceita drag-and-drop; contadores de caracteres nos campos SEO; modo foco (oculta sidebar); layout responsivo; heading H1 removido do corpo (só H2–H6); toolbar de blocos agrupada em dropdown "Inserir bloco"; link disponível no bubble menu; corrigido scroll aninhado do corpo do editor |
 | 2026-07-06 | `src/lib/auth/permissions.ts` (+`getEffectiveRole`/`isEffectivePrivilegedRole`), 7 páginas blog/scripts, 2 builder pages, 2 analytics pages | **FIX(impersonação):** conteúdo dev-only (ApiEndpointBanner, `canViewEndpoint` do builder, config GA4 do AnalyticsPanel) usava o role real da sessão e vazava durante impersonação de usuário comum; agora usa o role efetivo (do usuário impersonado via cookie) |

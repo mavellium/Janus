@@ -22,12 +22,18 @@ const getClientIp = async () => {
   return headersList.get("x-real-ip") || "unknown";
 };
 
+const getClientUserAgent = async () => {
+  const headersList = await headers();
+  return headersList.get("user-agent");
+};
+
 const isIpBlocked = async (ip: string) => {
   try {
     const oneHourAgo = new Date(Date.now() - 3600000);
     const count = await db.loginAttempt.count({
       where: {
         ip,
+        success: false,
         createdAt: { gte: oneHourAgo },
       },
     });
@@ -44,10 +50,15 @@ const isIpBlocked = async (ip: string) => {
   }
 };
 
-const recordFailedAttempt = async (ip: string, email: string) => {
+const recordLoginAttempt = async (
+  ip: string,
+  email: string,
+  success: boolean,
+) => {
   try {
+    const userAgent = await getClientUserAgent();
     await db.loginAttempt.create({
-      data: { ip, email },
+      data: { ip, email, success, userAgent },
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -79,7 +90,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const parsed = credentialsSchema.safeParse(credentials);
         if (!parsed.success) {
-          await recordFailedAttempt(ip, "");
+          await recordLoginAttempt(ip, "", false);
           return null;
         }
 
@@ -88,15 +99,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           include: { company: true },
         });
         if (!user) {
-          await recordFailedAttempt(ip, parsed.data.email);
+          await recordLoginAttempt(ip, parsed.data.email, false);
           return null;
         }
 
         const isValid = await compare(parsed.data.password, user.password);
         if (!isValid) {
-          await recordFailedAttempt(ip, parsed.data.email);
+          await recordLoginAttempt(ip, parsed.data.email, false);
           return null;
         }
+
+        await recordLoginAttempt(ip, parsed.data.email, true);
 
         return {
           id: user.id,

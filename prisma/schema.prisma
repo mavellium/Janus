@@ -57,6 +57,7 @@ model Company {
   projects     Project[]
   guestEntries GuestEntry[]
   userCompanies UserCompany[]
+  seoAnalyses  SeoAnalysis[]
 
   @@index([slug])
   @@index([deletedAt])
@@ -116,6 +117,7 @@ model User {
   blogPosts        BlogPost[]       @relation("BlogPostAuthor")
   companies        UserCompany[]
   auditLogs        AuditLog[]
+  seoAnalyses      SeoAnalysis[]
 
   @@index([email])
   @@index([companyId])
@@ -141,12 +143,15 @@ model UserCompany {
 }
 
 model LoginAttempt {
-  id        String    @id @default(uuid()) @db.Uuid
+  id        String   @id @default(uuid()) @db.Uuid
   ip        String
   email     String?
-  createdAt DateTime  @default(now()) @map("created_at")
+  success   Boolean  @default(false)
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([ip])
+  @@index([createdAt])
   @@map("login_attempts")
 }
 
@@ -398,20 +403,51 @@ model ProjectHistory {
 }
 
 model AuditLog {
-  id        String      @id @default(uuid()) @db.Uuid
-  userId    String      @db.Uuid @map("user_id")
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  action    AuditAction
-  entity    String
-  entityId  String      @map("entity_id")
-  oldData   Json?       @map("old_data")
-  newData   Json?       @map("new_data")
-  createdAt DateTime    @default(now()) @map("created_at")
+  id               String      @id @default(uuid()) @db.Uuid
+  userId           String?     @db.Uuid @map("user_id")
+  user             User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userEmail        String?     @map("user_email")
+  userName         String?     @map("user_name")
+  impersonatedId   String?     @db.Uuid @map("impersonated_id")
+  impersonatedName String?     @map("impersonated_name")
+  companyId        String?     @db.Uuid @map("company_id")
+  projectId        String?     @db.Uuid @map("project_id")
+  action           AuditAction
+  entity           String
+  entityId         String      @map("entity_id")
+  entityLabel      String?     @map("entity_label")
+  oldData          Json?       @map("old_data")
+  newData          Json?       @map("new_data")
+  createdAt        DateTime    @default(now()) @map("created_at")
 
   @@index([userId])
-  @@index([entity])
-  @@index([entityId])
+  @@index([companyId])
+  @@index([entity, entityId, createdAt])
   @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+enum SeoAnalysisType {
+  SEO
+
+  @@map("seo_analysis_type")
+}
+
+model SeoAnalysis {
+  id        String          @id @default(uuid()) @db.Uuid
+  companyId String          @db.Uuid @map("company_id")
+  company   Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId    String          @db.Uuid @map("user_id")
+  user      User            @relation(fields: [userId], references: [id])
+  projectId String?         @db.Uuid @map("project_id")
+  targetUrl String          @map("target_url")
+  type      SeoAnalysisType @default(SEO)
+  score     Int
+  checks    Json
+  createdAt DateTime        @default(now()) @map("created_at")
+
+  @@index([companyId])
+  @@index([createdAt])
+  @@map("seo_analyses")
 }

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@/lib/prisma'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
+import { logAudit } from '@/lib/audit-logger'
 
 const schema = z.object({
   message: z.string().min(1),
@@ -35,13 +36,25 @@ export async function createGuestPost(
   const guest = await db.guestEntry.findUnique({ where: { id: guestId } })
   if (!guest) return { ok: false, error: 'Convidado não encontrado.' }
 
-  await db.guestPost.create({
+  const post = await db.guestPost.create({
     data: {
       message: parsed.data.message,
       imageUrl: parsed.data.imageUrl,
       mediaType: parsed.data.mediaType,
       guestId,
     },
+  })
+
+  await logAudit({
+    userId: null,
+    userEmail: guest.email,
+    userName: `Convidado · ${guest.name}`,
+    action: 'CREATE',
+    entity: 'GuestPost',
+    entityId: post.id,
+    entityLabel: post.title ?? post.message.slice(0, 60),
+    companyId: guest.companyId,
+    newData: post,
   })
 
   revalidatePath(`/${parsed.data.companySlug}/guest`)

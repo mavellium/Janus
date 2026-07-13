@@ -3,7 +3,7 @@ import { db } from '@/lib/prisma'
 export async function getBlockedIps() {
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
   const recentAttempts = await db.loginAttempt.findMany({
-    where: { createdAt: { gte: oneHourAgo } },
+    where: { success: false, createdAt: { gte: oneHourAgo } },
     orderBy: { createdAt: 'desc' },
   })
 

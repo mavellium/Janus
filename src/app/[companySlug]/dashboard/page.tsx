@@ -4,7 +4,20 @@ import Link from 'next/link'
 import { Zap, Globe, ChevronRight } from 'lucide-react'
 import { db } from '@/lib/prisma'
 import { getProjects } from '@/modules/projects/queries/getProjects'
+import { getRecentCompanyActivity } from '@/modules/companies/queries/getRecentCompanyActivity'
 import { formatDate } from '@/lib/utils'
+import {
+  hasPermission,
+  isImpersonating,
+  getEffectivePermissions,
+  type ModuleType,
+} from '@/lib/auth/permissions'
+import {
+  OnboardingChecklist,
+  type OnboardingStep,
+} from '@/components/dashboard/OnboardingChecklist'
+import { RecentActivityFeed } from '@/components/dashboard/RecentActivityFeed'
+import { SeoAnalyzerCard } from '@/components/seo/SeoAnalyzerCard'
 
 export const metadata = { title: 'Dashboard — Janus' }
 
@@ -23,14 +36,115 @@ export default async function DashboardPage({
   })
   if (!company) redirect('/login')
 
-  const [institutionalProjects, landingPageProjects] = await Promise.all([
+  const [
+    institutionalProjects,
+    landingPageProjects,
+    publishedPagesCount,
+    blogPostCount,
+    recentActivity,
+    impersonating,
+    freshPermissions,
+  ] = await Promise.all([
     getProjects({ companyId: company.id, type: 'INSTITUTIONAL' }),
     getProjects({ companyId: company.id, type: 'LANDING_PAGE' }),
+    db.page.count({
+      where: {
+        isPublished: true,
+        deletedAt: null,
+        project: { companyId: company.id, deletedAt: null },
+      },
+    }),
+    db.blogPost.count({
+      where: { project: { companyId: company.id, deletedAt: null } },
+    }),
+    getRecentCompanyActivity(company.id),
+    isImpersonating(),
+    getEffectivePermissions(session.user.id),
   ])
 
   const firstName = session.user.email?.split('@')[0] || 'Usuário'
   const totalInstitutional = institutionalProjects.length
   const totalLandingPages = landingPageProjects.length
+
+  const sessionWithFreshPerms = {
+    ...session,
+    user: { ...session.user, permissions: freshPermissions ?? undefined },
+  }
+
+  const allProjects = [...institutionalProjects, ...landingPageProjects]
+  const latestProject =
+    allProjects
+      .slice()
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] ?? null
+  const latestModule: ModuleType =
+    latestProject?.type === 'LANDING_PAGE' ? 'landingPages' : 'sites'
+  const latestProjectPath = latestProject
+    ? `/${companySlug}/dashboard/${latestProject.type === 'INSTITUTIONAL' ? 'sites' : 'landing-pages'}/${latestProject.id}/pages`
+    : undefined
+
+  const canCreateSites = hasPermission(sessionWithFreshPerms, 'PROJECT_CREATE', 'sites', 'project', impersonating)
+  const canCreateLandingPages = hasPermission(sessionWithFreshPerms, 'PROJECT_CREATE', 'landingPages', 'project', impersonating)
+  const canCreatePages = hasPermission(sessionWithFreshPerms, 'PAGE_CREATE', latestModule, 'page', impersonating)
+  const canBuildPages = hasPermission(sessionWithFreshPerms, 'PAGE_BUILD', latestModule, 'page', impersonating)
+  const canManageBlog = hasPermission(sessionWithFreshPerms, 'BLOG_MANAGE', latestModule, 'project', impersonating)
+
+  const hasProject = allProjects.length > 0
+  const hasContent = allProjects.some((project) => project._count.pages > 1)
+  const hasPublished = publishedPagesCount > 0
+  const blogProject = allProjects.find((project) => project.blogEnabled)
+
+  const onboardingSteps: OnboardingStep[] = [
+    {
+      key: 'create-project',
+      label: 'Crie seu primeiro projeto',
+      description: 'Comece criando um site institucional ou uma landing page.',
+      done: hasProject,
+      ...(canCreateSites || canCreateLandingPages
+        ? {
+            href: `/${companySlug}/dashboard/${canCreateSites ? 'sites' : 'landing-pages'}`,
+            ctaLabel: 'Criar projeto',
+          }
+        : { lockedMessage: 'Aguardando criação por um administrador da sua empresa.' }),
+    },
+    {
+      key: 'add-content',
+      label: 'Adicione conteúdo',
+      description: 'Crie as páginas do seu projeto além da página inicial.',
+      done: hasContent,
+      ...(hasProject && latestProjectPath
+        ? canCreatePages
+          ? { href: latestProjectPath, ctaLabel: 'Adicionar páginas' }
+          : { lockedMessage: 'Disponível para usuários com permissão de criar páginas.' }
+        : {}),
+    },
+    {
+      key: 'publish',
+      label: 'Publique seu site',
+      description: 'Coloque suas páginas no ar para o público.',
+      done: hasPublished,
+      ...(hasContent && latestProjectPath
+        ? canBuildPages
+          ? { href: latestProjectPath, ctaLabel: 'Publicar' }
+          : { lockedMessage: 'Disponível para usuários com permissão de publicação.' }
+        : {}),
+    },
+    ...(blogProject
+      ? [
+          {
+            key: 'blog',
+            label: 'Escreva no blog',
+            description: 'Publique o primeiro post do blog do seu projeto.',
+            done: blogPostCount > 0,
+            ...(canManageBlog
+              ? {
+                  href: `/${companySlug}/dashboard/${blogProject.type === 'INSTITUTIONAL' ? 'sites' : 'landing-pages'}/${blogProject.id}/blog`,
+                  ctaLabel: 'Escrever post',
+                }
+              : { lockedMessage: 'Disponível para usuários com permissão de blog.' }),
+          } satisfies OnboardingStep,
+        ]
+      : []),
+  ]
 
   return (
     <div className="p-8">
@@ -64,6 +178,8 @@ export default async function DashboardPage({
           <div className="hidden md:block w-48 h-40 bg-brand-btn-light/30 rounded-lg"></div>
         </div>
       </div>
+
+      <OnboardingChecklist steps={onboardingSteps} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-card rounded-xl border border-brand-btn-light">
@@ -209,6 +325,11 @@ export default async function DashboardPage({
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+        <SeoAnalyzerCard companyId={company.id} companySlug={companySlug} />
+        <RecentActivityFeed entries={recentActivity} />
       </div>
     </div>
   )
