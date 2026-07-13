@@ -74,6 +74,15 @@ export function SeoUrlInputForm({ companySlug }: { companySlug: string }) {
       {state.result && state.analysisId && !isPending && (
         <div className="mt-4 pt-4 border-t border-brand-btn-light">
           <SeoScoreCard score={state.result.score} checks={state.result.checks} />
+          <div className="mt-4 pt-4 border-t border-brand-btn-light">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-brand-muted mb-2">
+              Fundação para GEO (visibilidade em IA)
+            </h4>
+            <SeoScoreCard
+              score={state.result.geoFoundation.score}
+              checks={state.result.geoFoundation.checks}
+            />
+          </div>
           <Link
             href={`/${companySlug}/dashboard/seo/${state.analysisId}`}
             className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary hover:text-brand-hover transition-colors"

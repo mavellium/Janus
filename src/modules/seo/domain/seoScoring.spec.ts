@@ -15,6 +15,7 @@ function buildSignals(overrides: Partial<PageSignals> = {}): PageSignals {
     hasOgDescription: true,
     hasOgImage: true,
     jsonLdCount: 1,
+    jsonLdTypes: ['Organization'],
     wordCount: 500,
     imageCount: 10,
     imagesWithAlt: 10,

@@ -5,6 +5,7 @@ export interface TargetPageFetch {
   finalUrl: string
   responseTimeMs: number
   robotsTxtAccessible: boolean
+  robotsTxtBody: string
   sitemapAccessible: boolean
 }
 
@@ -45,6 +46,7 @@ export async function fetchTargetPage(rawUrl: string): Promise<TargetPageFetch> 
     finalUrl: page.finalUrl,
     responseTimeMs: page.responseTimeMs,
     robotsTxtAccessible: robots.accessible,
+    robotsTxtBody: robots.body,
     sitemapAccessible,
   }
 }

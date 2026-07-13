@@ -78,6 +78,20 @@ export default async function SeoReportPage({
         <SeoScoreCard score={analysis.score} checks={analysis.checks} expanded />
       </div>
 
+      {analysis.geoFoundation && (
+        <div className="bg-card rounded-xl border border-brand-btn-light p-5 sm:p-6 mb-6">
+          <h2 className="text-lg font-semibold text-brand-text mb-1">Fundação para GEO</h2>
+          <p className="text-xs text-brand-muted mb-4">
+            Prontidão do site para ser rastreado e citado por IAs generativas (ChatGPT, Claude, Gemini, Perplexity).
+          </p>
+          <SeoScoreCard
+            score={analysis.geoFoundation.score}
+            checks={analysis.geoFoundation.checks}
+            expanded
+          />
+        </div>
+      )}
+
       {history.length > 1 && (
         <div className="bg-card rounded-xl border border-brand-btn-light p-5 sm:p-6">
           <h2 className="text-lg font-semibold text-brand-text mb-3">Histórico de análises</h2>

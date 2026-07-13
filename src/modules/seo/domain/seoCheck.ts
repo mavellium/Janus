@@ -22,6 +22,7 @@ export interface ParsedPage {
   hasOgDescription: boolean
   hasOgImage: boolean
   jsonLdCount: number
+  jsonLdTypes: string[]
   wordCount: number
   imageCount: number
   imagesWithAlt: number
@@ -39,10 +40,18 @@ export interface SeoScoreResult {
   checks: SeoCheckResult[]
 }
 
+export interface GeoFoundationSignals {
+  robotsTxtBody: string
+  jsonLdTypes: string[]
+}
+
+export type GeoFoundationResult = SeoScoreResult
+
 export interface SeoAnalysisResult extends SeoScoreResult {
   targetUrl: string
   fetchedAt: string
   responseTimeMs: number
+  geoFoundation: GeoFoundationResult
 }
 
 export const SEVERITY_ORDER: Record<SeoCheckSeverity, number> = {

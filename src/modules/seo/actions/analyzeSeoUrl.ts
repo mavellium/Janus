@@ -9,6 +9,7 @@ import { SafeFetchError, type SafeFetchErrorCode } from '@/lib/security/safe-fet
 import { fetchTargetPage } from '../infra/fetchTargetPage'
 import { parsePage } from '../infra/parseHtml'
 import { scoreSeo } from '../domain/seoScoring'
+import { scoreGeoFoundation } from '../domain/geoFoundationScoring'
 import type { SeoAnalysisResult } from '../domain/seoCheck'
 
 const RATE_LIMIT_PER_DAY = 20
@@ -80,10 +81,15 @@ export async function analyzeSeoUrl(input: {
       robotsTxtAccessible: fetched.robotsTxtAccessible,
       sitemapAccessible: fetched.sitemapAccessible,
     })
+    const geoFoundation = scoreGeoFoundation({
+      robotsTxtBody: fetched.robotsTxtBody,
+      jsonLdTypes: parsedPage.jsonLdTypes,
+    })
 
     const result: SeoAnalysisResult = {
       score,
       checks,
+      geoFoundation,
       targetUrl: fetched.finalUrl,
       fetchedAt: new Date().toISOString(),
       responseTimeMs: fetched.responseTimeMs,
@@ -95,7 +101,7 @@ export async function analyzeSeoUrl(input: {
         userId: session.user.id,
         targetUrl: fetched.finalUrl,
         score,
-        checks: checks as unknown as Prisma.InputJsonValue,
+        checks: { seo: checks, geoFoundation } as unknown as Prisma.InputJsonValue,
       },
     })
 

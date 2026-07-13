@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import {
   Home, FileText, Globe, Zap,
   Bell, Settings, LogOut, PanelLeftClose, PanelLeftOpen, UserCircle,
-  ChevronLeft, BarChart3, BookOpen, Code2,
+  ChevronLeft, BarChart3, BookOpen, Code2, Gauge,
 } from 'lucide-react'
 import { updatePreferences } from '@/modules/users/actions/updatePreferences'
 import { signOut } from 'next-auth/react'
@@ -70,6 +70,7 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
     { label: 'Resultados', href: `/${companySlug}/dashboard/results`, icon: FileText },
     { label: 'Sites', href: `/${companySlug}/dashboard/sites`, icon: Globe },
     { label: 'Landing Pages', href: `/${companySlug}/dashboard/landing-pages`, icon: Zap },
+    { label: 'Análise de SEO', href: `/${companySlug}/dashboard/seo`, icon: Gauge },
   ]
 
   const PROJECT_ITEMS = [
@@ -95,7 +96,8 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
       (href.includes('/sites') && pathname.includes('/sites') && !href.includes('/landing-pages')) ||
       (href.includes('/landing-pages') && pathname.includes('/landing-pages')) ||
       (href.includes('/results') && pathname.includes('/results')) ||
-      (href.includes('/settings') && pathname.includes('/settings'))
+      (href.includes('/settings') && pathname.includes('/settings')) ||
+      (href.includes('/dashboard/seo') && pathname.includes('/dashboard/seo'))
   }
 
   const navItemClasses = (href: string) => cn(
