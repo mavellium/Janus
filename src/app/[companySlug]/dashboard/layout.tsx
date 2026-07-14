@@ -19,6 +19,7 @@ import {
   countUnreadReleases,
 } from "@/modules/notifications/queries/getReleases";
 import { CompanySwitcher } from "@/components/dashboard/CompanySwitcher";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 
 export default async function DashboardLayout({
   children,
@@ -70,15 +71,23 @@ export default async function DashboardLayout({
     | Record<string, Record<string, string[]>>
     | undefined;
   let impersonatedUserImage: string | null = null;
+  let impersonatedPreferences: UserPreferences = {};
   if (impersonatedUserId) {
     const target = await db.user.findUnique({
       where: { id: impersonatedUserId, deletedAt: null },
-      select: { email: true, name: true, permissions: true, image: true },
+      select: {
+        email: true,
+        name: true,
+        permissions: true,
+        image: true,
+        preferences: true,
+      },
     });
     impersonatedUserEmail = target?.email ?? null;
     impersonatedUserNameForSidebar = target?.name ?? null;
     impersonatedUserPermissions = target?.permissions;
     impersonatedUserImage = target?.image ?? null;
+    impersonatedPreferences = (target?.preferences ?? {}) as UserPreferences;
   }
 
   const realUserName = session.user.name ?? null;
@@ -109,6 +118,9 @@ export default async function DashboardLayout({
 
   const currentVersion = await getCurrentVersion();
   const unreadNotifications = await countUnreadReleases(session.user.id);
+
+  const onboardingPrefs = impersonatedUserId ? impersonatedPreferences : prefs;
+  const showOnboarding = onboardingPrefs.onboarding?.status === "pending";
 
   return (
     <ThemeProvider
@@ -187,6 +199,12 @@ export default async function DashboardLayout({
           )}
           <div className="flex-1 min-h-0">{children}</div>
         </main>
+        {showOnboarding && (
+          <OnboardingTour
+            companySlug={companySlug}
+            initialStep={onboardingPrefs.onboarding?.step ?? 0}
+          />
+        )}
       </div>
     </ThemeProvider>
   );

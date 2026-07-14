@@ -41,7 +41,10 @@ export async function signInAction(
     where: { email: parsed.data.email },
     include: {
       company: { select: { slug: true } },
-      companies: { include: { company: { select: { slug: true } } } },
+      companies: {
+        where: { company: { deletedAt: null } },
+        include: { company: { select: { slug: true } } },
+      },
     },
   });
 
@@ -61,12 +64,16 @@ export async function signInAction(
     return { redirectUrl: "/dashboard-admin" };
   }
 
-  const allSlugs = [
-    user.company?.slug,
-    ...user.companies.map((uc) => uc.company?.slug),
-  ].filter(Boolean) as string[];
+  const linkedSlugs = user.companies
+    .map((uc) => uc.company?.slug)
+    .filter(Boolean) as string[];
 
-  const unique = [...new Set(allSlugs)];
+  const slugs =
+    linkedSlugs.length > 0
+      ? linkedSlugs
+      : ([user.company?.slug].filter(Boolean) as string[]);
+
+  const unique = [...new Set(slugs)];
 
   if (unique.length === 0) return { redirectUrl: "/no-company" };
   if (unique.length === 1) return { redirectUrl: `/${unique[0]}/dashboard` };

@@ -25,7 +25,8 @@ const FETCH_ERROR_MESSAGES: Record<SafeFetchErrorCode, string> = {
   TIMEOUT: 'O site demorou demais para responder. Tente novamente em instantes.',
   TOO_LARGE: 'A página é grande demais para ser analisada.',
   TOO_MANY_REDIRECTS: 'A página possui redirecionamentos demais.',
-  UNREACHABLE: 'Não foi possível acessar essa URL. Verifique se o site está no ar.',
+  BLOCKED_BY_TARGET: 'Esse site bloqueou o acesso automatizado (proteção anti-bot). Não é possível analisá-lo no momento.',
+  UNREACHABLE: 'Não conseguimos acessar esse site a partir do nosso servidor. Tente novamente em instantes.',
 }
 
 export async function analyzeSeoUrl(input: {

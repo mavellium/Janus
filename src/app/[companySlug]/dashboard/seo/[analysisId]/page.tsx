@@ -4,12 +4,14 @@ import { ChevronLeft, ExternalLink } from 'lucide-react'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
 import { cn } from '@/lib/utils'
+import { isPrivilegedRole, getImpersonatedUserId } from '@/lib/auth/permissions'
 import { getSeoAnalysis } from '@/modules/seo/queries/getSeoAnalysis'
 import { getRecentSeoAnalyses } from '@/modules/seo/queries/getRecentSeoAnalyses'
 import { SeoScoreCard } from '@/components/seo/SeoScoreCard'
+import { CombinedScoreHeader } from '@/components/seo/CombinedScoreHeader'
 import { ReanalyzeButton } from '@/components/seo/ReanalyzeButton'
 
-export const metadata = { title: 'Relatório de SEO — Janus' }
+export const metadata = { title: 'Relatório de SEO e GEO — Janus' }
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeStyle: 'short' })
 const shortDateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
@@ -36,20 +38,27 @@ export default async function SeoReportPage({
   })
   if (!company) redirect('/login')
 
-  const analysis = await getSeoAnalysis(analysisId, company.id)
+  const impersonatedUserId = await getImpersonatedUserId()
+  const ownerId = impersonatedUserId
+    ? impersonatedUserId
+    : isPrivilegedRole(session.user.role)
+      ? undefined
+      : session.user.id
+
+  const analysis = await getSeoAnalysis(analysisId, company.id, ownerId)
   if (!analysis) notFound()
 
-  const history = await getRecentSeoAnalyses(company.id, 10)
+  const history = await getRecentSeoAnalyses(company.id, 10, ownerId)
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 w-full max-w-5xl">
-      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Link href={`/${companySlug}/dashboard`} className="text-brand-primary hover:opacity-80">
               <ChevronLeft className="w-5 h-5" />
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-brand-text">Relatório de SEO</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-brand-text">Relatório de SEO e GEO</h1>
           </div>
           <p className="text-sm text-brand-muted flex flex-wrap items-center gap-x-2">
             <a
@@ -75,11 +84,21 @@ export default async function SeoReportPage({
       </div>
 
       <div className="bg-card rounded-xl border border-brand-btn-light p-5 sm:p-6 mb-6">
+        <CombinedScoreHeader
+          seoScore={analysis.score}
+          geoScore={analysis.geoFoundation?.score ?? null}
+          seoTargetId="seo-details"
+          geoTargetId={analysis.geoFoundation ? 'geo-details' : undefined}
+        />
+      </div>
+
+      <div id="seo-details" className="bg-card rounded-xl border border-brand-btn-light p-5 sm:p-6 mb-6 scroll-mt-4">
+        <h2 className="text-lg font-semibold text-brand-text mb-4">Resultados de SEO</h2>
         <SeoScoreCard score={analysis.score} checks={analysis.checks} expanded />
       </div>
 
       {analysis.geoFoundation && (
-        <div className="bg-card rounded-xl border border-brand-btn-light p-5 sm:p-6 mb-6">
+        <div id="geo-details" className="bg-card rounded-xl border border-brand-btn-light p-5 sm:p-6 mb-6 scroll-mt-4">
           <h2 className="text-lg font-semibold text-brand-text mb-1">Fundação para GEO</h2>
           <p className="text-xs text-brand-muted mb-4">
             Prontidão do site para ser rastreado e citado por IAs generativas (ChatGPT, Claude, Gemini, Perplexity).

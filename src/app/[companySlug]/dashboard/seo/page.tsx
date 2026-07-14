@@ -4,10 +4,11 @@ import { Gauge } from 'lucide-react'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
 import { cn } from '@/lib/utils'
+import { isPrivilegedRole, getImpersonatedUserId } from '@/lib/auth/permissions'
 import { getRecentSeoAnalyses } from '@/modules/seo/queries/getRecentSeoAnalyses'
 import { SeoUrlInputForm } from '@/components/seo/SeoUrlInputForm'
 
-export const metadata = { title: 'Análise de SEO — Janus' }
+export const metadata = { title: 'Análise SEO/GEO — Janus' }
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 
@@ -33,54 +34,61 @@ export default async function SeoAnalysisPage({
   })
   if (!company) redirect('/login')
 
-  const history = await getRecentSeoAnalyses(company.id, 20)
+  const impersonatedUserId = await getImpersonatedUserId()
+  const ownerId = impersonatedUserId
+    ? impersonatedUserId
+    : isPrivilegedRole(session.user.role)
+      ? undefined
+      : session.user.id
+  const history = await getRecentSeoAnalyses(company.id, 20, ownerId)
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 w-full max-w-3xl">
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
+    <div className="p-4 sm:p-6 lg:p-8 w-full">
+      <div className="mb-8 flex items-start gap-4 release-card-in">
+        <div className="w-12 h-12 rounded-xl bg-brand-primary/10 flex items-center justify-center flex-shrink-0">
           <Gauge className="w-6 h-6 text-brand-primary" />
-          <h1 className="text-2xl sm:text-3xl font-bold text-brand-text">Análise de SEO</h1>
         </div>
-        <p className="text-sm text-brand-muted">
-          Cole a URL de qualquer site e receba uma pontuação de 0 a 100 com as ações para melhorar.
-        </p>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-text">Análise SEO/GEO</h1>
+          <p className="text-sm text-brand-muted mt-1 max-w-2xl">
+            Cole a URL de qualquer site e receba a pontuação de SEO e de prontidão para IAs
+            generativas (GEO), com as ações para melhorar.
+          </p>
+        </div>
       </div>
 
-      <div className="bg-card rounded-xl border border-brand-btn-light p-5 sm:p-6 mb-6">
-        <SeoUrlInputForm companySlug={companySlug} />
+      <div className="bg-card rounded-xl border border-brand-btn-light p-6 sm:p-8 mb-6 release-card-in">
+        <SeoUrlInputForm companySlug={companySlug} layout="full" />
       </div>
 
       {history.length > 0 && (
-        <div className="bg-card rounded-xl border border-brand-btn-light p-5 sm:p-6">
-          <h2 className="text-lg font-semibold text-brand-text mb-3">Análises recentes</h2>
-          <ul className="divide-y divide-brand-btn-light/60">
-            {history.map((entry) => (
-              <li key={entry.id}>
-                <Link
-                  href={`/${companySlug}/dashboard/seo/${entry.id}`}
+        <div className="bg-card rounded-xl border border-brand-btn-light p-6 sm:p-8 release-card-in">
+          <h2 className="text-lg font-semibold text-brand-text mb-4">Análises recentes</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            {history.map((entry, index) => (
+              <Link
+                key={entry.id}
+                href={`/${companySlug}/dashboard/seo/${entry.id}`}
+                className="release-card-in flex items-center gap-3 rounded-lg border border-brand-btn-light p-3 hover:border-brand-primary/40 hover:shadow-md transition"
+                style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}
+              >
+                <span
                   className={cn(
-                    'flex items-center gap-3 py-2.5 px-2 -mx-2 rounded-lg hover:bg-brand-btn-light/40 transition'
+                    'w-11 h-11 flex-shrink-0 flex items-center justify-center text-sm font-bold rounded-full',
+                    scoreBadgeClasses(entry.score)
                   )}
                 >
-                  <span
-                    className={cn(
-                      'w-10 text-center text-xs font-bold rounded-full px-1.5 py-1 flex-shrink-0',
-                      scoreBadgeClasses(entry.score)
-                    )}
-                  >
-                    {entry.score}
-                  </span>
-                  <span className="text-sm text-brand-text truncate flex-1">
+                  {entry.score}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-brand-text truncate">
                     {entry.targetUrl.replace(/^https?:\/\//, '')}
-                  </span>
-                  <span className="text-xs text-brand-muted flex-shrink-0">
-                    {dateFormatter.format(entry.createdAt)}
-                  </span>
-                </Link>
-              </li>
+                  </p>
+                  <p className="text-xs text-brand-muted">{dateFormatter.format(entry.createdAt)}</p>
+                </div>
+              </Link>
             ))}
-          </ul>
+          </div>
         </div>
       )}
     </div>

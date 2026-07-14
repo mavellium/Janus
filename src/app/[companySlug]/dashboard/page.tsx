@@ -9,6 +9,8 @@ import { formatDate } from '@/lib/utils'
 import {
   hasPermission,
   isImpersonating,
+  isPrivilegedRole,
+  getImpersonatedUserId,
   getEffectivePermissions,
   type ModuleType,
 } from '@/lib/auth/permissions'
@@ -36,6 +38,13 @@ export default async function DashboardPage({
   })
   if (!company) redirect('/login')
 
+  const impersonatedUserId = await getImpersonatedUserId()
+  const ownerId = impersonatedUserId
+    ? impersonatedUserId
+    : isPrivilegedRole(session.user.role)
+      ? undefined
+      : session.user.id
+
   const [
     institutionalProjects,
     landingPageProjects,
@@ -57,7 +66,7 @@ export default async function DashboardPage({
     db.blogPost.count({
       where: { project: { companyId: company.id, deletedAt: null } },
     }),
-    getRecentCompanyActivity(company.id),
+    getRecentCompanyActivity(company.id, 8, ownerId),
     isImpersonating(),
     getEffectivePermissions(session.user.id),
   ])
@@ -328,7 +337,11 @@ export default async function DashboardPage({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-        <SeoAnalyzerCard companyId={company.id} companySlug={companySlug} />
+        <SeoAnalyzerCard
+          companyId={company.id}
+          companySlug={companySlug}
+          ownerId={ownerId}
+        />
         <RecentActivityFeed entries={recentActivity} />
       </div>
     </div>

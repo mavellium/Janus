@@ -6,54 +6,6 @@ import {
   type SeoCheckResult,
 } from '@/modules/seo/domain/seoCheck'
 
-function scoreColor(score: number): string {
-  if (score < 50) return 'text-red-500'
-  if (score < 80) return 'text-amber-500'
-  return 'text-emerald-500'
-}
-
-function scoreStroke(score: number): string {
-  if (score < 50) return 'stroke-red-500'
-  if (score < 80) return 'stroke-amber-500'
-  return 'stroke-emerald-500'
-}
-
-function ScoreRing({ score }: { score: number }) {
-  const radius = 52
-  const circumference = 2 * Math.PI * radius
-  const progress = circumference * (1 - score / 100)
-
-  return (
-    <div className="relative w-32 h-32 flex-shrink-0">
-      <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-        <circle
-          cx="60"
-          cy="60"
-          r={radius}
-          fill="none"
-          strokeWidth="10"
-          className="stroke-brand-btn-light"
-        />
-        <circle
-          cx="60"
-          cy="60"
-          r={radius}
-          fill="none"
-          strokeWidth="10"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={progress}
-          className={cn('transition-[stroke-dashoffset] duration-700 ease-out', scoreStroke(score))}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className={cn('text-3xl font-bold', scoreColor(score))}>{score}</span>
-        <span className="text-[10px] text-brand-muted uppercase tracking-wide">de 100</span>
-      </div>
-    </div>
-  )
-}
-
 function CheckItem({ check, showPoints }: { check: SeoCheckResult; showPoints: boolean }) {
   return (
     <li className="flex items-start gap-2.5 py-2">
@@ -113,21 +65,16 @@ export function SeoScoreCard({
 
   return (
     <div>
-      <div className="flex items-center gap-5 mb-4">
-        <ScoreRing score={score} />
-        <div>
-          <p className="text-sm font-semibold text-brand-text">
-            {score >= 80 && 'Ótimo! Seu site está bem otimizado.'}
-            {score >= 50 && score < 80 && 'Bom começo — mas há pontos importantes a melhorar.'}
-            {score < 50 && 'Seu site precisa de atenção: há problemas críticos de SEO.'}
-          </p>
-          <p className="text-xs text-brand-muted mt-1">
-            {failed.length === 0
-              ? 'Todos os critérios avaliados foram aprovados.'
-              : `${failed.length} de ${checks.length} critérios precisam de ajuste.`}
-          </p>
-        </div>
-      </div>
+      <p className="text-sm font-semibold text-brand-text mb-1">
+        {score >= 80 && 'Ótimo! Está bem otimizado.'}
+        {score >= 50 && score < 80 && 'Bom começo — mas há pontos importantes a melhorar.'}
+        {score < 50 && 'Precisa de atenção: há problemas críticos.'}
+      </p>
+      <p className="text-xs text-brand-muted mb-4">
+        {failed.length === 0
+          ? 'Todos os critérios avaliados foram aprovados.'
+          : `${failed.length} de ${checks.length} critérios precisam de ajuste.`}
+      </p>
 
       {visibleFailed.length > 0 && (
         <div className="mb-3">

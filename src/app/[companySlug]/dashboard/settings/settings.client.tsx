@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { updateProfile } from "@/modules/users/actions/updateProfile";
 import { changePassword } from "@/modules/users/actions/changePassword";
 import { updatePreferences } from "@/modules/users/actions/updatePreferences";
+import { restartOnboarding } from "@/modules/users/actions/restartOnboarding";
 import { updateCompanyWebhook } from "@/modules/companies/actions/updateCompanyWebhook";
 import { useToast } from "@/hooks/use-toast";
 import { ToastContainer } from "@/components/ui/toast-container";
@@ -70,6 +71,19 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
 
   const { darkMode: darkModeEnabled, setDarkMode, setUserImage: setContextUserImage } = useTheme();
   const [, startPreferencesTransition] = useTransition();
+  const [isTourPending, startTourTransition] = useTransition();
+
+  const handleRestartTour = () => {
+    startTourTransition(async () => {
+      const result = await restartOnboarding({ companySlug: company.slug });
+      if (result && !result.ok) {
+        toast({
+          message: result.error || "Erro ao reiniciar o tour",
+          type: "error",
+        });
+      }
+    });
+  };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.replace(/\D/g, "");
@@ -414,6 +428,25 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
                     checked={darkModeEnabled}
                     onCheckedChange={handleDarkModeToggle}
                   />
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="font-medium">Tour de boas-vindas</Label>
+                    <p className="text-xs text-brand-muted">
+                      Reveja o passo a passo guiado pela plataforma
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRestartTour}
+                    disabled={isTourPending}
+                  >
+                    {isTourPending ? "Preparando..." : "Refazer tour"}
+                  </Button>
                 </div>
               </div>
             </CardContent>

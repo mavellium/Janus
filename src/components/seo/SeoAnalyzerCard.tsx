@@ -15,20 +15,22 @@ function scoreBadgeClasses(score: number): string {
 export async function SeoAnalyzerCard({
   companyId,
   companySlug,
+  ownerId,
 }: {
   companyId: string
   companySlug: string
+  ownerId?: string
 }) {
-  const recent = await getRecentSeoAnalyses(companyId, 3)
+  const recent = await getRecentSeoAnalyses(companyId, 3, ownerId)
 
   return (
     <div className="bg-card rounded-xl border border-brand-btn-light p-6">
       <div className="flex items-center gap-2 mb-1">
         <Gauge className="w-5 h-5 text-brand-primary" />
-        <h3 className="text-lg font-semibold text-brand-text">Análise de SEO</h3>
+        <h3 className="text-lg font-semibold text-brand-text">Análise SEO/GEO</h3>
       </div>
       <p className="text-sm text-brand-muted mb-4">
-        Cole a URL de qualquer site e receba uma pontuação de 0 a 100 com as ações para melhorar.
+        Cole a URL de qualquer site e receba a pontuação de SEO e de prontidão para IAs generativas (GEO), com as ações para melhorar.
       </p>
 
       <SeoUrlInputForm companySlug={companySlug} />

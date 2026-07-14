@@ -36,6 +36,14 @@ Empresa é a unidade de tenant no Janus. Cada Company tem slug único, projetos,
 | `createCompany` | `dev` | CRUD pelo developer |
 | `toggleGuestMode` | `admin` | Liga/desliga guestModeEnabled |
 
+## Queries
+
+| Query | Retorno | Uso |
+|-------|---------|-----|
+| `getRecentCompanyActivity(companyId, limit?, userId?)` | `CompanyActivityEntry[]` | Feed "Atividade recente" no dashboard. Filtra `AuditLog` por `companyId` + `impersonatedId: null` + entidades relevantes (Project/Page/BlogPost/BlogCategory/BlogTag) dentro da janela de retenção. Passando `userId`, escopa só à atividade daquele usuário |
+
+> **Escopo por usuário:** o dashboard passa `ownerId` = usuário **efetivo** — impersonado quando há impersonation; `undefined` (empresa toda) só para ADMIN/DEVELOPER sem impersonation; usuário normal vê apenas a própria atividade. Mesmo padrão nas telas de SEO (`getRecentSeoAnalyses`/`getSeoAnalysis`).
+
 ## Webhook
 
 Configurado em `/{slug}/dashboard/settings` (aba Webhook). Quando conteúdo muda, o sistema pode enviar POST para `webhookUrl` com header `Authorization: Bearer {webhookToken}`.

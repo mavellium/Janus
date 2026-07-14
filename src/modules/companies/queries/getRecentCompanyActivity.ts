@@ -15,12 +15,14 @@ export interface CompanyActivityEntry {
 
 export async function getRecentCompanyActivity(
   companyId: string,
-  limit = 8
+  limit = 8,
+  userId?: string
 ): Promise<CompanyActivityEntry[]> {
   const logs = await db.auditLog.findMany({
     where: {
       companyId,
       impersonatedId: null,
+      ...(userId ? { userId } : {}),
       entity: { in: RELEVANT_ENTITIES },
       createdAt: { gte: auditRetentionCutoff() },
     },

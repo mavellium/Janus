@@ -66,16 +66,17 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
   }, [siteId, lpId])
 
   const MAIN_ITEMS = [
-    { label: 'Página Inicial', href: `/${companySlug}/dashboard`, icon: Home },
-    { label: 'Resultados', href: `/${companySlug}/dashboard/results`, icon: FileText },
-    { label: 'Sites', href: `/${companySlug}/dashboard/sites`, icon: Globe },
-    { label: 'Landing Pages', href: `/${companySlug}/dashboard/landing-pages`, icon: Zap },
-    { label: 'Análise de SEO', href: `/${companySlug}/dashboard/seo`, icon: Gauge },
+    { label: 'Página Inicial', href: `/${companySlug}/dashboard`, icon: Home, tour: 'nav-home' },
+    { label: 'Resultados', href: `/${companySlug}/dashboard/results`, icon: FileText, tour: 'nav-results' },
+    { label: 'Sites', href: `/${companySlug}/dashboard/sites`, icon: Globe, tour: 'nav-sites' },
+    { label: 'Landing Pages', href: `/${companySlug}/dashboard/landing-pages`, icon: Zap, tour: 'nav-landing-pages' },
+    { label: 'Análise SEO/GEO', href: `/${companySlug}/dashboard/seo`, icon: Gauge, tour: 'nav-seo' },
   ]
 
   const PROJECT_ITEMS = [
-    { label: 'Páginas', href: `${basePath}/pages`, icon: FileText },
-    { label: 'Resultados', href: `${basePath}/analytics`, icon: BarChart3 },
+    { label: 'Páginas', href: `${basePath}/pages`, icon: FileText, tour: 'nav-project-pages' },
+    { label: 'Resultados', href: `${basePath}/analytics`, icon: BarChart3, tour: 'nav-project-analytics' },
+    { label: 'SEO/GEO', href: `${basePath}/seo`, icon: Gauge, tour: 'nav-project-seo' },
   ]
 
   const menuItems = isInProjectContext ? PROJECT_ITEMS : MAIN_ITEMS
@@ -226,11 +227,12 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
             }
           </Link>
         )}
-        {menuItems.map(({ label, href, icon: Icon }) => (
+        {menuItems.map(({ label, href, icon: Icon, tour }) => (
           <Link
             key={href}
             href={href}
             title={collapsed ? label : undefined}
+            data-tour={embedded ? undefined : tour}
             className={navItemClasses(href)}
           >
             <Icon size={16} className="flex-shrink-0" />
@@ -274,6 +276,7 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
         <Link
           href={`/${companySlug}/dashboard/notifications`}
           title={collapsed ? 'Notificações' : undefined}
+          data-tour={embedded ? undefined : 'nav-notifications'}
           className={utilItemClasses(pathname.includes('/notifications'))}
         >
           <span className="relative flex-shrink-0">
@@ -292,6 +295,7 @@ export function Sidebar({ email, name, image, initialCollapsed, companyName, emb
         <Link
           href={`/${companySlug}/dashboard/settings`}
           title={collapsed ? 'Configurações' : undefined}
+          data-tour={embedded ? undefined : 'nav-settings'}
           className={utilItemClasses(pathname.includes('/settings'))}
         >
           <Settings size={16} className="flex-shrink-0" />

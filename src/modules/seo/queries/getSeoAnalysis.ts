@@ -23,10 +23,11 @@ function parseStoredChecks(raw: unknown): { seo: SeoCheckResult[]; geoFoundation
 
 export async function getSeoAnalysis(
   analysisId: string,
-  companyId: string
+  companyId: string,
+  userId?: string
 ): Promise<SeoAnalysisRecord | null> {
   const analysis = await db.seoAnalysis.findFirst({
-    where: { id: analysisId, companyId },
+    where: { id: analysisId, companyId, ...(userId ? { userId } : {}) },
     include: { user: { select: { name: true, email: true } } },
   })
 

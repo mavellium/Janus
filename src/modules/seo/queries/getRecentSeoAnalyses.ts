@@ -9,10 +9,11 @@ export interface SeoAnalysisSummary {
 
 export async function getRecentSeoAnalyses(
   companyId: string,
-  limit = 10
+  limit = 10,
+  userId?: string
 ): Promise<SeoAnalysisSummary[]> {
   return db.seoAnalysis.findMany({
-    where: { companyId },
+    where: { companyId, projectId: null, ...(userId ? { userId } : {}) },
     orderBy: { createdAt: 'desc' },
     take: limit,
     select: { id: true, targetUrl: true, score: true, createdAt: true },

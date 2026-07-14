@@ -101,6 +101,71 @@
   animation: releaseCardIn 400ms ease-out both;
 }
 
+:root {
+  --onb-scrim: rgba(9, 12, 20, 0.72);
+}
+
+.onb-scrim {
+  background-color: var(--onb-scrim);
+}
+
+@keyframes onbOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes onbCardIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes onbPulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand-primary) 45%, transparent); }
+  50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--brand-primary) 0%, transparent); }
+}
+@keyframes onbScan {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+@keyframes onbCheckPop {
+  0% { opacity: 0; transform: scale(0.4); }
+  70% { transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes onbConfettiFall {
+  0% { opacity: 1; transform: translateY(-16px) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(340px) rotate(540deg); }
+}
+
+.onb-overlay-in {
+  animation: onbOverlayIn 300ms ease-out both;
+}
+.onb-card-in {
+  animation: onbCardIn 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.onb-check-pop {
+  animation: onbCheckPop 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.onb-confetti {
+  animation: onbConfettiFall 2400ms ease-in both;
+}
+.onb-scan::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-primary) 18%, transparent), transparent);
+  animation: onbScan 1400ms ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onb-overlay-in,
+  .onb-card-in,
+  .onb-check-pop,
+  .onb-confetti,
+  .onb-scan::after {
+    animation: none;
+  }
+}
+
 .sidebar-link:hover {
   background-color: var(--sidebar-hover-bg) !important;
   color: var(--sidebar-hover-text) !important;

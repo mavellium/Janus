@@ -22,17 +22,15 @@ export async function getUserCompanies(userId: string) {
   const seen = new Set<string>()
   const result: { companyId: string; name: string; slug: string; permissions: string[] }[] = []
 
-  // empresa primária primeiro
-  if (user.company && !user.company.deletedAt) {
-    seen.add(user.company.id)
-    result.push({ companyId: user.company.id, name: user.company.name, slug: user.company.slug, permissions: [] })
-  }
-
   for (const link of user.companies) {
     if (!link.company.deletedAt && !seen.has(link.company.id)) {
       seen.add(link.company.id)
       result.push({ companyId: link.company.id, name: link.company.name, slug: link.company.slug, permissions: link.permissions })
     }
+  }
+
+  if (result.length === 0 && user.company && !user.company.deletedAt) {
+    result.push({ companyId: user.company.id, name: user.company.name, slug: user.company.slug, permissions: [] })
   }
 
   return result
