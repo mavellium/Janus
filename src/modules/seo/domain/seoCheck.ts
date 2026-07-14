@@ -52,6 +52,7 @@ export interface SeoAnalysisResult extends SeoScoreResult {
   fetchedAt: string
   responseTimeMs: number
   geoFoundation: GeoFoundationResult
+  contentAccessible: boolean
 }
 
 export const SEVERITY_ORDER: Record<SeoCheckSeverity, number> = {

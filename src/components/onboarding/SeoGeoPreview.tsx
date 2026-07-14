@@ -102,6 +102,13 @@ export function SeoGeoPreview({
           </div>
         </div>
 
+        {!state.result.contentAccessible && (
+          <p className="onb-card-in mt-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+            O site bloqueou o acesso automatizado (proteção anti-bot). A pontuação considera apenas
+            os sinais técnicos acessíveis.
+          </p>
+        )}
+
         <div className="mt-5 space-y-2">
           {recommendations.length > 0 ? (
             recommendations.map((label, index) => (

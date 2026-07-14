@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { ChevronLeft, ExternalLink } from 'lucide-react'
+import { ChevronLeft, ExternalLink, ShieldAlert } from 'lucide-react'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
 import { cn } from '@/lib/utils'
@@ -82,6 +82,18 @@ export default async function SeoReportPage({
         </div>
         <ReanalyzeButton url={analysis.targetUrl} companySlug={companySlug} />
       </div>
+
+      {!analysis.contentAccessible && (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-400">
+          <ShieldAlert size={18} className="mt-0.5 flex-shrink-0" />
+          <p>
+            Não conseguimos ler o conteúdo desta página — o site bloqueou o acesso automatizado
+            (proteção anti-bot). A pontuação abaixo considera apenas os sinais técnicos que
+            continuaram acessíveis (HTTPS, robots.txt e sitemap); os itens de conteúdo aparecem
+            como não avaliados.
+          </p>
+        </div>
+      )}
 
       <div className="bg-card rounded-xl border border-brand-btn-light p-5 sm:p-6 mb-6">
         <CombinedScoreHeader

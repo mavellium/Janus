@@ -92,6 +92,12 @@ export function SeoUrlInputForm({
 
       {state.result && state.analysisId && !isPending && (
         <div ref={resultsRef} className="mt-6 pt-6 border-t border-brand-btn-light scroll-mt-4">
+          {!state.result.contentAccessible && (
+            <p className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+              O site bloqueou o acesso automatizado (proteção anti-bot). A pontuação considera
+              apenas os sinais técnicos acessíveis (HTTPS, robots.txt e sitemap).
+            </p>
+          )}
           <CombinedScoreHeader
             seoScore={state.result.score}
             geoScore={state.result.geoFoundation.score}

@@ -94,6 +94,7 @@ export async function analyzeSeoUrl(input: {
       targetUrl: fetched.finalUrl,
       fetchedAt: new Date().toISOString(),
       responseTimeMs: fetched.responseTimeMs,
+      contentAccessible: fetched.contentAccessible,
     }
 
     const analysis = await db.seoAnalysis.create({
@@ -102,7 +103,11 @@ export async function analyzeSeoUrl(input: {
         userId: session.user.id,
         targetUrl: fetched.finalUrl,
         score,
-        checks: { seo: checks, geoFoundation } as unknown as Prisma.InputJsonValue,
+        checks: {
+          seo: checks,
+          geoFoundation,
+          contentAccessible: fetched.contentAccessible,
+        } as unknown as Prisma.InputJsonValue,
       },
     })
 

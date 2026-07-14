@@ -1,5 +1,19 @@
 # SEO — Changelog
 
+### [2026-07-14] — Pontuação mesmo com site anti-bot (fallback + degradação graciosa)
+
+**Arquivos**:
+- `src/lib/security/safe-fetch.ts`: `SafeFetchOptions.userAgent` (default `JanusSeoBot/1.0`); threaded por `fetchWithRetry`/`fetchOnce`. Permite trocar o UA da requisição.
+- `src/modules/seo/infra/fetchTargetPage.ts`: `fetchPrimaryPage()` — ao receber `BLOCKED_BY_TARGET` (403/429), tenta 1x com UA de navegador (`BROWSER_USER_AGENT`); se ainda bloqueado, retorna `null` em vez de propagar o erro. `fetchTargetPage` passa a degradar: `html: ''`, `contentAccessible: false`, mas ainda sonda robots.txt/sitemap (que costumam permanecer abertos). Só `BLOCKED_BY_TARGET` degrada — TIMEOUT/UNREACHABLE/SSRF continuam lançando.
+- `src/modules/seo/domain/seoCheck.ts`: `SeoAnalysisResult.contentAccessible: boolean`.
+- `src/modules/seo/actions/analyzeSeoUrl.ts`: propaga e persiste `contentAccessible` dentro de `checks` (`{ seo, geoFoundation, contentAccessible }`).
+- `src/modules/seo/queries/getSeoAnalysis.ts`: `parseStoredChecks` lê `contentAccessible` (legado/ausente → `true`); exposto em `SeoAnalysisRecord`.
+- `dashboard/seo/[analysisId]/page.tsx`, `SeoUrlInputForm.tsx`, `SeoGeoPreview.tsx`: banner âmbar quando `contentAccessible === false` explicando que a nota considera só sinais técnicos (HTTPS, robots.txt, sitemap).
+
+**Razão**: sites com WAF/anti-bot (ex: `fulltime.com.br`, bloqueio por reputação do IP do servidor de produção — confirmado: o UA de bot passa em IP residencial, então não é filtro de UA) abortavam toda a análise com erro. Requisito: a pontuação deve acontecer de qualquer forma.
+
+**Impacto**: bloqueio por UA é contornado pelo retry com UA de navegador; bloqueio por IP degrada para pontuação parcial honesta (itens de conteúdo reprovam como não avaliados, sinais técnicos acessíveis pontuam) em vez de erro. `getSeoAnalysis` é retrocompatível com análises antigas.
+
 ### [2026-07-14] — Escopo por usuário efetivo (impersonation-aware)
 
 **Arquivos**:

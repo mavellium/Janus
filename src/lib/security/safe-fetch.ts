@@ -32,6 +32,7 @@ export class SafeFetchError extends Error {
 export interface SafeFetchOptions {
   timeoutMs?: number
   maxBytes?: number
+  userAgent?: string
 }
 
 export interface SafeFetchResult {
@@ -46,6 +47,7 @@ const DEFAULT_TIMEOUT_MS = 10_000
 const DEFAULT_MAX_BYTES = 3 * 1024 * 1024
 const MAX_NETWORK_RETRIES = 1
 const RETRY_DELAY_MS = 800
+const DEFAULT_USER_AGENT = 'JanusSeoBot/1.0 (analise de SEO; +https://mavellium.com.br)'
 
 function isPrivateIpv4(ip: string): boolean {
   const parts = ip.split('.').map(Number)
@@ -149,14 +151,14 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-async function fetchOnce(url: URL, timeoutMs: number): Promise<Response> {
+async function fetchOnce(url: URL, timeoutMs: number, userAgent: string): Promise<Response> {
   try {
     return await fetch(url, {
       redirect: 'manual',
       cache: 'no-store',
       signal: AbortSignal.timeout(timeoutMs),
       headers: {
-        'User-Agent': 'JanusSeoBot/1.0 (analise de SEO; +https://mavellium.com.br)',
+        'User-Agent': userAgent,
         Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       },
     })
@@ -173,11 +175,11 @@ async function fetchOnce(url: URL, timeoutMs: number): Promise<Response> {
   }
 }
 
-async function fetchWithRetry(url: URL, timeoutMs: number): Promise<Response> {
+async function fetchWithRetry(url: URL, timeoutMs: number, userAgent: string): Promise<Response> {
   let lastError: unknown
   for (let attempt = 0; attempt <= MAX_NETWORK_RETRIES; attempt++) {
     try {
-      return await fetchOnce(url, timeoutMs)
+      return await fetchOnce(url, timeoutMs, userAgent)
     } catch (error) {
       lastError = error
       const isTimeout = error instanceof SafeFetchError && error.code === 'TIMEOUT'
@@ -190,7 +192,11 @@ async function fetchWithRetry(url: URL, timeoutMs: number): Promise<Response> {
 
 export async function safeFetch(
   rawUrl: string,
-  { timeoutMs = DEFAULT_TIMEOUT_MS, maxBytes = DEFAULT_MAX_BYTES }: SafeFetchOptions = {}
+  {
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    maxBytes = DEFAULT_MAX_BYTES,
+    userAgent = DEFAULT_USER_AGENT,
+  }: SafeFetchOptions = {}
 ): Promise<SafeFetchResult> {
   let url: URL
   try {
@@ -204,7 +210,7 @@ export async function safeFetch(
   for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
     await assertPublicHost(url)
 
-    const response = await fetchWithRetry(url, timeoutMs)
+    const response = await fetchWithRetry(url, timeoutMs, userAgent)
 
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get('location')
