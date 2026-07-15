@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
+import { getImpersonatedUserId } from '@/lib/auth/permissions'
 import { Prisma } from '@/generated/prisma/client'
 import { SafeFetchError, type SafeFetchErrorCode } from '@/lib/security/safe-fetch'
 import { fetchTargetPage } from '../infra/fetchTargetPage'
@@ -51,6 +52,9 @@ export async function analyzeSeoUrl(input: {
   if (session.user.role !== 'ADMIN' && session.user.companySlug !== companySlug) {
     return { ok: false, error: 'Acesso negado', code: 403 }
   }
+
+  const impersonatedUserId = await getImpersonatedUserId()
+  const effectiveUserId = impersonatedUserId ?? session.user.id
 
   const company = await db.company.findUnique({
     where: { slug: companySlug, deletedAt: null },
@@ -100,7 +104,7 @@ export async function analyzeSeoUrl(input: {
     const analysis = await db.seoAnalysis.create({
       data: {
         companyId: company.id,
-        userId: session.user.id,
+        userId: effectiveUserId,
         targetUrl: fetched.finalUrl,
         score,
         checks: {

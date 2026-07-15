@@ -1,5 +1,24 @@
 # SEO — Changelog
 
+### [2026-07-15] — Datas exibidas no fuso de Brasília (fix de horário em produção)
+
+**Arquivos**:
+- `src/lib/utils.ts`: `APP_TIME_ZONE = 'America/Sao_Paulo'`; `formatDate` agora fixa `timeZone`; novos helpers `formatDateTime` (short/short) e `formatLongDateTime` (long/short).
+- `dashboard/seo/page.tsx`, `dashboard/seo/[analysisId]/page.tsx`, `SeoAnalyzerCard.tsx`, `SiteScanReportView.tsx`, `SiteSeoLanding.tsx`: removidos os `Intl.DateTimeFormat` locais (sem `timeZone`) em favor dos helpers compartilhados.
+
+**Razão**: em produção o servidor roda em UTC; `Intl.DateTimeFormat` sem `timeZone` usa o fuso do runtime, exibindo +3h (ex.: análise às 11h20 BRT aparecia 14h20). Localmente o dev roda em BRT, mascarando o bug.
+
+**Impacto**: `createdAt` continua persistido em UTC (correto e inalterado); só a **exibição** passa a ser sempre em `America/Sao_Paulo`, independente do fuso do servidor. Demais telas (admin/logs, blog, notificações) ainda têm formatters locais próprios — não alterados nesta mudança.
+
+### [2026-07-15] — Análise do dashboard atribuída ao usuário efetivo (fix de persistência sob impersonation)
+
+**Arquivos**:
+- `src/modules/seo/actions/analyzeSeoUrl.ts`: o `userId` do `seoAnalysis.create` passa a usar o usuário **efetivo** (`getImpersonatedUserId() ?? session.user.id`) em vez do `session.user.id` (usuário real).
+
+**Razão**: o fix de leitura de 2026-07-14 ("Escopo por usuário efetivo") escopou `getRecentSeoAnalyses`/`getSeoAnalysis` pelo usuário efetivo, mas a **escrita** continuou gravando sob o usuário real (admin). Ao rodar uma análise durante impersonation, ela era salva sob o admin e sumia da lista "Análises recentes" e do relatório completo (que filtram pelo usuário inspecionado). Sintoma: "a análise não fica salva para visualizar depois".
+
+**Impacto**: escrita e leitura agora usam a mesma identidade efetiva; análises feitas durante impersonation ficam visíveis e acessíveis para o usuário inspecionado. `analyzeSite` não é afetada — suas leituras (`getRecentSiteScans`/`getSiteScan`) escopam por `companyId + projectId`, sem filtro de usuário.
+
 ### [2026-07-14] — Pontuação mesmo com site anti-bot (fallback + degradação graciosa)
 
 **Arquivos**:

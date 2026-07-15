@@ -25,9 +25,14 @@ export default async function SelectCompanyPage() {
 
   if (!user) redirect("/login");
 
-  const companies = user.companies.map((uc) => uc.company);
+  const linkedCompanies = user.companies.map((uc) => uc.company);
+  const companies = linkedCompanies.filter((c) => c.slug !== "default");
 
-  if (companies.length === 0) redirect("/no-company");
+  if (companies.length === 0) {
+    const fallback = linkedCompanies.find((c) => c.slug === "default");
+    if (!fallback) redirect("/no-company");
+    redirect(`/${fallback.slug}/dashboard`);
+  }
   if (companies.length === 1) redirect(`/${companies[0].slug}/dashboard`);
 
   return (

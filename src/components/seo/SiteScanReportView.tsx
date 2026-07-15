@@ -3,11 +3,10 @@ import { notFound, redirect } from 'next/navigation'
 import { ChevronLeft, ExternalLink } from 'lucide-react'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
+import { formatLongDateTime } from '@/lib/utils'
 import { getSiteScan } from '@/modules/seo/queries/getSiteScan'
 import { SiteScanButton } from './SiteScanButton'
 import { SiteScanReport } from './SiteScanReport'
-
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeStyle: 'short' })
 
 export async function SiteScanReportView({
   companySlug,
@@ -53,7 +52,7 @@ export async function SiteScanReportView({
               <ExternalLink size={12} />
             </a>
             <span>·</span>
-            <span>{dateFormatter.format(scan.createdAt)}</span>
+            <span>{formatLongDateTime(scan.createdAt)}</span>
             {scan.userName && (
               <>
                 <span>·</span>

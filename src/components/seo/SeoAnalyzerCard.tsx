@@ -1,10 +1,8 @@
 import Link from 'next/link'
 import { Gauge } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, formatDateTime } from '@/lib/utils'
 import { getRecentSeoAnalyses } from '@/modules/seo/queries/getRecentSeoAnalyses'
 import { SeoUrlInputForm } from '@/components/seo/SeoUrlInputForm'
-
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 
 function scoreBadgeClasses(score: number): string {
   if (score < 50) return 'bg-red-500/10 text-red-500'
@@ -59,7 +57,7 @@ export async function SeoAnalyzerCard({
                     {analysis.targetUrl.replace(/^https?:\/\//, '')}
                   </span>
                   <span className="text-xs text-brand-muted flex-shrink-0">
-                    {dateFormatter.format(analysis.createdAt)}
+                    {formatDateTime(analysis.createdAt)}
                   </span>
                 </Link>
               </li>

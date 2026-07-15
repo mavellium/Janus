@@ -3,14 +3,12 @@ import { redirect } from 'next/navigation'
 import { Gauge } from 'lucide-react'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
-import { cn } from '@/lib/utils'
+import { cn, formatDateTime } from '@/lib/utils'
 import { isPrivilegedRole, getImpersonatedUserId } from '@/lib/auth/permissions'
 import { getRecentSeoAnalyses } from '@/modules/seo/queries/getRecentSeoAnalyses'
 import { SeoUrlInputForm } from '@/components/seo/SeoUrlInputForm'
 
 export const metadata = { title: 'Análise SEO/GEO — Janus' }
-
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 
 function scoreBadgeClasses(score: number): string {
   if (score < 50) return 'bg-red-500/10 text-red-500'
@@ -84,7 +82,7 @@ export default async function SeoAnalysisPage({
                   <p className="text-sm font-medium text-brand-text truncate">
                     {entry.targetUrl.replace(/^https?:\/\//, '')}
                   </p>
-                  <p className="text-xs text-brand-muted">{dateFormatter.format(entry.createdAt)}</p>
+                  <p className="text-xs text-brand-muted">{formatDateTime(entry.createdAt)}</p>
                 </div>
               </Link>
             ))}

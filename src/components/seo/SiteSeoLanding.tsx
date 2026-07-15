@@ -3,11 +3,9 @@ import { redirect } from 'next/navigation'
 import { Gauge } from 'lucide-react'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
-import { cn } from '@/lib/utils'
+import { cn, formatDateTime } from '@/lib/utils'
 import { getRecentSiteScans } from '@/modules/seo/queries/getRecentSiteScans'
 import { SiteScanButton } from './SiteScanButton'
-
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 
 function scoreBadgeClasses(score: number): string {
   if (score < 50) return 'bg-red-500/10 text-red-500'
@@ -106,7 +104,7 @@ export async function SiteSeoLanding({
                     {scan.pagesScanned} {scan.pagesScanned === 1 ? 'página' : 'páginas'}
                   </span>
                   <span className="text-xs text-brand-muted flex-shrink-0">
-                    {dateFormatter.format(scan.createdAt)}
+                    {formatDateTime(scan.createdAt)}
                   </span>
                 </Link>
               </li>

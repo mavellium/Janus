@@ -19,6 +19,7 @@ export async function checkIpStatus(): Promise<IpStatusResponse> {
     const attempts = await db.loginAttempt.findMany({
       where: {
         ip,
+        success: false,
         createdAt: { gte: oneHourAgo },
       },
       orderBy: { createdAt: 'desc' },
@@ -32,6 +33,7 @@ export async function checkIpStatus(): Promise<IpStatusResponse> {
     const count = await db.loginAttempt.count({
       where: {
         ip,
+        success: false,
         createdAt: { gte: oneHourAgo },
       },
     })

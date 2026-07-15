@@ -68,10 +68,14 @@ export async function signInAction(
     .map((uc) => uc.company?.slug)
     .filter(Boolean) as string[];
 
+  const realSlugs = linkedSlugs.filter((slug) => slug !== "default");
+
   const slugs =
-    linkedSlugs.length > 0
-      ? linkedSlugs
-      : ([user.company?.slug].filter(Boolean) as string[]);
+    realSlugs.length > 0
+      ? realSlugs
+      : linkedSlugs.length > 0
+        ? linkedSlugs
+        : ([user.company?.slug].filter(Boolean) as string[]);
 
   const unique = [...new Set(slugs)];
 

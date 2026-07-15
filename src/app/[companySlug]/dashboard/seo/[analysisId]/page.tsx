@@ -3,7 +3,7 @@ import { notFound, redirect } from 'next/navigation'
 import { ChevronLeft, ExternalLink, ShieldAlert } from 'lucide-react'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
-import { cn } from '@/lib/utils'
+import { cn, formatDateTime, formatLongDateTime } from '@/lib/utils'
 import { isPrivilegedRole, getImpersonatedUserId } from '@/lib/auth/permissions'
 import { getSeoAnalysis } from '@/modules/seo/queries/getSeoAnalysis'
 import { getRecentSeoAnalyses } from '@/modules/seo/queries/getRecentSeoAnalyses'
@@ -12,9 +12,6 @@ import { CombinedScoreHeader } from '@/components/seo/CombinedScoreHeader'
 import { ReanalyzeButton } from '@/components/seo/ReanalyzeButton'
 
 export const metadata = { title: 'Relatório de SEO e GEO — Janus' }
-
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeStyle: 'short' })
-const shortDateFormatter = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 
 function scoreBadgeClasses(score: number): string {
   if (score < 50) return 'bg-red-500/10 text-red-500'
@@ -71,7 +68,7 @@ export default async function SeoReportPage({
               <ExternalLink size={12} />
             </a>
             <span>·</span>
-            <span>{dateFormatter.format(analysis.createdAt)}</span>
+            <span>{formatLongDateTime(analysis.createdAt)}</span>
             {analysis.userName && (
               <>
                 <span>·</span>
@@ -148,7 +145,7 @@ export default async function SeoReportPage({
                     {entry.targetUrl.replace(/^https?:\/\//, '')}
                   </span>
                   <span className="text-xs text-brand-muted flex-shrink-0">
-                    {shortDateFormatter.format(entry.createdAt)}
+                    {formatDateTime(entry.createdAt)}
                   </span>
                 </Link>
               </li>

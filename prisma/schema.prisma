@@ -439,7 +439,7 @@ model SeoAnalysis {
   companyId String          @db.Uuid @map("company_id")
   company   Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
   userId    String          @db.Uuid @map("user_id")
-  user      User            @relation(fields: [userId], references: [id])
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   projectId String?         @db.Uuid @map("project_id")
   targetUrl String          @map("target_url")
   type      SeoAnalysisType @default(SEO)

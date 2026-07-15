@@ -2,6 +2,8 @@
 
 import { db } from '@/lib/prisma'
 
+const FALLBACK_COMPANY_SLUG = 'default'
+
 export async function getUserCompanies(userId: string) {
   const user = await db.user.findUnique({
     where: { id: userId },
@@ -23,13 +25,22 @@ export async function getUserCompanies(userId: string) {
   const result: { companyId: string; name: string; slug: string; permissions: string[] }[] = []
 
   for (const link of user.companies) {
-    if (!link.company.deletedAt && !seen.has(link.company.id)) {
+    if (
+      !link.company.deletedAt &&
+      link.company.slug !== FALLBACK_COMPANY_SLUG &&
+      !seen.has(link.company.id)
+    ) {
       seen.add(link.company.id)
       result.push({ companyId: link.company.id, name: link.company.name, slug: link.company.slug, permissions: link.permissions })
     }
   }
 
-  if (result.length === 0 && user.company && !user.company.deletedAt) {
+  if (
+    result.length === 0 &&
+    user.company &&
+    !user.company.deletedAt &&
+    user.company.slug !== FALLBACK_COMPANY_SLUG
+  ) {
     result.push({ companyId: user.company.id, name: user.company.name, slug: user.company.slug, permissions: [] })
   }
 
