@@ -118,6 +118,7 @@ model User {
   companies        UserCompany[]
   auditLogs        AuditLog[]
   seoAnalyses      SeoAnalysis[]
+  geoTargetProfiles GeoTargetProfile[]
 
   @@index([email])
   @@index([companyId])
@@ -450,4 +451,135 @@ model SeoAnalysis {
   @@index([companyId])
   @@index([createdAt])
   @@map("seo_analyses")
+}
+
+enum GeoQuestionLayer {
+  DECISAO
+  AVALIACAO
+  PROBLEMA
+
+  @@map("geo_question_layer")
+}
+
+enum GeoQuestionStatus {
+  ACTIVE
+  ARCHIVED
+
+  @@map("geo_question_status")
+}
+
+enum GeoProvider {
+  OPENAI
+  GEMINI
+  PERPLEXITY
+  CLAUDE
+
+  @@map("geo_provider")
+}
+
+enum GeoProbeMode {
+  MODEL_MEMORY
+  LIVE_SEARCH
+
+  @@map("geo_probe_mode")
+}
+
+model GeoTargetProfile {
+  id              String    @id @default(uuid()) @db.Uuid
+  name            String
+  description     String?   @db.Text
+  industry        String?
+  location        String?
+  website         String?
+  aliases         String[]  @default([])
+  targetAudience  String?   @db.Text @map("target_audience")
+  differentiators String?   @db.Text
+  createdById     String?   @db.Uuid @map("created_by_id")
+  createdBy       User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  archivedAt      DateTime? @map("archived_at")
+
+  questions   GeoTargetQuestion[]
+  competitors GeoCompetitor[]
+  probeRuns   GeoProbeRun[]
+  snapshots   GeoScoreSnapshot[]
+
+  @@index([archivedAt])
+  @@map("geo_target_profiles")
+}
+
+model GeoTargetQuestion {
+  id        String            @id @default(uuid()) @db.Uuid
+  profileId String            @db.Uuid @map("profile_id")
+  profile   GeoTargetProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  text      String
+  layer     GeoQuestionLayer
+  priority  Int               @default(0)
+  status    GeoQuestionStatus @default(ACTIVE)
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  probeRuns GeoProbeRun[]
+
+  @@index([profileId, status])
+  @@map("geo_target_questions")
+}
+
+model GeoCompetitor {
+  id        String           @id @default(uuid()) @db.Uuid
+  profileId String           @db.Uuid @map("profile_id")
+  profile   GeoTargetProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name      String
+  aliases   String[]         @default([])
+  website   String?
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  probeRuns GeoProbeRun[]
+
+  @@index([profileId])
+  @@map("geo_competitors")
+}
+
+model GeoProbeRun {
+  id                    String            @id @default(uuid()) @db.Uuid
+  profileId             String            @db.Uuid @map("profile_id")
+  profile               GeoTargetProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  snapshotId            String?           @db.Uuid @map("snapshot_id")
+  snapshot              GeoScoreSnapshot? @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+  targetQuestionId      String            @db.Uuid @map("target_question_id")
+  targetQuestion        GeoTargetQuestion @relation(fields: [targetQuestionId], references: [id], onDelete: Cascade)
+  provider              GeoProvider
+  mode                  GeoProbeMode
+  rawResponse           String            @map("raw_response") @db.Text
+  companyMentioned      Boolean           @default(false) @map("company_mentioned")
+  mentionedCompetitorId String?           @db.Uuid @map("mentioned_competitor_id")
+  mentionedCompetitor   GeoCompetitor?    @relation(fields: [mentionedCompetitorId], references: [id], onDelete: SetNull)
+  citedUrls             String[]          @default([]) @map("cited_urls")
+  costUsdCents          Int?              @map("cost_usd_cents")
+  errorMessage          String?           @map("error_message")
+  createdAt             DateTime          @default(now()) @map("created_at")
+
+  @@index([profileId, createdAt])
+  @@index([snapshotId])
+  @@index([targetQuestionId])
+  @@map("geo_probe_runs")
+}
+
+model GeoScoreSnapshot {
+  id                   String           @id @default(uuid()) @db.Uuid
+  profileId            String           @db.Uuid @map("profile_id")
+  profile              GeoTargetProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  userId               String?          @db.Uuid @map("user_id")
+  score                Int
+  breakdown            Json
+  competitorComparison Json?            @map("competitor_comparison")
+  totalCostUsdCents    Int              @default(0) @map("total_cost_usd_cents")
+  createdAt            DateTime         @default(now()) @map("created_at")
+
+  probeRuns GeoProbeRun[]
+
+  @@index([profileId, createdAt])
+  @@map("geo_score_snapshots")
 }

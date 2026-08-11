@@ -72,6 +72,12 @@
 ### Analytics (`src/modules/analytics/` + `src/lib/analytics/`)
 - **[context/analytics/_index.md](context/analytics/_index.md)** — GA4 Data API, dashboards de Resultados (projeto + panorama), funil/eventos/canais/páginas
 
+### SEO (`src/modules/seo/`)
+- **[context/seo/_index.md](context/seo/_index.md)** — Score SEO on-page + Fundação técnica para GEO, scan de site
+
+### GEO (`src/modules/geo/`)
+- **[context/geo/_index.md](context/geo/_index.md)** — Raio-X de Visibilidade em IA: IAG Score, perguntas-alvo, concorrentes (só painel admin)
+
 ### Audit (`src/lib/audit-logger.ts` + `src/modules/admin/`)
 - **[context/audit/_index.md](context/audit/_index.md)** — Audit Logs com reversão (Undo): `logAudit`, `revertAuditAction`, diff Monaco; model `AuditLog`
 

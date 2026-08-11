@@ -29,6 +29,9 @@ const ENTITY_DELEGATES: Record<string, RevertibleDelegate> = {
   SiteScript: db.siteScript as unknown as RevertibleDelegate,
   GuestEntry: db.guestEntry as unknown as RevertibleDelegate,
   GuestPost: db.guestPost as unknown as RevertibleDelegate,
+  GeoTargetProfile: db.geoTargetProfile as unknown as RevertibleDelegate,
+  GeoTargetQuestion: db.geoTargetQuestion as unknown as RevertibleDelegate,
+  GeoCompetitor: db.geoCompetitor as unknown as RevertibleDelegate,
 }
 
 const SNAPSHOT_ONLY_KEYS = new Set([

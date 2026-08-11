@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Building2, Users, Settings, LogOut,
-  PanelLeftClose, PanelLeftOpen, UserCircle, Code2, Shield, Bell,
+  PanelLeftClose, PanelLeftOpen, UserCircle, Code2, Shield, Bell, Radar,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
@@ -50,6 +50,7 @@ export function AdminSidebar({ email, image, embedded = false, currentVersion = 
     { label: 'Empresas', href: '/dashboard-admin/companies', icon: Building2 },
     { label: 'Desenvolvedores', href: '/dashboard-admin/developers', icon: Code2 },
     { label: 'Usuários', href: '/dashboard-admin/users', icon: Users },
+    { label: 'Raio-X IA', href: '/dashboard-admin/geo', icon: Radar },
     { label: 'Logs', href: '/dashboard-admin/logs', icon: Shield },
     { label: 'Notificações', href: '/dashboard-admin/notifications', icon: Bell },
     { label: 'Configurações', href: '/dashboard-admin/settings', icon: Settings },
