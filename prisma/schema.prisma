@@ -473,6 +473,7 @@ enum GeoProvider {
   GEMINI
   PERPLEXITY
   CLAUDE
+  GROQ
 
   @@map("geo_provider")
 }

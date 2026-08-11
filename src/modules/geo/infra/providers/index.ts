@@ -3,17 +3,20 @@ import type { GeoProbeAdapter } from '../../domain/geoProbe'
 import { openaiProbeAdapter } from './openaiProbe'
 import { geminiProbeAdapter } from './geminiProbe'
 import { perplexityProbeAdapter } from './perplexityProbe'
+import { groqProbeAdapter } from './groqProbe'
 
 const ADAPTERS: Partial<Record<GeoProvider, GeoProbeAdapter>> = {
   OPENAI: openaiProbeAdapter,
   GEMINI: geminiProbeAdapter,
   PERPLEXITY: perplexityProbeAdapter,
+  GROQ: groqProbeAdapter,
 }
 
 const API_KEY_ENV: Partial<Record<GeoProvider, string>> = {
   OPENAI: 'OPENAI_API_KEY',
   GEMINI: 'GEMINI_API_KEY',
   PERPLEXITY: 'PERPLEXITY_API_KEY',
+  GROQ: 'GROQ_API_KEY',
 }
 
 export function getProbeAdapter(provider: GeoProvider): GeoProbeAdapter | null {
@@ -32,3 +35,4 @@ export function isProviderConfigured(provider: GeoProvider): boolean {
 export function getConfiguredProviders(): GeoProvider[] {
   return getEnabledProviders().filter(isProviderConfigured)
 }
+

@@ -29,7 +29,7 @@ type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string; code?
 
 const prepareSchema = z.object({
   profileId: z.string().uuid(),
-  providers: z.array(z.enum(['OPENAI', 'GEMINI', 'PERPLEXITY', 'CLAUDE'])).min(1),
+  providers: z.array(z.enum(['OPENAI', 'GEMINI', 'PERPLEXITY', 'CLAUDE', 'GROQ'])).min(1),
   modes: z.array(z.enum(['MODEL_MEMORY', 'LIVE_SEARCH'])).min(1),
 })
 
@@ -149,7 +149,7 @@ export async function prepareRaioXRun(input: {
 const singleProbeSchema = z.object({
   profileId: z.string().uuid(),
   questionId: z.string().uuid(),
-  provider: z.enum(['OPENAI', 'GEMINI', 'PERPLEXITY', 'CLAUDE']),
+  provider: z.enum(['OPENAI', 'GEMINI', 'PERPLEXITY', 'CLAUDE', 'GROQ']),
   mode: z.enum(['MODEL_MEMORY', 'LIVE_SEARCH']),
 })
 
@@ -364,6 +364,52 @@ export async function finalizeRaioXRun(input: {
       score: result.score,
       probes: result.totalProbes,
       errors: result.erroredProbes,
+    },
+  }
+}
+
+export async function getSnapshotDetailsAction(snapshotId: string, profileId: string) {
+  const guard = await requireAdmin()
+  if (!guard.ok) return guard
+
+  const snapshot = await db.geoScoreSnapshot.findFirst({
+    where: { id: snapshotId, profileId },
+    select: {
+      id: true,
+      score: true,
+      breakdown: true,
+      competitorComparison: true,
+      totalCostUsdCents: true,
+      createdAt: true,
+    },
+  })
+
+  if (!snapshot) {
+    return { ok: false, error: 'Snapshot não encontrado.', code: 404 }
+  }
+
+  const probeRuns = await db.geoProbeRun.findMany({
+    where: { snapshotId, profileId },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      id: true,
+      provider: true,
+      mode: true,
+      rawResponse: true,
+      companyMentioned: true,
+      citedUrls: true,
+      errorMessage: true,
+      createdAt: true,
+      targetQuestion: { select: { id: true, text: true, layer: true } },
+      mentionedCompetitor: { select: { id: true, name: true } },
+    },
+  })
+
+  return {
+    ok: true,
+    data: {
+      snapshot,
+      probeRuns,
     },
   }
 }

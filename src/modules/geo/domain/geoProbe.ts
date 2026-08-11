@@ -105,4 +105,5 @@ export const PROVIDER_LABELS: Record<GeoProvider, string> = {
   GEMINI: 'Google Gemini',
   PERPLEXITY: 'Perplexity',
   CLAUDE: 'Anthropic Claude',
+  GROQ: 'Groq (Llama 3.3)',
 }

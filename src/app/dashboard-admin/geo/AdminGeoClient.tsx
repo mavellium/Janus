@@ -15,6 +15,8 @@ import {
   Sparkles,
   Swords,
   Target,
+  TrendingUp,
+  Eye,
   Trash2,
   X,
   XCircle,
@@ -40,6 +42,7 @@ import {
   prepareRaioXRun,
   runSingleGeoProbe,
   finalizeRaioXRun,
+  getSnapshotDetailsAction,
   type RaioXTask,
   type SingleProbeResultData,
 } from '@/modules/geo/actions/runRaioX'
@@ -57,7 +60,7 @@ import {
 } from '@/modules/geo/actions/suggestGeoCompetitors'
 import { normalizeForMatching } from '@/modules/geo/domain/detectMention'
 import { LAYER_LABELS, PROVIDER_LABELS } from '@/modules/geo/domain/geoProbe'
-import type { GeoProvider, GeoQuestionLayer } from '@/generated/prisma/client'
+import type { GeoProvider, GeoProbeMode, GeoQuestionLayer } from '@/generated/prisma/client'
 
 const QUESTIONS_TO_GENERATE = 10
 const MAX_COMPETITORS_TOTAL = 5
@@ -115,6 +118,7 @@ const PROVIDER_ENV: Record<GeoProvider, string> = {
   GEMINI: 'GEMINI_API_KEY',
   PERPLEXITY: 'PERPLEXITY_API_KEY',
   CLAUDE: 'ANTHROPIC_API_KEY',
+  GROQ: 'GROQ_API_KEY',
 }
 
 function formatCents(cents: number): string {
@@ -290,18 +294,18 @@ function RunProgressPanel({
   const errors = completed.filter((item) => Boolean(item.errorMessage)).length
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <h3 className="text-base font-medium flex items-center gap-2">
-          <Radar className="h-5 w-5 animate-pulse" />
+    <div className="space-y-4 min-w-0 w-full overflow-hidden">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h3 className="text-base font-semibold flex items-center gap-2">
+          <Radar className="h-5 w-5 text-primary animate-pulse" />
           Executando Raio-X
         </h3>
-        <span className="text-sm text-brand-text-muted">
-          {done}/{total} consultas · {mentioned} menções · {errors} erros
+        <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-brand-bg-subtle text-brand-text-muted border border-brand-border">
+          {done}/{total} consultas · <span className="text-emerald-500 font-semibold">{mentioned} menções</span> · <span className={errors > 0 ? "text-red-400 font-semibold" : ""}>{errors} erros</span>
         </span>
       </div>
 
-      <div className="h-2 w-full rounded-full bg-brand-border overflow-hidden">
+      <div className="h-2 w-full rounded-full bg-brand-border/60 overflow-hidden">
         <div
           className="h-full bg-primary transition-all duration-300"
           style={{ width: `${percent}%` }}
@@ -309,38 +313,47 @@ function RunProgressPanel({
       </div>
 
       {currentTask && (
-        <p className="text-sm text-brand-text-muted flex items-center gap-2">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Consultando {PROVIDER_LABELS[currentTask.provider]} (
-          {currentTask.mode === 'LIVE_SEARCH' ? 'busca ao vivo' : 'memória do modelo'}) —{' '}
-          <span className="truncate">{currentTask.questionText}</span>
-        </p>
+        <div className="flex items-center gap-2 p-2.5 rounded-lg border border-primary/20 bg-primary/5 text-xs text-brand-text-muted min-w-0">
+          <Loader2 className="h-4 w-4 animate-spin text-primary flex-shrink-0" />
+          <div className="min-w-0 flex-1 truncate">
+            <span className="font-medium text-foreground">
+              {PROVIDER_LABELS[currentTask.provider]}
+            </span>{' '}
+            <span className="opacity-75">
+              ({currentTask.mode === 'LIVE_SEARCH' ? 'busca ao vivo' : 'memória do modelo'})
+            </span>{' '}
+            — <span className="italic truncate">{currentTask.questionText}</span>
+          </div>
+        </div>
       )}
 
-      <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+      <div className="max-h-[50vh] overflow-y-auto space-y-2.5 pr-1 min-w-0 w-full">
         {[...completed].reverse().map((item, index) => (
           <div
             key={`${item.probeRunId}-${index}`}
-            className="flex items-start gap-3 rounded-lg border border-brand-border p-3 text-sm"
+            className="flex items-start gap-3 rounded-xl border border-brand-border bg-brand-card/40 p-3.5 text-sm transition-all min-w-0 w-full overflow-hidden"
           >
             {item.errorMessage ? (
               <XCircle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
             ) : item.companyMentioned ? (
               <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0 mt-0.5" />
             ) : (
-              <XCircle className="h-4 w-4 text-brand-text-muted flex-shrink-0 mt-0.5" />
+              <XCircle className="h-4 w-4 text-brand-text-muted/60 flex-shrink-0 mt-0.5" />
             )}
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-brand-text-muted">
-                {PROVIDER_LABELS[item.provider]} ·{' '}
-                {item.mode === 'LIVE_SEARCH' ? 'busca ao vivo' : 'memória do modelo'} ·{' '}
-                {LAYER_LABELS[item.layer]}
-              </p>
-              <p className="truncate">{item.questionText}</p>
+            <div className="min-w-0 flex-1 w-full overflow-hidden">
+              <div className="flex items-center justify-between gap-2 text-xs text-brand-text-muted mb-1 flex-wrap">
+                <span className="font-medium text-foreground bg-brand-border/40 px-2 py-0.5 rounded">
+                  {PROVIDER_LABELS[item.provider]}
+                </span>
+                <span className="text-[11px] opacity-75">
+                  {item.mode === 'LIVE_SEARCH' ? 'Busca ao vivo' : 'Memória do modelo'} • {LAYER_LABELS[item.layer]}
+                </span>
+              </div>
+              <p className="font-medium text-xs sm:text-sm text-foreground break-words leading-snug">{item.questionText}</p>
               {item.errorMessage ? (
-                <p className="text-xs text-red-500 mt-1">{item.errorMessage}</p>
+                <p className="text-xs text-red-400 mt-1.5 p-2 rounded bg-red-500/10 border border-red-500/20 break-words">{item.errorMessage}</p>
               ) : (
-                <p className="text-xs text-brand-text-muted mt-1 line-clamp-2">
+                <p className="text-xs text-brand-text-muted mt-1.5 line-clamp-3 leading-relaxed break-words whitespace-normal bg-brand-bg-subtle/50 p-2 rounded border border-brand-border/30">
                   {item.rawResponse}
                 </p>
               )}
@@ -751,9 +764,9 @@ function AnalyzeWizard({
 
   return (
     <Dialog open onOpenChange={step === 'running' && isRunning ? undefined : onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader className="space-y-0">
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="max-w-2xl w-[92vw] overflow-hidden max-h-[85vh] flex flex-col">
+        <DialogHeader className="space-y-0 pb-2 flex-shrink-0">
+          <DialogTitle className="flex items-center gap-2 text-lg">
             <Radar className="h-5 w-5 text-primary" />
             Analisar {profile.name}
           </DialogTitle>
@@ -766,9 +779,9 @@ function AnalyzeWizard({
           )}
         </DialogHeader>
 
-        <div key={step} className="animate-in fade-in slide-in-from-right-2 duration-200">
+        <div key={step} className="animate-in fade-in slide-in-from-right-2 duration-200 flex-1 overflow-y-auto min-h-0 pr-1">
         {step === 'context' && (
-          <form onSubmit={handleSaveContext} className="space-y-4 max-h-[60vh] overflow-y-auto p-1 -m-1">
+          <form onSubmit={handleSaveContext} className="space-y-4 p-1">
             <p className="text-sm text-brand-text-muted">
               Confirme o contexto de negócio antes de analisar — ele orienta as perguntas
               simuladas de compra enviadas às IAs.
@@ -1485,6 +1498,33 @@ export function AdminGeoClient({
   const [wizardOpen, setWizardOpen] = useState(false)
   const [isMutating, startMutation] = useTransition()
 
+  const [viewingSnapshotId, setViewingSnapshotId] = useState<string | null>(null)
+  const [snapshotDetailsData, setSnapshotDetailsData] = useState<{
+    snapshot: Snapshot
+    probeRuns: {
+      id: string
+      provider: GeoProvider
+      mode: GeoProbeMode
+      rawResponse: string
+      companyMentioned: boolean
+      errorMessage: string | null
+      targetQuestion: { id: string; text: string; layer: GeoQuestionLayer }
+    }[]
+  } | null>(null)
+  const [loadingSnapshotDetails, setLoadingSnapshotDetails] = useState(false)
+
+  async function handleViewSnapshotDetails(snapshotId: string) {
+    if (!selectedProfileId) return
+    setViewingSnapshotId(snapshotId)
+    setLoadingSnapshotDetails(true)
+    setSnapshotDetailsData(null)
+    const result = await getSnapshotDetailsAction(snapshotId, selectedProfileId)
+    setLoadingSnapshotDetails(false)
+    if (result.ok) {
+      setSnapshotDetailsData(result.data as any)
+    }
+  }
+
   const missingProviders = providers.filter((p) => !p.configured)
 
   function toggleProvider(provider: GeoProvider) {
@@ -1746,25 +1786,207 @@ export function AdminGeoClient({
           )}
 
           {history.length > 1 && (
-            <section className="rounded-xl border border-brand-border p-5">
-              <h2 className="text-lg font-medium mb-4">Histórico</h2>
-              <div className="space-y-2">
-                {history.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between text-sm">
-                    <span>
-                      {new Date(item.createdAt).toLocaleString('pt-BR', {
-                        timeZone: 'America/Sao_Paulo',
-                      })}
-                    </span>
-                    <span className="text-brand-text-muted">
-                      IAG {item.score}/100 · {formatCents(item.totalCostUsdCents)}
-                    </span>
+            <section className="rounded-xl border border-brand-border p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-medium flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  Evolução do IAG Score
+                </h2>
+                <span className="text-xs text-brand-text-muted">
+                  Últimas {history.length} análises
+                </span>
+              </div>
+
+              {/* Gráfico de Evolução com SVG e Tooltips */}
+              <div className="pt-2 pb-1 px-2 bg-brand-card/30 rounded-xl border border-brand-border/40">
+                <div className="h-40 w-full flex items-end justify-between gap-2 sm:gap-4 relative pt-6">
+                  {/* Linhas de grade de fundo */}
+                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+                    <div className="border-b border-dashed border-brand-border w-full text-[10px] text-brand-text-muted">100</div>
+                    <div className="border-b border-dashed border-brand-border w-full text-[10px] text-brand-text-muted">50</div>
+                    <div className="border-b border-dashed border-brand-border w-full text-[10px] text-brand-text-muted">0</div>
                   </div>
-                ))}
+
+                  {/* Barras e Pontos */}
+                  {[...history].reverse().map((item, idx) => {
+                    const isLatest = idx === history.length - 1
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group relative z-10 cursor-pointer"
+                        onClick={() => handleViewSnapshotDetails(item.id)}
+                      >
+                        {/* Tooltip Hover */}
+                        <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-background border border-brand-border text-[11px] px-2 py-1 rounded shadow-lg whitespace-nowrap pointer-events-none z-20">
+                          <span className="font-semibold text-primary">Score: {item.score}/100</span>
+                          <br />
+                          <span className="text-brand-text-muted">{new Date(item.createdAt).toLocaleDateString('pt-BR')}</span>
+                        </div>
+
+                        {/* Rótulo de Score acima da barra */}
+                        <span className={`text-xs font-bold ${isLatest ? 'text-primary' : 'text-brand-text-muted'}`}>
+                          {item.score}
+                        </span>
+
+                        {/* Barra */}
+                        <div
+                          className={`w-full max-w-[28px] rounded-t-md transition-all duration-300 ${
+                            isLatest
+                              ? 'bg-gradient-to-t from-primary/60 to-primary shadow-md shadow-primary/20 group-hover:brightness-110'
+                              : 'bg-brand-border/60 hover:bg-primary/50'
+                          }`}
+                          style={{ height: `${Math.max(item.score, 6)}%` }}
+                        />
+
+                        {/* Rótulo de Data */}
+                        <span className="text-[10px] text-brand-text-muted truncate max-w-[50px]">
+                          {new Date(item.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Lista Detalhada do Histórico */}
+              <div className="pt-2">
+                <h3 className="text-sm font-medium mb-3 text-brand-text-muted">Histórico de Execuções</h3>
+                <div className="space-y-2">
+                  {history.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-brand-border bg-brand-card/20 text-sm hover:border-primary/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-bold text-xs">
+                          {item.score}
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground text-xs sm:text-sm">
+                            {new Date(item.createdAt).toLocaleString('pt-BR', {
+                              timeZone: 'America/Sao_Paulo',
+                              dateStyle: 'medium',
+                              timeStyle: 'short',
+                            })}
+                          </p>
+                          <p className="text-[11px] text-brand-text-muted">
+                            Custo: {formatCents(item.totalCostUsdCents)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewSnapshotDetails(item.id)}
+                        className="gap-1.5 text-xs"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        Ver Análise
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </section>
           )}
         </>
+      )}
+
+      {/* Modal de Detalhes do Snapshot Histórico */}
+      {viewingSnapshotId && (
+        <Dialog open onOpenChange={() => setViewingSnapshotId(null)}>
+          <DialogContent className="max-w-3xl w-[92vw] max-h-[85vh] flex flex-col overflow-hidden">
+            <DialogHeader className="pb-2 flex-shrink-0">
+              <DialogTitle className="flex items-center gap-2">
+                <Radar className="h-5 w-5 text-primary" />
+                Detalhes da Análise Histórica
+              </DialogTitle>
+            </DialogHeader>
+
+            {loadingSnapshotDetails ? (
+              <div className="py-12 flex flex-col items-center justify-center gap-2 text-brand-text-muted">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <span className="text-sm">Carregando dados da execução...</span>
+              </div>
+            ) : snapshotDetailsData ? (
+              <div className="space-y-4 flex-1 overflow-y-auto min-h-0 pr-1">
+                {/* Resumo do Score */}
+                <div className="flex items-center justify-between p-4 rounded-xl border border-brand-border bg-brand-card/40">
+                  <div>
+                    <span className="text-xs text-brand-text-muted">Data da execução</span>
+                    <p className="font-medium text-sm">
+                      {new Date(snapshotDetailsData.snapshot.createdAt).toLocaleString('pt-BR', {
+                        timeZone: 'America/Sao_Paulo',
+                        dateStyle: 'full',
+                        timeStyle: 'short',
+                      })}
+                    </p>
+                    <span className="text-xs text-brand-text-muted mt-1 block">
+                      Custo total: {formatCents(snapshotDetailsData.snapshot.totalCostUsdCents)}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs text-brand-text-muted block mb-1">Score IAG</span>
+                    <span className="text-3xl font-black text-primary">
+                      {snapshotDetailsData.snapshot.score}/100
+                    </span>
+                  </div>
+                </div>
+
+                {/* Consultas Executadas */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <Target className="h-4 w-4 text-primary" />
+                    Consultas Realizadas ({snapshotDetailsData.probeRuns.length})
+                  </h4>
+
+                  <div className="space-y-2.5">
+                    {snapshotDetailsData.probeRuns.map((run) => (
+                      <div
+                        key={run.id}
+                        className="p-3.5 rounded-xl border border-brand-border bg-brand-bg-subtle/40 space-y-2"
+                      >
+                        <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
+                          <span className="font-medium px-2 py-0.5 rounded bg-brand-border/40 text-foreground">
+                            {PROVIDER_LABELS[run.provider]}
+                          </span>
+                          <span className="text-brand-text-muted text-[11px]">
+                            {run.mode === 'LIVE_SEARCH' ? 'Busca ao vivo' : 'Memória do modelo'} •{' '}
+                            {LAYER_LABELS[run.targetQuestion.layer]}
+                          </span>
+                          {run.companyMentioned ? (
+                            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                              Mencionou Empresa
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[11px] text-brand-text-muted bg-brand-border/20">
+                              Não Mencionou
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-xs sm:text-sm font-medium text-foreground">
+                          {run.targetQuestion.text}
+                        </p>
+
+                        {run.errorMessage ? (
+                          <p className="text-xs text-red-400 p-2 rounded bg-red-500/10 border border-red-500/20">
+                            {run.errorMessage}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-brand-text-muted bg-brand-card p-2.5 rounded border border-brand-border/40 leading-relaxed whitespace-pre-wrap">
+                            {run.rawResponse}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </DialogContent>
+        </Dialog>
       )}
 
       {wizardOpen && selectedProfile && (
