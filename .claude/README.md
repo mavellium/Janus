@@ -38,6 +38,7 @@
 ## 📝 Módulos Documentados
 
 ### Auth/Permissions (`src/modules/auth/`)
+- **[context/auth/_index.md](context/auth/_index.md)** — Login credenciais/Google, lembrar minha conta, redefinição de senha
 - **[context/permissions/_index.md](context/permissions/_index.md)** — Impersonation, RBAC, cookies, login flow
 
 ### Users (`src/modules/users/`)

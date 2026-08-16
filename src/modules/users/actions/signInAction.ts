@@ -4,6 +4,7 @@ import { z } from "zod";
 import { signIn } from "@/lib/auth";
 import { AuthError } from "next-auth";
 import { db } from "@/lib/prisma";
+import { saveSessionPreference } from "@/lib/auth/session";
 
 const schema = z.object({
   email: z.string().email(),
@@ -22,6 +23,9 @@ export async function signInAction(
   });
 
   if (!parsed.success) return { error: "Email ou senha inválidos." };
+
+  const remember = formData.get("remember") === "on";
+  await saveSessionPreference(remember, parsed.data.email.toLowerCase());
 
   try {
     await signIn("credentials", { ...parsed.data, redirect: false });

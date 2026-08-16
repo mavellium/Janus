@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/prisma'
 import { DevSettingsClient } from '@/app/dev/[devId]/dashboard/settings/DevSettingsClient'
+import { getUserAuthMethods } from '@/modules/auth/queries/getUserAuthMethods'
 import type { UserPreferences } from '@/types/next-auth'
 
 export const metadata = { title: 'Configurações — Admin' }
@@ -17,8 +18,12 @@ export default async function AdminSettingsPage() {
 
   if (!user) redirect('/login')
 
+  const authMethods = await getUserAuthMethods(user.id)
+
   return (
     <DevSettingsClient
+      authMethods={authMethods}
+      settingsPath="/dashboard-admin/settings"
       user={{
         id: user.id,
         email: user.email,

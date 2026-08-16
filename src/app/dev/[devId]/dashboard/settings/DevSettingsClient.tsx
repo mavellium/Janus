@@ -15,6 +15,8 @@ import { updatePreferences } from '@/modules/users/actions/updatePreferences'
 import { useToast } from '@/hooks/use-toast'
 import { ToastContainer } from '@/components/ui/toast-container'
 import { UpdateAvatarModal } from '@/components/users/update-avatar-modal'
+import { ConnectedAccountsCard } from '@/components/auth/ConnectedAccountsCard'
+import type { UserAuthMethods } from '@/modules/auth/queries/getUserAuthMethods'
 import type { UserPreferences } from '@/types/next-auth'
 
 interface DevSettingsClientProps {
@@ -27,9 +29,11 @@ interface DevSettingsClientProps {
     requiresPasswordReset?: boolean
     preferences: UserPreferences
   }
+  authMethods: UserAuthMethods
+  settingsPath: string
 }
 
-export function DevSettingsClient({ user }: DevSettingsClientProps) {
+export function DevSettingsClient({ user, authMethods, settingsPath }: DevSettingsClientProps) {
   const [name, setName] = useState(user.name || '')
   const [email, setEmail] = useState(user.email)
   const [phone, setPhone] = useState(user.phone || '')
@@ -206,6 +210,20 @@ export function DevSettingsClient({ user }: DevSettingsClientProps) {
             </div>
           </CardContent>
         </Card>
+
+        {authMethods.googleProviderAvailable && (
+          <>
+            <Separator className="bg-border" />
+
+            <ConnectedAccountsCard
+              userId={user.id}
+              userEmail={user.email}
+              methods={authMethods}
+              revalidate={settingsPath}
+              onNotify={(message, type) => toast({ message, type })}
+            />
+          </>
+        )}
 
         <Separator className="bg-border" />
 

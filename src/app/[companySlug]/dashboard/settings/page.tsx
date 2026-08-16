@@ -4,6 +4,7 @@ import { db } from "@/lib/prisma";
 import { SettingsClient } from "./settings.client";
 import type { UserPreferences } from "@/types/next-auth";
 import { getImpersonatedUserId } from "@/lib/auth/permissions";
+import { getUserAuthMethods } from "@/modules/auth/queries/getUserAuthMethods";
 
 export const metadata = { title: "Configurações — Janus" };
 
@@ -44,6 +45,8 @@ export default async function SettingsPage({
     },
   });
 
+  const authMethods = await getUserAuthMethods(userId);
+
   return (
     <SettingsClient
       user={{
@@ -54,6 +57,8 @@ export default async function SettingsPage({
         image: user?.image || null,
         preferences: (user?.preferences as UserPreferences) || {},
       }}
+      authMethods={authMethods}
+      settingsPath={`/${companySlug}/dashboard/settings`}
       company={{
         id: company.id,
         name: company.name,

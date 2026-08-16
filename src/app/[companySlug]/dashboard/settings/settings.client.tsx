@@ -18,6 +18,8 @@ import { updateCompanyWebhook } from "@/modules/companies/actions/updateCompanyW
 import { useToast } from "@/hooks/use-toast";
 import { ToastContainer } from "@/components/ui/toast-container";
 import { UpdateAvatarModal } from "@/components/users/update-avatar-modal";
+import { ConnectedAccountsCard } from "@/components/auth/ConnectedAccountsCard";
+import type { UserAuthMethods } from "@/modules/auth/queries/getUserAuthMethods";
 import type { UserPreferences } from "@/types/next-auth";
 
 interface SettingsClientProps {
@@ -29,6 +31,8 @@ interface SettingsClientProps {
     image: string | null;
     preferences: UserPreferences;
   };
+  authMethods: UserAuthMethods;
+  settingsPath: string;
   company: {
     id: string;
     name: string;
@@ -39,7 +43,12 @@ interface SettingsClientProps {
   };
 }
 
-export function SettingsClient({ user, company }: SettingsClientProps) {
+export function SettingsClient({
+  user,
+  company,
+  authMethods,
+  settingsPath,
+}: SettingsClientProps) {
   const [name, setName] = useState(user.name || "");
   const [email, setEmail] = useState(user.email);
   const [phone, setPhone] = useState(user.phone || "");
@@ -399,6 +408,20 @@ export function SettingsClient({ user, company }: SettingsClientProps) {
               </div>
             </CardContent>
           </Card>
+
+          {authMethods.googleProviderAvailable && (
+            <>
+              <Separator className="bg-border" />
+
+              <ConnectedAccountsCard
+                userId={user.id}
+                userEmail={user.email}
+                methods={authMethods}
+                revalidate={settingsPath}
+                onNotify={(message, type) => toast({ message, type })}
+              />
+            </>
+          )}
 
           <Separator className="bg-border" />
 

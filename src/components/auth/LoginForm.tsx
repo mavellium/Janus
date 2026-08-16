@@ -2,10 +2,27 @@
 
 import { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { signInAction, type SignInState } from '@/modules/users/actions/signInAction'
 import { checkIpStatus, type IpStatusResponse } from '@/modules/auth/actions/checkIpStatus'
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton'
+import { AuthLogo } from '@/components/auth/AuthLogo'
 
-export function LoginForm() {
+interface LoginFormProps {
+  googleEnabled: boolean
+  defaultEmail: string
+  defaultRemember: boolean
+  providerError: string | null
+  passwordResetDone: boolean
+}
+
+export function LoginForm({
+  googleEnabled,
+  defaultEmail,
+  defaultRemember,
+  providerError,
+  passwordResetDone,
+}: LoginFormProps) {
   const router = useRouter()
   const [state, action, pending] = useActionState<SignInState, FormData>(signInAction, {})
   const [ipStatus, setIpStatus] = useState<IpStatusResponse>({
@@ -13,7 +30,7 @@ export function LoginForm() {
     remainingSeconds: 0,
     reason: '',
   })
-  const [displayTime, setDisplayTime] = useState('00:00')
+  const displayTime = `${String(Math.floor(ipStatus.remainingSeconds / 60)).padStart(2, '0')}:${String(ipStatus.remainingSeconds % 60).padStart(2, '0')}`
 
   useEffect(() => {
     checkIpStatus().then(setIpStatus)
@@ -42,12 +59,6 @@ export function LoginForm() {
     return () => clearInterval(timer)
   }, [ipStatus.blocked, ipStatus.remainingSeconds])
 
-  useEffect(() => {
-    const minutes = Math.floor(ipStatus.remainingSeconds / 60)
-    const seconds = ipStatus.remainingSeconds % 60
-    setDisplayTime(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`)
-  }, [ipStatus.remainingSeconds])
-
   return (
     <div className="w-full max-w-sm relative">
       {ipStatus.blocked && (
@@ -74,12 +85,16 @@ export function LoginForm() {
 
       <div className="px-8 py-10 bg-card rounded-2xl shadow-sm border border-brand-btn-light" style={{ opacity: ipStatus.blocked ? 0.5 : 1, pointerEvents: ipStatus.blocked ? 'none' : 'auto' }}>
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-brand-primary mb-4">
-            <span className="text-white font-bold text-sm">J</span>
-          </div>
+          <AuthLogo />
           <h1 className="text-xl font-semibold tracking-tight text-brand-text">Entrar no Janus</h1>
           <p className="mt-1 text-sm text-brand-muted">Bem-vindo de volta.</p>
         </div>
+
+        {passwordResetDone && (
+          <p className="mb-4 text-sm text-brand-text bg-brand-primary/10 border border-brand-primary/30 rounded-lg px-3 py-2">
+            Senha redefinida com sucesso. Entre com a nova senha.
+          </p>
+        )}
 
         <form action={action} className="space-y-4">
           <div className="space-y-1.5">
@@ -92,6 +107,7 @@ export function LoginForm() {
               type="email"
               autoComplete="email"
               required
+              defaultValue={defaultEmail}
               placeholder="seu@email.com"
               className="w-full rounded-lg border border-brand-btn-light bg-brand-bg px-3.5 py-2.5 text-sm text-brand-text placeholder:text-brand-muted outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 disabled:opacity-50"
               disabled={pending || ipStatus.blocked}
@@ -99,9 +115,17 @@ export function LoginForm() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="password" className="block text-sm font-medium text-brand-text">
-              Senha
-            </label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="password" className="block text-sm font-medium text-brand-text">
+                Senha
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs font-medium text-brand-primary hover:underline"
+              >
+                Esqueceu a senha?
+              </Link>
+            </div>
             <input
               id="password"
               name="password"
@@ -114,9 +138,24 @@ export function LoginForm() {
             />
           </div>
 
-          {state.error && (
+          <label
+            htmlFor="remember"
+            className="flex items-center gap-2 text-sm text-brand-muted select-none cursor-pointer"
+          >
+            <input
+              id="remember"
+              name="remember"
+              type="checkbox"
+              defaultChecked={defaultRemember}
+              disabled={pending || ipStatus.blocked}
+              className="h-4 w-4 rounded border-brand-btn-light text-brand-primary accent-brand-primary focus:ring-2 focus:ring-brand-primary/20 disabled:opacity-50"
+            />
+            Lembrar minha conta neste dispositivo
+          </label>
+
+          {(state.error || providerError) && (
             <p className="text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2">
-              {state.error}
+              {state.error ?? providerError}
             </p>
           )}
 
@@ -127,6 +166,17 @@ export function LoginForm() {
           >
             {pending ? 'Entrando…' : 'Entrar'}
           </button>
+
+          {googleEnabled && (
+            <>
+              <div className="flex items-center gap-3 pt-2">
+                <span className="h-px flex-1 bg-brand-btn-light" />
+                <span className="text-xs text-brand-muted">ou</span>
+                <span className="h-px flex-1 bg-brand-btn-light" />
+              </div>
+              <GoogleSignInButton disabled={ipStatus.blocked} />
+            </>
+          )}
         </form>
       </div>
     </div>
