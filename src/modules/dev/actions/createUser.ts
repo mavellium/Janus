@@ -5,6 +5,7 @@ import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { hash } from 'bcryptjs'
 import { revalidatePath } from 'next/cache'
+import { enforceQuota } from '@/modules/billing/guards/enforcePlan'
 
 const schema = z.object({
   name: z.string().min(2),
@@ -31,6 +32,9 @@ export async function createUser(_prev: { ok: boolean; error?: string }, formDat
 
   const company = await db.company.findUnique({ where: { id: parsed.data.companyId, deletedAt: null } })
   if (!company) return { ok: false, error: 'Empresa não encontrada.' }
+
+  const quota = await enforceQuota(company.id, 'users')
+  if (!quota.ok) return { ok: false, error: quota.error }
 
   const passwordHash = await hash(parsed.data.password, 10)
 

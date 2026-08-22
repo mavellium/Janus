@@ -5,6 +5,7 @@ import { db } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { logAudit } from "@/lib/audit-logger";
+import { initialSubscriptionData } from "@/modules/billing/domain/limits";
 
 function toSlug(name: string) {
   return name
@@ -40,7 +41,12 @@ export async function adminQuickCreateCompany(
   if (existing) slug = `${slug}-${Date.now().toString(36)}`;
 
   const company = await db.company.create({
-    data: { name: parsed.data.name, slug, createdById: session.user.id },
+    data: {
+      name: parsed.data.name,
+      slug,
+      createdById: session.user.id,
+      subscription: { create: initialSubscriptionData() },
+    },
     select: { id: true, name: true, slug: true },
   });
 

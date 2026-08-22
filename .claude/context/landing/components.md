@@ -24,7 +24,7 @@ Todos em `src/components/landing/`.
 
 ## Seções da página (`src/app/page.tsx`)
 
-Hero → faixa de números → `01` problema → `02` conteúdo (`#cms`) → `03` SEO (`#seo`) → `04` IA (`#ia`) → `05` recursos (`#operacao`) → `06` fluxo (`#fluxo`) → `07` API (`#api`) → `08` perguntas (`#perguntas`) → CTA → rodapé.
+Hero → faixa de números → faixa de clientes (`CLIENTS`) → `01` problema → `02` conteúdo (`#cms`) → `03` SEO (`#seo`) → `04` IA (`#ia`) → `05` recursos (`#operacao`) → `06` fluxo (`#fluxo`) → `07` API (`#api`) → `08` planos (`#precos`, array `PLANS`) → `09` perguntas (`#perguntas`) → CTA → rodapé.
 
 **Detalhes do HeroPipeline**
 

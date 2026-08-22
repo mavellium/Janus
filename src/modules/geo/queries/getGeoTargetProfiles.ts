@@ -6,6 +6,7 @@ export async function getGeoTargetProfiles() {
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,
+      companyId: true,
       name: true,
       description: true,
       industry: true,
@@ -15,6 +16,7 @@ export async function getGeoTargetProfiles() {
       targetAudience: true,
       differentiators: true,
       createdAt: true,
+      company: { select: { id: true, name: true } },
     },
   })
 }

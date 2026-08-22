@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/prisma'
 import { Prisma, type GeoProbeMode, type GeoProvider } from '@/generated/prisma/client'
 import { logAudit } from '@/lib/audit-logger'
+import { enforceQuota } from '@/modules/billing/guards/enforcePlan'
 import { calculateIagScore } from '../domain/calculateIagScore'
 import { detectMention } from '../domain/detectMention'
 import type { GeoTargetProfileContext, IagScoreInput } from '../domain/geoProbe'
@@ -79,10 +80,17 @@ export async function prepareRaioXRun(input: {
 
   const profile = await db.geoTargetProfile.findFirst({
     where: { id: profileId, archivedAt: null },
-    select: { id: true },
+    select: { id: true, companyId: true },
   })
   if (!profile) {
     return { ok: false, error: 'Empresa analisada não encontrada', code: 404 }
+  }
+
+  if (profile.companyId) {
+    const quota = await enforceQuota(profile.companyId, 'geoRunsPerMonth')
+    if (!quota.ok) {
+      return { ok: false, error: quota.error, code: quota.code }
+    }
   }
 
   const recentRun = await db.geoScoreSnapshot.findFirst({

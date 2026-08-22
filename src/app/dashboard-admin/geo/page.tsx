@@ -3,6 +3,7 @@ import { getGeoTargetQuestions } from '@/modules/geo/queries/getGeoTargetQuestio
 import { getGeoCompetitors } from '@/modules/geo/queries/getGeoCompetitors'
 import { getLatestGeoSnapshot, getGeoSnapshotHistory } from '@/modules/geo/queries/getGeoSnapshot'
 import { getEnabledProviders, isProviderConfigured } from '@/modules/geo/infra/providers'
+import { db } from '@/lib/prisma'
 import { AdminGeoClient } from './AdminGeoClient'
 
 export const metadata = { title: 'Raio-X de Visibilidade em IA — Admin' }
@@ -32,6 +33,12 @@ export default async function AdminGeoPage({
     configured: isProviderConfigured(provider),
   }))
 
+  const companies = await db.company.findMany({
+    where: { deletedAt: null },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  })
+
   return (
     <AdminGeoClient
       profiles={profiles}
@@ -41,6 +48,7 @@ export default async function AdminGeoPage({
       latestSnapshot={latestSnapshot}
       history={history}
       providers={providers}
+      companies={companies}
     />
   )
 }

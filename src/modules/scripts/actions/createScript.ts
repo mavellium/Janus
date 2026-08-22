@@ -5,6 +5,7 @@ import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from '@/lib/audit-logger'
+import { enforceFeature } from '@/modules/billing/guards/enforcePlan'
 
 const schema = z.object({
   projectId: z.string().uuid(),
@@ -40,6 +41,9 @@ export async function createScript(_: unknown, formData: FormData) {
       session.user.companySlug &&
       project.company.slug !== session.user.companySlug
     ) return { ok: false, error: 'Acesso negado' }
+
+    const feature = await enforceFeature(project.companyId, 'scripts')
+    if (!feature.ok) return { ok: false, error: feature.error }
 
     const script = await db.siteScript.create({
       data: { projectId, name, code, position },

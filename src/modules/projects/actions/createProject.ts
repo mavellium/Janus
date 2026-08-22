@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { logAudit } from '@/lib/audit-logger'
+import { enforceQuota } from '@/modules/billing/guards/enforcePlan'
 
 interface CreateProjectParams {
   name: string
@@ -31,6 +32,11 @@ export async function createProject({
 
     if (session.user.role !== 'ADMIN' && session.user.companySlug && session.user.companySlug !== companySlug) {
       return { ok: false, error: 'Acesso negado' }
+    }
+
+    const quota = await enforceQuota(company.id, 'projects')
+    if (!quota.ok) {
+      return { ok: false, error: quota.error, code: quota.code }
     }
 
     const project = await db.project.create({

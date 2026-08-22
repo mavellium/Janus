@@ -39,6 +39,47 @@ enum AuditAction {
   @@map("audit_action")
 }
 
+enum PlanTier {
+  TRIAL
+  INICIAL
+  MEDIO
+  PRO
+  ENTERPRISE
+
+  @@map("plan_tier")
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+
+  @@map("subscription_status")
+}
+
+model Subscription {
+  id               String             @id @default(uuid()) @db.Uuid
+  companyId        String             @unique @db.Uuid @map("company_id")
+  company          Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tier             PlanTier           @default(TRIAL)
+  status           SubscriptionStatus @default(TRIALING)
+  trialEndsAt      DateTime?          @map("trial_ends_at")
+  currentPeriodEnd DateTime?          @map("current_period_end")
+  discountPercent  Int?               @map("discount_percent")
+  discountEndsAt   DateTime?          @map("discount_ends_at")
+  limitOverrides   Json               @default("{}") @map("limit_overrides")
+  notes            String?            @db.Text
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  @@index([tier])
+  @@index([status])
+  @@index([trialEndsAt])
+  @@map("subscriptions")
+}
+
 model Company {
   id               String    @id @default(uuid()) @db.Uuid
   slug             String    @unique
@@ -58,6 +99,8 @@ model Company {
   guestEntries GuestEntry[]
   userCompanies UserCompany[]
   seoAnalyses  SeoAnalysis[]
+  subscription Subscription?
+  geoTargetProfiles GeoTargetProfile[]
 
   @@index([slug])
   @@index([deletedAt])
@@ -524,6 +567,8 @@ enum GeoProbeMode {
 
 model GeoTargetProfile {
   id              String    @id @default(uuid()) @db.Uuid
+  companyId       String?   @db.Uuid @map("company_id")
+  company         Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   name            String
   description     String?   @db.Text
   industry        String?
@@ -544,6 +589,7 @@ model GeoTargetProfile {
   snapshots   GeoScoreSnapshot[]
 
   @@index([archivedAt])
+  @@index([companyId])
   @@map("geo_target_profiles")
 }
 
