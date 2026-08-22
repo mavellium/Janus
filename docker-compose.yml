@@ -4,11 +4,7 @@ services:
   # ==========================================
   janus-app:
     container_name: janus-app-prod
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_URL_API=https://januscms.com.br/api
+    image: ghcr.io/mavellium/janus:prod
     environment:
       - HOSTNAME=0.0.0.0
       - PORT=3000
@@ -64,11 +60,7 @@ services:
   # ==========================================
   janus-app-test:
     container_name: janus-app-test
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_URL_API=https://teste.januscms.com.br/api
+    image: ghcr.io/mavellium/janus:test
     environment:
       - HOSTNAME=0.0.0.0
       - PORT=3000
