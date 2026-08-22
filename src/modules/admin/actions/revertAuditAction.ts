@@ -32,6 +32,7 @@ const ENTITY_DELEGATES: Record<string, RevertibleDelegate> = {
   GeoTargetProfile: db.geoTargetProfile as unknown as RevertibleDelegate,
   GeoTargetQuestion: db.geoTargetQuestion as unknown as RevertibleDelegate,
   GeoCompetitor: db.geoCompetitor as unknown as RevertibleDelegate,
+  Subscription: db.subscription as unknown as RevertibleDelegate,
 }
 
 const SNAPSHOT_ONLY_KEYS = new Set([

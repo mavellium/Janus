@@ -24,6 +24,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { FormSelect } from '@/components/ui/form-select'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -66,8 +67,14 @@ const QUESTIONS_TO_GENERATE = 10
 const MAX_COMPETITORS_TOTAL = 5
 const MAX_QUESTIONS_TOTAL = 15
 
+interface CompanyOption {
+  id: string
+  name: string
+}
+
 interface Profile {
   id: string
+  companyId: string | null
   name: string
   description: string | null
   industry: string | null
@@ -77,6 +84,7 @@ interface Profile {
   targetAudience: string | null
   differentiators: string | null
   createdAt: Date
+  company: CompanyOption | null
 }
 
 interface Question {
@@ -128,11 +136,13 @@ function formatCents(cents: number): string {
 function ProfileModal({
   mode,
   profile,
+  companies,
   onClose,
   onSaved,
 }: {
   mode: 'create' | 'edit'
   profile?: Profile
+  companies: CompanyOption[]
   onClose: () => void
   onSaved: (id: string) => void
 }) {
@@ -181,6 +191,21 @@ function ProfileModal({
               defaultValue={profile?.name}
               placeholder="Construtora São João"
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="companyId">Cliente do Janus (consome a cota do plano)</Label>
+            <FormSelect
+              id="companyId"
+              name="companyId"
+              defaultValue={profile?.companyId ?? 'none'}
+              options={[
+                { value: 'none', label: 'Nenhum — análise interna, sem cota' },
+                ...companies.map((company) => ({ value: company.id, label: company.name })),
+              ]}
+            />
+            <p className="text-xs text-brand-text-muted">
+              Vinculando a um cliente, cada execução desconta do limite mensal do plano dele.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">O que a empresa faz</Label>
@@ -1480,6 +1505,7 @@ export function AdminGeoClient({
   latestSnapshot,
   history,
   providers,
+  companies,
 }: {
   profiles: Profile[]
   selectedProfileId: string | null
@@ -1488,6 +1514,7 @@ export function AdminGeoClient({
   latestSnapshot: Snapshot | null
   history: { id: string; score: number; createdAt: Date; totalCostUsdCents: number }[]
   providers: { provider: GeoProvider; configured: boolean }[]
+  companies: CompanyOption[]
 }) {
   const router = useRouter()
   const configuredProviders = providers.filter((p) => p.configured).map((p) => p.provider)
@@ -2002,6 +2029,7 @@ export function AdminGeoClient({
       {profileModal === 'create' && (
         <ProfileModal
           mode="create"
+          companies={companies}
           onClose={() => setProfileModal(null)}
           onSaved={handleProfileSaved}
         />
@@ -2010,6 +2038,7 @@ export function AdminGeoClient({
         <ProfileModal
           mode="edit"
           profile={selectedProfile}
+          companies={companies}
           onClose={() => setProfileModal(null)}
           onSaved={handleProfileSaved}
         />

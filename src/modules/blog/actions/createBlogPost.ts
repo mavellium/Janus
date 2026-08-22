@@ -8,6 +8,7 @@ import { revalidateSites } from '@/lib/revalidateSites'
 import { sanitizeArticleHtml } from '@/lib/sanitize-html'
 import { readingTimeFromHtml } from '@/lib/reading-time'
 import { logAudit } from '@/lib/audit-logger'
+import { enforceFeature } from '@/modules/billing/guards/enforcePlan'
 
 const schema = z.object({
   projectId: z.string().uuid(),
@@ -32,6 +33,10 @@ function parsePublishedAt(value?: string): Date | null {
   if (!value) return null
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? null : date
+}
+
+function isFutureDate(date: Date | null): boolean {
+  return date !== null && date.getTime() > Date.now()
 }
 
 function slugify(text: string): string {
@@ -96,6 +101,11 @@ export async function createBlogPost(_: unknown, formData: FormData) {
 
     if (session.user.role !== 'ADMIN' && session.user.companySlug && session.user.companySlug !== companySlug) {
       return { ok: false as const, error: 'Acesso negado' }
+    }
+
+    if (isFutureDate(scheduledAt)) {
+      const feature = await enforceFeature(company.id, 'blogScheduling')
+      if (!feature.ok) return { ok: false as const, error: feature.error }
     }
 
     const project = await db.project.findUnique({

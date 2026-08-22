@@ -6,6 +6,7 @@ import { auth } from '@/lib/auth'
 import { db } from '@/lib/prisma'
 import { Prisma } from '@/generated/prisma/client'
 import { SafeFetchError, type SafeFetchErrorCode, safeFetch } from '@/lib/security/safe-fetch'
+import { enforceQuota } from '@/modules/billing/guards/enforcePlan'
 import { parsePage } from '../infra/parseHtml'
 import { fetchSitemapUrls } from '../infra/fetchSitemapUrls'
 import { scoreSeo } from '../domain/seoScoring'
@@ -20,7 +21,6 @@ import {
 
 const MAX_PAGES = 20
 const CONCURRENCY = 5
-const RATE_LIMIT_SITE_SCANS_PER_DAY = 10
 const ROBOTS_FETCH_OPTIONS = { timeoutMs: 5000, maxBytes: 256 * 1024 }
 
 const inputSchema = z.object({
@@ -107,16 +107,9 @@ export async function analyzeSite(input: {
     return { ok: false, error: 'Site não encontrado', code: 404 }
   }
 
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
-  const usedToday = await db.seoAnalysis.count({
-    where: { companyId: company.id, projectId, createdAt: { gte: since } },
-  })
-  if (usedToday >= RATE_LIMIT_SITE_SCANS_PER_DAY) {
-    return {
-      ok: false,
-      error: `Limite de ${RATE_LIMIT_SITE_SCANS_PER_DAY} análises deste site por dia atingido. Tente novamente amanhã.`,
-      code: 429,
-    }
+  const quota = await enforceQuota(company.id, 'siteScansPerDay')
+  if (!quota.ok) {
+    return { ok: false, error: quota.error, code: quota.code }
   }
 
   const pages = await db.page.findMany({

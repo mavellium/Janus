@@ -25,8 +25,22 @@ const aliasesSchema = z
       .filter(Boolean),
   )
 
+const NO_COMPANY = 'none'
+
+const companyIdSchema = z
+  .string()
+  .optional()
+  .transform((value) => {
+    const trimmed = value?.trim()
+    return !trimmed || trimmed === NO_COMPANY ? null : trimmed
+  })
+  .refine((value) => value === null || z.string().uuid().safeParse(value).success, {
+    message: 'Empresa inválida.',
+  })
+
 const profileFieldsSchema = z.object({
   name: z.string().min(2, 'Informe o nome da empresa analisada.').max(160),
+  companyId: companyIdSchema,
   description: optionalText(2000),
   industry: optionalText(160),
   location: optionalText(160),
@@ -43,6 +57,7 @@ type ActionResult = { ok: true; data?: unknown } | { ok: false; error: string; c
 function readProfileFormData(formData: FormData) {
   return {
     name: formData.get('name'),
+    companyId: formData.get('companyId') ?? undefined,
     description: formData.get('description') ?? undefined,
     industry: formData.get('industry') ?? undefined,
     location: formData.get('location') ?? undefined,
@@ -97,13 +112,16 @@ export async function updateGeoTargetProfile(
     return { ok: false, error: parsed.error.issues[0].message, code: 400 }
   }
 
-  const { id, ...data } = parsed.data
+  const { id, companyId, ...data } = parsed.data
   const previous = await db.geoTargetProfile.findUnique({ where: { id } })
   if (!previous) {
     return { ok: false, error: 'Empresa analisada não encontrada', code: 404 }
   }
 
-  const profile = await db.geoTargetProfile.update({ where: { id }, data })
+  const profile = await db.geoTargetProfile.update({
+    where: { id },
+    data: formData.has('companyId') ? { ...data, companyId } : data,
+  })
 
   await logAudit({
     userId: guard.actor.userId,

@@ -32,6 +32,7 @@
 - **O que mudou e quando (CMS)?** → [context/cms/changelog.md](context/cms/changelog.md)
 - **O que mudou e quando (Blog)?** → [context/blog/changelog.md](context/blog/changelog.md)
 - **O que mudou e quando (Landing)?** → [context/landing/changelog.md](context/landing/changelog.md)
+- **O que mudou e quando (Billing)?** → [context/billing/changelog.md](context/billing/changelog.md)
 
 ---
 
@@ -88,6 +89,9 @@
 
 ### Landing (`src/app/page.tsx` + `src/components/landing/`)
 - **[context/landing/_index.md](context/landing/_index.md)** — Página pública de venda: hero animado, seções, tokens `lp-*` e as 3 armadilhas do stack (opacidade Tailwind, `overflow-x`, setState em effect)
+
+### Billing (`src/modules/billing/`)
+- **[context/billing/_index.md](context/billing/_index.md)** — Planos e limites: catálogo único (preço/limite), cota por empresa, enforcement nas actions e gestão manual dentro de `/dashboard-admin/companies`
 
 ---
 

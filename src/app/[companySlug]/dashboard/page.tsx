@@ -20,6 +20,9 @@ import {
 } from '@/components/dashboard/OnboardingChecklist'
 import { RecentActivityFeed } from '@/components/dashboard/RecentActivityFeed'
 import { SeoAnalyzerCard } from '@/components/seo/SeoAnalyzerCard'
+import { PlanUsageCard } from '@/components/billing/PlanUsageCard'
+import { getCompanySubscription } from '@/modules/billing/queries/getCompanySubscription'
+import { getCompanyUsage } from '@/modules/billing/queries/getCompanyUsage'
 
 export const metadata = { title: 'Dashboard — Janus' }
 
@@ -53,6 +56,8 @@ export default async function DashboardPage({
     recentActivity,
     impersonating,
     freshPermissions,
+    subscription,
+    usage,
   ] = await Promise.all([
     getProjects({ companyId: company.id, type: 'INSTITUTIONAL' }),
     getProjects({ companyId: company.id, type: 'LANDING_PAGE' }),
@@ -69,6 +74,8 @@ export default async function DashboardPage({
     getRecentCompanyActivity(company.id, 8, ownerId),
     isImpersonating(),
     getEffectivePermissions(session.user.id),
+    getCompanySubscription(company.id),
+    getCompanyUsage(company.id),
   ])
 
   const firstName = session.user.email?.split('@')[0] || 'Usuário'
@@ -342,7 +349,10 @@ export default async function DashboardPage({
           companySlug={companySlug}
           ownerId={ownerId}
         />
-        <RecentActivityFeed entries={recentActivity} />
+        <div className="space-y-8">
+          <PlanUsageCard subscription={subscription} usage={usage} />
+          <RecentActivityFeed entries={recentActivity} />
+        </div>
       </div>
     </div>
   )

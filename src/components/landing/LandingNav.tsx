@@ -11,6 +11,7 @@ const LINKS = [
   { href: '#seo', label: 'SEO' },
   { href: '#ia', label: 'IA' },
   { href: '#operacao', label: 'Recursos' },
+  { href: '#precos', label: 'Planos' },
   { href: '#perguntas', label: 'Perguntas' },
 ]
 

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import {
@@ -7,6 +8,7 @@ import {
   Braces,
   Building2,
   ChartColumn,
+  Check,
   CodeXml,
   Eye,
   FileImage,
@@ -17,6 +19,8 @@ import {
   PencilLine,
 } from 'lucide-react'
 import { auth } from '@/lib/auth'
+import { cn } from '@/lib/utils'
+import { PUBLIC_PLANS, TRIAL_DAYS } from '@/modules/billing/domain/plans'
 import { LandingNav } from '@/components/landing/LandingNav'
 import { LandingFooter } from '@/components/landing/LandingFooter'
 import { Reveal } from '@/components/landing/Reveal'
@@ -134,6 +138,10 @@ const OPERATIONS = [
   },
 ]
 
+const CLIENTS = [
+  { name: 'Tegbe', logo: 'https://tegbe-cdn.b-cdn.net/uploads/1774578674491-logo.svg' },
+]
+
 const FLOW = [
   {
     step: '01',
@@ -246,6 +254,35 @@ export default async function Home() {
                   </div>
                 ))}
               </dl>
+            </Reveal>
+          </div>
+        </section>
+
+        <section className="py-10 sm:py-12">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <Reveal>
+              <div className="border-y border-brand-btn-light py-6">
+                <p className="lp-mono text-center text-[10px] uppercase tracking-[0.18em] text-brand-muted">
+                  Empresas que já confiam no Janus
+                </p>
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-4">
+                  {CLIENTS.map((client) => (
+                    <span
+                      key={client.name}
+                      className="inline-flex h-14 items-center justify-center rounded-xl bg-neutral-900 px-6"
+                    >
+                      <Image
+                        src={client.logo}
+                        alt={client.name}
+                        width={200}
+                        height={67}
+                        unoptimized
+                        className="h-6 w-auto sm:h-7"
+                      />
+                    </span>
+                  ))}
+                </div>
+              </div>
             </Reveal>
           </div>
         </section>
@@ -490,10 +527,95 @@ export default async function Home() {
           </div>
         </section>
 
+        <section id="precos" className="scroll-mt-16 py-16 sm:py-20 lg:py-28">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <Reveal>
+              <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-end sm:justify-between">
+                <SectionHeading
+                  index="08"
+                  eyebrow="Planos"
+                  title="Um plano para cada tamanho de site."
+                  description="Comece pequeno e mude de plano quando o site crescer. Sem contrato de fidelidade."
+                />
+                <span className="lp-tint-cta inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-xs font-medium text-brand-text">
+                  {TRIAL_DAYS} dias grátis no plano Inicial — sem cartão de crédito
+                </span>
+              </div>
+            </Reveal>
+
+            <div className="mt-10 grid gap-5 sm:mt-14 lg:grid-cols-4">
+              {PUBLIC_PLANS.map((plan, position) => (
+                <Reveal key={plan.name} delay={position * 90} className="h-full">
+                  <article
+                    className={cn(
+                      'lp-card flex h-full flex-col rounded-2xl border p-6',
+                      plan.highlight
+                        ? 'lp-border-cta lp-tint-cta border-2'
+                        : 'border-brand-btn-light bg-card',
+                    )}
+                  >
+                    <div className="flex h-6 items-center">
+                      {plan.highlight && (
+                        <span className="lp-mono inline-flex w-fit items-center rounded-full bg-brand-cta px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white">
+                          Mais popular
+                        </span>
+                      )}
+                      {plan.trial && (
+                        <span className="lp-tint-primary lp-mono inline-flex w-fit items-center rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-brand-primary">
+                          {TRIAL_DAYS} dias grátis
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="lp-display mt-4 text-lg font-semibold text-brand-text">
+                      {plan.name}
+                    </h3>
+                    <p className="mt-2 min-h-12 text-sm leading-relaxed text-brand-muted">
+                      {plan.description}
+                    </p>
+
+                    <div className="mt-6 border-t border-brand-btn-light pt-6">
+                      {plan.priceMonthly !== null ? (
+                        <p className="lp-display text-3xl font-semibold text-brand-text">
+                          R$ {plan.priceMonthly}
+                          <span className="text-sm font-normal text-brand-muted">/mês</span>
+                        </p>
+                      ) : (
+                        <p className="lp-display text-3xl font-semibold text-brand-text">Consulta</p>
+                      )}
+                    </div>
+
+                    <ul className="mt-6 flex-1 space-y-3">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex gap-2.5 text-sm text-brand-muted">
+                          <Check size={16} className="mt-0.5 shrink-0 text-brand-cta" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Link
+                      href="/login"
+                      className={cn(
+                        'mt-8 inline-flex h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors',
+                        plan.highlight
+                          ? 'bg-brand-cta text-white hover:bg-brand-cta-hover'
+                          : 'border border-brand-btn-light text-brand-text hover:bg-brand-btn-light',
+                      )}
+                    >
+                      {plan.cta}
+                    </Link>
+                  </article>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section id="perguntas" className="scroll-mt-16 py-16 sm:py-20 lg:py-28">
           <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
             <Reveal>
-              <SectionHeading index="08" eyebrow="Perguntas" title="O que costumam perguntar." />
+              <SectionHeading index="09" eyebrow="Perguntas" title="O que costumam perguntar." />
             </Reveal>
             <Reveal delay={100} className="mt-8 sm:mt-12">
               <FaqList />

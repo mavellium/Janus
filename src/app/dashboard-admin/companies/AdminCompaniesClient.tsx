@@ -4,10 +4,14 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  BadgeCheck,
   Building2,
+  CalendarClock,
+  Gauge,
   Pencil,
   Plus,
   Loader2,
+  SlidersHorizontal,
   UsersRound,
   Search,
   UserCircle,
@@ -35,16 +39,35 @@ import {
   type ColumnDef,
   type FilterDef,
 } from "@/components/ui/AdminDataTable";
+import { CompanyPlanModal } from "@/components/billing/CompanyPlanModal";
+import { CompanyLimitsModal } from "@/components/billing/CompanyLimitsModal";
+import {
+  PLAN_TIERS,
+  STATUS_LABEL,
+  STATUS_STYLE,
+  SUBSCRIPTION_STATUSES,
+  formatDateBr,
+} from "@/components/billing/planDisplay";
+import { PLAN_CATALOG } from "@/modules/billing/domain/plans";
+import {
+  adminConvertTrial,
+  adminExtendTrial,
+} from "@/modules/billing/actions/adminUpdateSubscription";
+import type { AdminCompanyRow } from "@/modules/admin/queries/getAdminCompanies";
 
-interface Company {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  guestModeEnabled: boolean;
-  createdAt: Date;
-  users: { id: string; name: string | null; email: string; role: string }[];
-  projects: { id: string }[];
+type Company = AdminCompanyRow;
+
+/** Mostra `uso/teto` só quando existe teto — sem teto o número sozinho já diz tudo. */
+function QuotaValue({ used, limit }: { used: number; limit: number | null }) {
+  const exceeded = limit !== null && used >= limit;
+  return (
+    <span
+      className={`text-sm ${exceeded ? "font-medium text-destructive" : "text-brand-text"}`}
+      title={limit === null ? "Sem limite no plano" : `Limite do plano: ${limit}`}
+    >
+      {limit === null ? used : `${used}/${limit}`}
+    </span>
+  );
 }
 
 function CompanyFormModal({
@@ -175,12 +198,32 @@ export function AdminCompaniesClient({
   >(null);
   const [impersonateSearch, setImpersonateSearch] = useState("");
   const [isImpersonating, setIsImpersonating] = useState(false);
+  const [planTarget, setPlanTarget] = useState<Company | null>(null);
+  const [limitsTarget, setLimitsTarget] = useState<Company | null>(null);
+  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
+  const [, startPlanAction] = useTransition();
 
   const isAdmin = currentRole === "ADMIN";
 
   async function handleBulkDelete(ids: string[]) {
     await Promise.all(ids.map((id) => adminDeleteCompany(id)));
     router.refresh();
+  }
+
+  function runPlanAction(
+    companyId: string,
+    fn: () => Promise<{ ok: boolean; error?: string }>,
+  ) {
+    setPendingPlanId(companyId);
+    startPlanAction(async () => {
+      const result = await fn();
+      setPendingPlanId(null);
+      if (!result.ok) {
+        window.alert(result.error ?? "Não foi possível concluir a ação.");
+        return;
+      }
+      router.refresh();
+    });
   }
 
   async function handleCompanyClick(company: Company) {
@@ -228,12 +271,31 @@ export function AdminCompaniesClient({
       ),
     },
     {
+      key: "plan",
+      label: "Plano",
+      render: (company) => (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-brand-text">
+            {PLAN_CATALOG[company.subscription.tier].name}
+          </span>
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLE[company.subscription.effectiveStatus]}`}
+          >
+            {STATUS_LABEL[company.subscription.effectiveStatus]}
+          </span>
+        </div>
+      ),
+    },
+    {
       key: "users",
       label: "Usuários",
       optional: true,
       className: "text-center",
       render: (company) => (
-        <span className="text-sm text-brand-text">{company.users.length}</span>
+        <QuotaValue
+          used={company.usage.users}
+          limit={company.subscription.limits.users}
+        />
       ),
     },
     {
@@ -242,10 +304,79 @@ export function AdminCompaniesClient({
       optional: true,
       className: "text-center",
       render: (company) => (
-        <span className="text-sm text-brand-text">
-          {company.projects.length}
-        </span>
+        <QuotaValue
+          used={company.usage.projects}
+          limit={company.subscription.limits.projects}
+        />
       ),
+    },
+    {
+      key: "geoRuns",
+      label: "Raio-X (mês)",
+      optional: true,
+      className: "text-center",
+      render: (company) => (
+        <QuotaValue
+          used={company.usage.geoRunsThisMonth}
+          limit={company.subscription.limits.geoRunsPerMonth}
+        />
+      ),
+    },
+    {
+      key: "trial",
+      label: "Teste",
+      optional: true,
+      className: "text-center",
+      render: (company) => {
+        const days = company.subscription.trialDaysLeft;
+        if (days === null)
+          return <span className="text-xs text-brand-muted">—</span>;
+        return (
+          <span
+            className={`text-xs ${days > 0 ? "text-blue-500" : "text-destructive"}`}
+          >
+            {days > 0 ? `${days} dia${days !== 1 ? "s" : ""}` : "Encerrado"}
+          </span>
+        );
+      },
+    },
+    {
+      key: "discount",
+      label: "Desconto",
+      optional: true,
+      className: "text-center",
+      render: (company) => {
+        if (!company.subscription.discountActive)
+          return <span className="text-xs text-brand-muted">—</span>;
+        const until = formatDateBr(company.subscription.discountEndsAt);
+        return (
+          <span
+            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-500"
+            title={until ? `Válido até ${until}` : undefined}
+          >
+            {company.subscription.discountPercent}%
+          </span>
+        );
+      },
+    },
+    {
+      key: "overrides",
+      label: "Ajustes",
+      optional: true,
+      className: "text-center",
+      render: (company) => {
+        const count = Object.keys(company.subscription.overrides).length;
+        if (count === 0)
+          return <span className="text-xs text-brand-muted">—</span>;
+        return (
+          <span
+            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/10 text-yellow-600"
+            title="Limites ajustados manualmente, fora do plano"
+          >
+            {count} manual{count !== 1 ? "is" : ""}
+          </span>
+        );
+      },
     },
     {
       key: "guestMode",
@@ -257,6 +388,44 @@ export function AdminCompaniesClient({
   ];
 
   const filters: FilterDef<Company>[] = [
+    {
+      key: "tier",
+      label: "Plano",
+      options: [
+        { value: "", label: "Todos" },
+        ...PLAN_TIERS.map((tier) => ({
+          value: tier,
+          label: PLAN_CATALOG[tier].name,
+        })),
+      ],
+      predicate: (company, value) => company.subscription.tier === value,
+    },
+    {
+      key: "planStatus",
+      label: "Situação",
+      options: [
+        { value: "", label: "Todas" },
+        ...SUBSCRIPTION_STATUSES.map((status) => ({
+          value: status,
+          label: STATUS_LABEL[status],
+        })),
+      ],
+      predicate: (company, value) =>
+        company.subscription.effectiveStatus === value,
+    },
+    {
+      key: "overrides",
+      label: "Ajustes",
+      options: [
+        { value: "", label: "Todos" },
+        { value: "manual", label: "Com limite manual" },
+        { value: "plano", label: "Só o plano" },
+      ],
+      predicate: (company, value) =>
+        value === "manual"
+          ? Object.keys(company.subscription.overrides).length > 0
+          : Object.keys(company.subscription.overrides).length === 0,
+    },
     {
       key: "guestMode",
       label: "Convidados",
@@ -323,10 +492,56 @@ export function AdminCompaniesClient({
             <button
               onClick={() => setModal({ mode: "edit", company })}
               className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
-              title="Editar"
+              title="Editar empresa"
             >
               <Pencil className="w-3.5 h-3.5" />
             </button>
+            {isAdmin && (
+              <>
+                <button
+                  onClick={() => setPlanTarget(company)}
+                  className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
+                  title="Plano e cobrança"
+                >
+                  <Gauge className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => setLimitsTarget(company)}
+                  className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition"
+                  title="Limites manuais"
+                >
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                </button>
+                {company.subscription.trialDaysLeft !== null && (
+                  <>
+                    <button
+                      disabled={pendingPlanId === company.id}
+                      onClick={() =>
+                        runPlanAction(company.id, () =>
+                          adminExtendTrial(company.id, 7),
+                        )
+                      }
+                      className="p-1.5 rounded text-brand-muted hover:text-brand-primary hover:bg-brand-btn-light transition disabled:opacity-50"
+                      title="Estender teste em 7 dias"
+                    >
+                      <CalendarClock className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      disabled={pendingPlanId === company.id}
+                      onClick={() =>
+                        runPlanAction(company.id, () =>
+                          adminConvertTrial(company.id),
+                        )
+                      }
+                      className="p-1.5 rounded text-brand-muted hover:text-emerald-500 hover:bg-brand-btn-light transition disabled:opacity-50"
+                      title="Encerrar teste e ativar Inicial com desconto"
+                    >
+                      <BadgeCheck className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                )}
+              </>
+            )}
           </>
         )}
         searchPlaceholder="Buscar empresas..."
@@ -344,6 +559,26 @@ export function AdminCompaniesClient({
           </button>
         }
       />
+
+      {planTarget && (
+        <CompanyPlanModal
+          companyId={planTarget.id}
+          companyName={planTarget.name}
+          subscription={planTarget.subscription}
+          currentPeriodEnd={planTarget.currentPeriodEnd}
+          notes={planTarget.subscriptionNotes}
+          onClose={() => setPlanTarget(null)}
+        />
+      )}
+      {limitsTarget && (
+        <CompanyLimitsModal
+          companyId={limitsTarget.id}
+          companyName={limitsTarget.name}
+          subscription={limitsTarget.subscription}
+          usage={limitsTarget.usage}
+          onClose={() => setLimitsTarget(null)}
+        />
+      )}
 
       {modal === "create" && (
         <CompanyFormModal mode="create" onClose={() => setModal(null)} />

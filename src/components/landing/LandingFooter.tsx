@@ -15,6 +15,7 @@ const COLUMNS = [
     title: 'Saber mais',
     links: [
       { href: '#fluxo', label: 'Como funciona' },
+      { href: '#precos', label: 'Planos' },
       { href: '#perguntas', label: 'Perguntas frequentes' },
       { href: '#api', label: 'Para desenvolvedores' },
     ],

@@ -5,6 +5,7 @@ import { db } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { logAudit } from '@/lib/audit-logger'
+import { initialSubscriptionData } from '@/modules/billing/domain/limits'
 
 const schema = z.object({
   name: z.string().min(2),
@@ -38,7 +39,11 @@ export async function adminCreateCompany(
   }
 
   const company = await db.company.create({
-    data: { ...parsed.data, createdById: session.user.id },
+    data: {
+      ...parsed.data,
+      createdById: session.user.id,
+      subscription: { create: initialSubscriptionData() },
+    },
   })
 
   await logAudit({

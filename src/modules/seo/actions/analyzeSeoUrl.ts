@@ -7,13 +7,12 @@ import { db } from '@/lib/prisma'
 import { getImpersonatedUserId } from '@/lib/auth/permissions'
 import { Prisma } from '@/generated/prisma/client'
 import { SafeFetchError, type SafeFetchErrorCode } from '@/lib/security/safe-fetch'
+import { enforceQuota } from '@/modules/billing/guards/enforcePlan'
 import { fetchTargetPage } from '../infra/fetchTargetPage'
 import { parsePage } from '../infra/parseHtml'
 import { scoreSeo } from '../domain/seoScoring'
 import { scoreGeoFoundation } from '../domain/geoFoundationScoring'
 import type { SeoAnalysisResult } from '../domain/seoCheck'
-
-const RATE_LIMIT_PER_DAY = 20
 
 const inputSchema = z.object({
   url: z.url(),
@@ -64,16 +63,9 @@ export async function analyzeSeoUrl(input: {
     return { ok: false, error: 'Empresa não encontrada', code: 404 }
   }
 
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
-  const usedToday = await db.seoAnalysis.count({
-    where: { companyId: company.id, createdAt: { gte: since } },
-  })
-  if (usedToday >= RATE_LIMIT_PER_DAY) {
-    return {
-      ok: false,
-      error: `Limite de ${RATE_LIMIT_PER_DAY} análises por dia atingido. Tente novamente amanhã.`,
-      code: 429,
-    }
+  const quota = await enforceQuota(company.id, 'seoAnalysesPerDay')
+  if (!quota.ok) {
+    return { ok: false, error: quota.error, code: quota.code }
   }
 
   try {
